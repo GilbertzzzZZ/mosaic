@@ -1,34 +1,13 @@
 // src/dataset/chart-tag-processor.tsx
-import React from "react";
 import ReactDOM from "react-dom";
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
-import { getTheme } from "@antv/g2";
 import MosaicPlugin from "../main";
 import { findChartTags, isOnlyChartTags } from "./chart-tag.mjs";
-import { loadDatasetForNote } from "./obsidian-dataset";
-import {
-	buildChartFromTag,
-	parseGranularityOptions,
-} from "./chart-tag-config.mjs";
-import { ChartFigure } from "../components/ChartFigure";
+import { renderChartInto } from "./render-chart";
 
 const RUN_KEY = "__mosaicTagRun";
 
 type ChartTagRun = { hosts: HTMLElement[] };
-
-// 跟随 Obsidian 主题选择 G2 主题；背景透明，与页面底色融合。
-// 主题切换时 main.tsx 监听 css-change 强制重渲染，本函数会被重新求值。
-function currentChartTheme(): Record<string, unknown> {
-	const dark = document.body.classList.contains("theme-dark");
-	const theme = { ...getTheme(dark ? "dark" : "default") };
-	theme.background = "transparent";
-	return theme;
-}
-
-function withTheme<T extends { config: Record<string, unknown> }>(built: T): T {
-	built.config.theme = currentChartTheme();
-	return built;
-}
 
 export function createChartTagProcessor(plugin: MosaicPlugin) {
 	return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
@@ -70,41 +49,12 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 			const host = el.createDiv({ cls: "mosaic-tag-host" });
 			run.hosts.push(host);
 			try {
-				const attributes = tag.attributes as Record<string, string>;
-				if (!attributes.dataset) {
-					throw new Error(
-						"Chart tag without dataset= is not supported yet (inline data body is a future entry).",
-					);
-				}
-				const { manifest, rows } = await loadDatasetForNote(
-					plugin.app,
-					ctx.sourcePath,
-					attributes.dataset,
-				);
-				if (stale()) return;
-				const build = (granularity: string) =>
-					withTheme(buildChartFromTag({ manifest, rows, attributes, granularity }));
-				const initial = withTheme(
-					buildChartFromTag({
-						manifest,
-						rows,
-						attributes,
-						granularity: undefined,
-					}),
-				);
-				const options = parseGranularityOptions(attributes).filter((g) =>
-					initial.availableGranularities.includes(g),
-				);
-				ReactDOM.render(
-					<ChartFigure
-						title={attributes.title}
-						note={attributes.note}
-						options={options}
-						initial={initial}
-						build={build}
-						showExportBtn={plugin.settings.showExportBtn}
-					/>,
+				await renderChartInto(
+					plugin,
 					host,
+					ctx.sourcePath,
+					{ attributes: tag.attributes as Record<string, string>, csv: tag.csv ?? null },
+					stale,
 				);
 			} catch (e) {
 				if (stale()) return;
