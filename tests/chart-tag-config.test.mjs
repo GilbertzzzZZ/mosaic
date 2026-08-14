@@ -6,6 +6,7 @@ import {
 } from "../src/dataset/dataset-loader.mjs";
 import {
 	buildChartFromTag,
+	buildChartFromInline,
 	parseGranularityOptions,
 	formatChartNumber,
 } from "../src/dataset/chart-tag-config.mjs";
@@ -463,4 +464,90 @@ test("dual-axis percent suffix applies per side", () => {
 	});
 	assert.equal(r.config.meta.barValue.formatter(1000), "1,000");
 	assert.equal(r.config.meta.lineValue.formatter(2.6), "2.6%");
+});
+
+const INLINE_CSV = "month,a,b\n2025-01,120,80\n2025-02,140,\n2025-03,160,95";
+
+test("inline: builds a line chart from csv with defaults", () => {
+	const built = buildChartFromInline({
+		attributes: { title: "t", x: "month", series: "a,b" },
+		csv: INLINE_CSV,
+	});
+	assert.equal(built.chartType, "Line"); // 多系列缺省 line
+	assert.equal(built.footnote, undefined);
+	assert.equal(built.granularity, "source");
+	assert.deepEqual(built.availableGranularities, []);
+	assert.equal(built.config.xField, "period");
+	// 空单元格 → null 断点
+	const feb = built.config.data.find(
+		(d) => d.period === "2025-02" && d.series === "b",
+	);
+	assert.equal(feb.value, null);
+	assert.deepEqual(built.config.legend, { marker: { symbol: "square" } });
+});
+
+test("inline: x defaults to the first csv column", () => {
+	const built = buildChartFromInline({
+		attributes: { series: "a" },
+		csv: INLINE_CSV,
+	});
+	assert.equal(built.chartType, "Column");
+	assert.ok(built.config.data.every((d) => typeof d.period === "string"));
+});
+
+test("inline: series defaults to all non-x columns", () => {
+	const built = buildChartFromInline({ attributes: {}, csv: INLINE_CSV });
+	const seriesNames = new Set(built.config.data.map((d) => d.series));
+	assert.deepEqual([...seriesNames].sort(), ["a", "b"]);
+});
+
+test("inline: combo with bars and lines", () => {
+	const built = buildChartFromInline({
+		attributes: { type: "combo", x: "month", bars: "a", lines: "b" },
+		csv: INLINE_CSV,
+	});
+	assert.equal(built.chartType, "DualAxes");
+});
+
+test("inline: percent unit formatter applies", () => {
+	const built = buildChartFromInline({
+		attributes: { x: "month", series: "a", unit: "%" },
+		csv: INLINE_CSV,
+	});
+	assert.equal(built.config.meta.value.formatter(12.5), "12.5%");
+});
+
+test("inline: rejects dataset-only attributes", () => {
+	for (const key of ["dataset", "from", "to", "granularity", "granularityOptions"]) {
+		assert.throws(
+			() => buildChartFromInline({ attributes: { [key]: "x" }, csv: INLINE_CSV }),
+			new RegExp(key),
+		);
+	}
+});
+
+test("inline: rejects non-numeric series values with row number", () => {
+	assert.throws(
+		() =>
+			buildChartFromInline({
+				attributes: { x: "month", series: "a" },
+				csv: "month,a\n2025-01,abc",
+			}),
+		/row 2.*"a".*not a number/i,
+	);
+});
+
+test("inline: rejects unknown declared columns", () => {
+	assert.throws(
+		() => buildChartFromInline({ attributes: { x: "month", series: "nope" }, csv: INLINE_CSV }),
+		/no "nope" column/,
+	);
+});
+
+test("inline: rejects csv without a data row", () => {
+	assert.throws(() => buildChartFromInline({ attributes: {}, csv: "month,a" }), /header row and at least one data row/);
+});
+
+test("inline: rejects duplicate header columns", () => {
+	assert.throws(() => buildChartFromInline({ attributes: {}, csv: "m,a,a\n1,2,3" }), /duplicate/i);
 });

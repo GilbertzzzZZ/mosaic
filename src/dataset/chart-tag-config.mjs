@@ -3,6 +3,7 @@ import {
 	DATASET_GRANULARITIES,
 	isDatasetGranularity,
 } from "./dataset-granularity.mjs";
+import { parseDelimitedRecords } from "./delimited-data.mjs";
 
 const CHART_COLORS = [
 	"#2563eb",
@@ -156,37 +157,13 @@ function buildWarning(meta) {
 	return parts.length ? parts.join("；") : undefined;
 }
 
-export function buildChartFromTag({
-	manifest,
-	rows,
-	attributes,
-	granularity,
-}) {
-	const granularityOptions = parseGranularityOptions(attributes);
-	const requested = String(granularity ?? attributes.granularity ?? "auto")
-		.trim()
-		.toLowerCase();
-	if (requested !== "auto" && !granularityOptions.includes(requested)) {
-		throw new Error(
-			`Granularity "${requested}" is not in granularityOptions (${granularityOptions.join(",")}).`,
-		);
-	}
-	const result = queryDataset({
-		manifest,
-		rows,
-		component: "Chart",
-		attributes,
-		granularity: requested,
-		granularityOptions,
-	});
-	const attrs = result.attributes;
-	const xKey = attrs.x;
+function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 	const bars = splitList(attrs.bars ?? attrs.bar);
 	const lines = splitList(attrs.lines ?? attrs.line);
 	const explicit = splitList(attrs.series ?? attrs.y);
 	let seriesKeys = explicit.length ? explicit : [...bars, ...lines];
 	if (seriesKeys.length === 0) {
-		seriesKeys = Object.keys(result.rows[0] ?? {}).filter((k) => k !== xKey);
+		seriesKeys = Object.keys(rows[0] ?? {}).filter((k) => k !== xKey);
 	}
 	const rawType = String(attrs.type ?? "")
 		.trim()
@@ -197,12 +174,6 @@ export function buildChartFromTag({
 			? "line"
 			: "bar";
 	const label = labelsEnabled(attrs) ? {} : undefined;
-	const common = {
-		footnote: buildFootnote(result.meta),
-		warning: buildWarning(result.meta),
-		granularity: result.meta.granularity,
-		availableGranularities: result.meta.availableGranularities,
-	};
 
 	if (type === "combo" || type === "combo-dual-axis") {
 		let barKeys = bars,
@@ -215,8 +186,8 @@ export function buildChartFromTag({
 				`Chart type "${type}" needs both bar and line series (use bars= and lines=).`,
 			);
 		}
-		const barLong = toLong(result.rows, xKey, barKeys, attrs, "barValue");
-		const lineLong = toLong(result.rows, xKey, lineKeys, attrs, "lineValue");
+		const barLong = toLong(rows, xKey, barKeys, attrs, "barValue");
+		const lineLong = toLong(rows, xKey, lineKeys, attrs, "lineValue");
 		const dual = type === "combo-dual-axis";
 		const leftUnit = String(attrs.leftUnit ?? attrs.unit ?? "");
 		const rightUnit = String(attrs.rightUnit ?? "");
@@ -316,7 +287,7 @@ export function buildChartFromTag({
 		};
 	}
 
-	const data = toLong(result.rows, xKey, seriesKeys, attrs);
+	const data = toLong(rows, xKey, seriesKeys, attrs);
 	const unit = String(attrs.unit ?? "");
 	// stacked-bar 的视觉上限是每期堆叠和，其余按单值最大。
 	const yMax =
@@ -363,4 +334,113 @@ export function buildChartFromTag({
 			config: { ...config, isStack: true },
 		};
 	return { ...common, chartType: "Column", config }; // "bar"
+}
+
+export function buildChartFromTag({
+	manifest,
+	rows,
+	attributes,
+	granularity,
+}) {
+	const granularityOptions = parseGranularityOptions(attributes);
+	const requested = String(granularity ?? attributes.granularity ?? "auto")
+		.trim()
+		.toLowerCase();
+	if (requested !== "auto" && !granularityOptions.includes(requested)) {
+		throw new Error(
+			`Granularity "${requested}" is not in granularityOptions (${granularityOptions.join(",")}).`,
+		);
+	}
+	const result = queryDataset({
+		manifest,
+		rows,
+		component: "Chart",
+		attributes,
+		granularity: requested,
+		granularityOptions,
+	});
+	const common = {
+		footnote: buildFootnote(result.meta),
+		warning: buildWarning(result.meta),
+		granularity: result.meta.granularity,
+		availableGranularities: result.meta.availableGranularities,
+	};
+	return buildChartFromRows({
+		rows: result.rows,
+		attrs: result.attributes,
+		attributes,
+		xKey: result.attributes.x,
+		common,
+	});
+}
+
+// 内联数据（代码块 CSV body / 成对标签 payload）出图：无 dataset 查询语义，
+// 数据按书写顺序原样呈现；格式化/配色/头部空间/图例与 dataset 模式一致。
+const DATASET_ONLY_ATTRS = ["dataset", "from", "to", "granularity", "granularityOptions"];
+
+export function buildChartFromInline({ attributes = {}, csv }) {
+	for (const key of DATASET_ONLY_ATTRS) {
+		if (String(attributes[key] ?? "").trim() !== "") {
+			throw new Error(
+				`Inline data does not support the "${key}" attribute (dataset charts only).`,
+			);
+		}
+	}
+	const records = parseDelimitedRecords(csv);
+	if (records.length < 2) {
+		throw new Error("Inline CSV needs a header row and at least one data row.");
+	}
+	const [header, ...dataRecords] = records;
+	const columns = header.map((h) => String(h).trim());
+	if (new Set(columns).size !== columns.length) {
+		throw new Error("Inline CSV header has duplicate column names.");
+	}
+	const xKey = String(attributes.x ?? columns[0]).trim();
+	const declared = [
+		attributes.series,
+		attributes.y,
+		attributes.bars,
+		attributes.bar,
+		attributes.lines,
+		attributes.line,
+	].flatMap(splitList);
+	for (const name of [xKey, ...declared]) {
+		if (!columns.includes(name)) {
+			throw new Error(`Inline CSV has no "${name}" column.`);
+		}
+	}
+	const rows = dataRecords.map((record, index) => {
+		const row = {};
+		columns.forEach((name, i) => {
+			const cell = String(record[i] ?? "").trim();
+			if (name === xKey) {
+				row[name] = cell;
+				return;
+			}
+			if (cell === "") {
+				row[name] = null;
+				return;
+			}
+			const n = Number(cell);
+			if (!Number.isFinite(n)) {
+				throw new Error(
+					`Inline CSV row ${index + 2}: "${name}" value "${cell}" is not a number.`,
+				);
+			}
+			row[name] = n;
+		});
+		return row;
+	});
+	return buildChartFromRows({
+		rows,
+		attrs: attributes,
+		attributes,
+		xKey,
+		common: {
+			footnote: undefined,
+			warning: undefined,
+			granularity: "source",
+			availableGranularities: [],
+		},
+	});
 }
