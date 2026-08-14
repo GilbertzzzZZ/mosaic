@@ -1,7 +1,7 @@
 # DecisionBox
 
 > DecisionBox 内容块的完整文档：结构化的 label/value 决策清单，或空 payload 时回退成一段极简富文本。
-> 只支持成对标签入口，只支持内联 payload——不支持 `dataset` 属性、不支持 `chartview` 代码块写法。DecisionBox 是五类组件里**唯一永不报错**的一个。
+> 只支持成对标签入口，只支持内联 payload——不支持 `dataset` 属性、不支持 `chartview` 代码块写法。DecisionBox 是五类组件里**唯一在空/非结构化 payload 时不报错**的一个（误用 `dataset` 或畸形 JSON 仍会报错，见「报错示例」）。
 
 ## 写法
 
