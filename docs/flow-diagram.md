@@ -1,0 +1,147 @@
+# FlowDiagram
+
+> FlowDiagram 内容块的完整文档：分层自动布局的流程图（SVG），两种互斥的 payload 形态——显式 graph JSON，或表格式行数据（`next` 列隐式生成边）。
+> 只支持成对标签入口，只支持内联 payload——不支持 `dataset` 属性、不支持自闭合（body 为空时直接报错）、不支持 `chartview` 代码块写法。
+
+## 写法
+
+**形态 A（graph JSON）**：属性写在开标签上，payload 是唯一的 ` ```json ` 围栏，顶层是 `{nodes, edges}` 对象：
+
+````text
+<FlowDiagram title="示例流程">
+```json
+{
+  "nodes": [
+    {"id": "a", "label": "开始", "type": "start"},
+    {"id": "b", "label": "判断条件", "type": "decision"},
+    {"id": "c", "label": "结束", "type": "end"}
+  ],
+  "edges": [
+    {"from": "a", "to": "b"},
+    {"from": "b", "to": "c", "label": "满足"}
+  ]
+}
+```
+</FlowDiagram>
+````
+
+**形态 B（表格式行，回退）**：payload 走通用的行提取规则（CSV/TSV/JSON 数组/裸 Markdown 表都可），每行是一个节点，`next` 列（逗号分隔，可写多个目标 id）隐式生成边——不需要单独写 edges 表：
+
+````text
+<FlowDiagram title="示例流程">
+```csv
+id,label,type,next
+a,开始,start,b
+b,判断条件,decision,c
+c,结束,end,
+```
+</FlowDiagram>
+````
+
+- **两种形态的判定**：标签体是唯一一个语言标签恰为 `json` 的围栏（或裸文本以 `{`/`[` 开头），且解析出的顶层值是非数组对象、含 `Array.isArray(...nodes)` → 形态 A；否则一律回退形态 B（走通用行提取）。写 ` ```csv ` 但内容恰好是合法 JSON **不会**被当成图解析，仍按 CSV 处理。
+- **两种形态最终汇入同一套归一化**：即使走了形态 A（显式 JSON graph），节点上的 `next`/`to` 字段依然会**再次**被拿去生成隐式边并追加到显式 `edges` 数组后面，两者合并、不去重。所有引用不存在节点 id 的边（无论显式给的还是 `next` 派生的）都被静默过滤掉，不报错。
+- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。git-leaf 原实现允许开标签跨多行，Mosaic 不支持这一点。
+- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。git-leaf 没有这个限制。
+- 属性值支持双引号、单引号或不加引号三种写法。
+- 闭合标签必须独占一行、与开标签同名，大小写敏感：`</FlowDiagram>`。
+
+## 属性表
+
+| 属性 | 说明 |
+| --- | --- |
+| `title` | 渲染为图注（`<figcaption>`），同时作为 SVG 的 `aria-label`；未设置时 `aria-label` 用固定文案「流程图」 |
+| `note` | 图下方附注文字 |
+
+FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。
+
+## Payload 契约
+
+**形态 A 顶层结构**：
+
+```json
+{
+  "nodes": [ { "id": "...", "label": "...", "type": "...", "note": "...", "next": "..." } ],
+  "edges": [ { "from": "...", "to": "...", "label": "..." } ]
+}
+```
+
+`edges` 字段名可以是 `edges` 或 `links`（`edges` 优先）。
+
+**形态 B**：与其他四类共用的通用行提取规则（fenced csv/tsv/json，或裸 JSON/Markdown表/CSV；语言标签只在 `json`/`tsv` 时生效，否则退化 CSV）。
+
+**节点归一化**（两种形态最终都走这一步）：
+
+| 输出字段 | 别名优先级 |
+| --- | --- |
+| `id` | `id` ?? `key` ?? 序号（1-based）；trim 后为空的节点被丢弃 |
+| `label` | `label` ?? `title` ?? `name` ?? `id` |
+| `type` | 见下表 |
+| `note` | `note` ?? `description`，渲染为 SVG 原生 hover tooltip |
+| `next`（仅用于隐式生成边） | `next` ?? `to`，逗号分隔多个目标 id |
+
+**边归一化**：`from`/`to` 支持别名 `source`/`target`；`label` 支持别名 `title`；引用不存在节点 id 的边被静默过滤。
+
+**type 状态词表**（`normalizeFlowType`，默认 `action`）：
+
+| 归一化结果 | 命中输入 |
+| --- | --- |
+| `start` | 显式 `start` |
+| `end` | 显式 `end` |
+| `decision` | 显式 `decision`，或 `question` / `branch` / `condition` |
+| `gate` | 显式 `gate` |
+| `risk` | 显式 `risk`，或 `warning` / `blocked` / `error` |
+| `action`（默认） | 其他任意值或未指定 |
+
+**自动分层布局**：节点按边的 `from→to` 方向做最长路径拓扑分层（同层横向等距排布，层间纵向递增），边用三次贝塞尔曲线连接。**环退化规则**：若图中存在环，环内节点在拓扑遍历中永远不会被访问到；遍历结束后，这些未访问节点按输入顺序依次追加到「当前最深层 +1、+2、+3…」，每个孤立/环内节点单独占一层——即环会被拉直成一条纵向链，不做真正的环形布局。
+
+**环退化最小示例**（伪造数据，`a → b → c → a` 三节点环）：
+
+```text
+<FlowDiagram title="示例环（退化布局）">
+```csv
+id,label,type,next
+a,节点A,action,b
+b,节点B,action,c
+c,节点C,action,a
+```
+</FlowDiagram>
+```
+
+三个节点会被逐一拉开成三层纵向排布，而不是折叠成一个视觉闭环。
+
+**空数据报错**：`nodes.length === 0` 时触发（即使 `edges` 有内容，没有一个 id 非空的节点也不够）。
+
+### 报错示例
+
+红色错误框（就地透出根因，前缀均为 `Mosaic: `）：
+
+```text
+标签体为空、或形态 A/B 都没有解析出任何有效节点
+→ Mosaic: FlowDiagram requires nodes.
+
+标签上出现 dataset 属性（FlowDiagram 不支持外部数据集）
+→ Mosaic: External datasets support Chart and DataTable.
+```
+
+按原文渲染（不接管、不是错误框）：
+
+- 开标签跨多行（Obsidian 段落规则不支持，见上文写法说明）。
+- 标签体内出现空行。
+- 段落里混有标签以外的内容。
+- 找不到独占一行的 `</FlowDiagram>` 闭合标签。
+
+## 渲染效果
+
+> 图片均为待补充占位；示例截图一律使用明显的假数据。
+
+- 形态 A（显式 graph JSON）分层布局：![待补充]
+- 形态 B（表格式行，`next` 隐式生成边）分层布局：![待补充]
+- 环退化布局（环节点拉直为纵向链）：![待补充]
+- start/end/decision/gate/risk/action 六色节点：![待补充]
+- 明暗主题跟随：![待补充]
+- 错误框呈现：![待补充]
+
+## 相关文档
+
+- [[docs/data-table|data-table.md]]
+- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap

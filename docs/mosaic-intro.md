@@ -76,7 +76,7 @@ Full reference: [[docs/chart|chart.md]].
 />
 ```
 
-**Paired tag** (`<Chart>` inline CSV is available; other block types are planned — attributes on the opening tag, data payload in the body)
+**Paired tag** (attributes on the opening tag, data payload in the body — shared by `Chart` and the five tag-only block types)
 
 ````text
 <MetricGrid title="Product Overview">
@@ -94,7 +94,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## Block Types
 
-> Chart is available; the other types are planned placeholders.
+> All six types from the git-leaf superset are available: Chart, DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram.
 
 **Chart**
 
@@ -102,11 +102,13 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - Data comes from an external dataset manifest, or inline CSV written directly in the declaration.
 - Full attribute contract: [[docs/dataset-guide|dataset-guide.md]].
 
-**Planned types** (superset of git-leaf)
+**DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram** (git-leaf superset, tag entries only)
 
-- Mosaic aims to cover every component type git-leaf supports, so the same documents render fully in both places: `Chart` (done), `DataTable`, `MetricGrid`, `Timeline`, `DecisionBox`, `FlowDiagram`.
-- `DataTable` comes first: like Chart it reads external dataset manifests, so the data and query layers are already in place — only the render component is new.
-- The remaining types take inline payloads and extend through the same three-stage pipeline.
+- Tag entries only (paired tag; `DataTable` also supports a self-closing form for its `dataset` mode) — no `chartview` code block for these five.
+- `DataTable` reads inline tables (CSV/JSON/Markdown) or an external dataset manifest, sharing the same query layer as Chart.
+- `MetricGrid`, `Timeline`, `DecisionBox`, `FlowDiagram` take inline payloads only; each has its own field-alias and status-vocabulary contract.
+- `DecisionBox` is the one type that never renders an error box — an empty or unstructured body falls back to a short rich-text render.
+- Full contracts: [[docs/data-table|data-table.md]], [[docs/metric-grid|metric-grid.md]], [[docs/timeline|timeline.md]], [[docs/decision-box|decision-box.md]], [[docs/flow-diagram|flow-diagram.md]].
 
 **More types** (planned)
 
@@ -145,11 +147,10 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## Roadmap
 
-> Planned but not yet implemented; all items are placeholders.
+> Planned but not yet implemented; all items are placeholders unless marked done.
 
-- (Placeholder) DataTable block type — first in line: reuses the existing dataset/query layers.
-- (Placeholder) MetricGrid, Timeline, DecisionBox and FlowDiagram block types — completing the git-leaf superset.
 - (Placeholder) Live Preview rendering.
+- (Done 2026-08-15) DataTable, MetricGrid, Timeline, DecisionBox and FlowDiagram block types — completing the git-leaf superset.
 - (Done 2026-08-14) Plugin id migrated to `mosaic`. Marketplace listing plan remains a placeholder.
 
 ---
