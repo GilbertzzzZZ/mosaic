@@ -551,3 +551,84 @@ test("inline: rejects csv without a data row", () => {
 test("inline: rejects duplicate header columns", () => {
 	assert.throws(() => buildChartFromInline({ attributes: {}, csv: "m,a,a\n1,2,3" }), /duplicate/i);
 });
+
+const DENSE_CSV = [
+	"month,a",
+	"2025-01,120",
+	"2025-02,140",
+	"2025-03,110",
+	"2025-04,180",
+	"2025-05,90",
+	"2025-06,150",
+	"2025-07,160",
+	"2025-08,100",
+	"2025-09,130",
+].join("\n");
+
+test("labels selectors: every+extremes+ends union shows only selected points", () => {
+	const built = buildChartFromInline({
+		attributes: { x: "month", series: "a", labels: "every:3,extremes,ends" },
+		csv: DENSE_CSV,
+	});
+	const at = (period, value) =>
+		built.config.label.formatter({ period, series: "a", value });
+	// every:3 → 01/04/07；extremes → 04(max)/05(min)；ends → 01/09
+	assert.equal(at("2025-01", 120), "120");
+	assert.equal(at("2025-04", 180), "180");
+	assert.equal(at("2025-07", 160), "160");
+	assert.equal(at("2025-05", 90), "90");
+	assert.equal(at("2025-09", 130), "130");
+	assert.equal(at("2025-02", 140), "");
+	assert.equal(at("2025-08", 100), "");
+});
+
+test("labels selectors: ends only marks each series' first and last", () => {
+	const built = buildChartFromInline({
+		attributes: { x: "month", series: "a", labels: "ends" },
+		csv: DENSE_CSV,
+	});
+	const at = (period, value) =>
+		built.config.label.formatter({ period, series: "a", value });
+	assert.equal(at("2025-01", 120), "120");
+	assert.equal(at("2025-09", 130), "130");
+	assert.equal(at("2025-04", 180), "");
+});
+
+test("labels selectors apply per combo geometry with units", () => {
+	const built = buildChartFromInline({
+		attributes: { type: "combo", x: "month", bars: "a", lines: "b", labels: "ends", unit: "%" },
+		csv: "month,a,b\n2025-01,1,4\n2025-02,2,5\n2025-03,3,6",
+	});
+	const [barGeometry, lineGeometry] = built.config.geometryOptions;
+	assert.equal(
+		barGeometry.label.formatter({ period: "2025-01", series: "a", barValue: 1 }),
+		"1%",
+	);
+	assert.equal(
+		barGeometry.label.formatter({ period: "2025-02", series: "a", barValue: 2 }),
+		"",
+	);
+	assert.equal(
+		lineGeometry.label.formatter({ period: "2025-03", series: "b", lineValue: 6 }),
+		"6%",
+	);
+});
+
+test("labels=all keeps the auto anti-collision label", () => {
+	const built = buildChartFromInline({
+		attributes: { x: "month", series: "a", labels: "all" },
+		csv: DENSE_CSV,
+	});
+	assert.deepEqual(built.config.label, {});
+});
+
+test("labels selectors: unknown selector is rejected", () => {
+	assert.throws(
+		() =>
+			buildChartFromInline({
+				attributes: { x: "month", series: "a", labels: "every3" },
+				csv: DENSE_CSV,
+			}),
+		/Unknown labels value/,
+	);
+});
