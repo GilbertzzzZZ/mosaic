@@ -14,12 +14,17 @@ export function createChartBlockProcessor(plugin: MosaicPlugin) {
 	) => {
 		const host = el.createDiv({ cls: "mosaic-tag-host" });
 		const child = new MarkdownRenderChild(el);
-		child.onunload = () => ReactDOM.unmountComponentAtNode(host);
+		let unloaded = false;
+		child.onunload = () => {
+			unloaded = true;
+			ReactDOM.unmountComponentAtNode(host);
+		};
 		ctx.addChild(child);
 		try {
 			const parsed = parseChartBlock(source);
-			await renderChartInto(plugin, host, ctx.sourcePath, parsed);
+			await renderChartInto(plugin, host, ctx.sourcePath, parsed, () => unloaded);
 		} catch (e) {
+			if (unloaded) return;
 			ReactDOM.unmountComponentAtNode(host);
 			host.empty();
 			host.createDiv({
