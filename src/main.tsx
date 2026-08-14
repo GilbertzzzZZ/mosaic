@@ -36,10 +36,12 @@ export default class MosaicPlugin extends Plugin {
 	}
 
 	rerenderOpenPreviews() {
+		// rebuildView 而非 rerender(true)：后者与阅读视图虚拟化存在竞态，
+		// 视口外章节延迟物化时拿不到 section info，会留下空段落。
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			const view = leaf.view;
 			if (view instanceof MarkdownView && view.getMode() === "preview") {
-				view.previewMode.rerender(true);
+				leaf.rebuildView();
 			}
 		});
 	}
