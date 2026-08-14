@@ -106,7 +106,9 @@ test("open tag with non-attribute inner content is rejected", () => {
 	assert.deepEqual(findChartTags('<Chart title="t" junk>\n```csv\nm,a\n1,2\n```\n</Chart>'), []);
 });
 
-test("paired open tag accepts one attribute per line", () => {
+// 仅解析器层面的宽容：Obsidian 的 HTML block 规则要求成对标签的开标签单行
+// 书写（换行会被围栏切碎成多个 section，见 docs/chart.md 成对标签边界）。
+test("parser-level: paired open tag tolerates attributes across lines", () => {
 	const multiline = `<Chart
 	title="成对标签"
 	type="combo"
