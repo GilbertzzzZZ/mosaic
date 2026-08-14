@@ -317,6 +317,21 @@ test("combo respects tag writing order (lines first)", () => {
 	});
 });
 
+test("legend markers are circles", () => {
+	const line = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "line", series: "总量", granularity: "month" },
+	});
+	assert.deepEqual(line.config.legend, { marker: { symbol: "circle" } });
+	const combo = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "combo", bars: "拆分", lines: "总量", granularity: "month" },
+	});
+	assert.deepEqual(combo.config.legend, { marker: { symbol: "circle" } });
+});
+
 test("percent unit suffixes formatted values", () => {
 	const pct = buildChartFromTag({
 		manifest,
