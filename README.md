@@ -10,11 +10,12 @@ Declarative content blocks for [Obsidian](https://obsidian.md) notes: write a de
 
 ## Entries
 
-| Entry | Syntax | Data sources |
+| Entry | Syntax | Data |
 | --- | --- | --- |
-| Chart tag | Self-closing `<Chart ... />` in md / mdx body | External dataset manifests (`.dataset.json`) with time-range filtering and granularity rollup |
-| Code block | ```` ```chartview ```` fenced block | Inline YAML data, vault CSV files, Dataview queries |
-| Paired tag | `<Block>payload</Block>` | Planned |
+| Chart tag (self-closing) | `<Chart ... />` in md / mdx body | External dataset manifests (`.dataset.json`) with time-range filtering and granularity rollup |
+| Chart tag (paired) | `<Chart ...>` + fenced CSV + `</Chart>` | Inline CSV in the note body |
+| Code block | ```` ```chartview ```` with `---` frontmatter | External dataset manifests, or inline CSV below the frontmatter |
+| Other block types (MetricGrid, DataTable, Card) | Paired tags | Planned |
 
 Charts follow the Obsidian light / dark theme, format values (thousands grouping, `%` and currency units) and render in reading view.
 
@@ -23,8 +24,8 @@ Charts follow the Obsidian light / dark theme, format values (thousands grouping
 - [Mosaic intro](docs/mosaic-intro.md) ([中文](docs/mosaic-intro-zh.md)) — positioning, architecture and roadmap
 - [Chart tag](docs/chart-tag.md) — self-closing `<Chart />` entry: syntax and rendering effects
 - [Dataset guide](docs/dataset-guide.md) — dataset manifest contract, query semantics, troubleshooting
-- [Code-block charts](docs/code-block-charts.md) — `chartview` block reference: templates, wizard, CSV, Dataview, interactions
-- [Paired tag](docs/paired-tag.md) — planned third syntax: attributes on the tag, payload in the body
+- [Code block](docs/code-block.md) — `chartview` block reference: `---` frontmatter contract, external dataset or inline CSV
+- [Paired tag](docs/paired-tag.md) — attributes on the tag, payload in the body; `<Chart>` inline CSV is available
 
 ## Installing
 

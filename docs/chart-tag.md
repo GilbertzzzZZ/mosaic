@@ -80,8 +80,9 @@
 - 仅接管「整段只有标签与空白」的段落；混排段落保持原样。
 - 属性值内不能出现字面 `/>`。
 - 仅阅读视图；Live Preview（计划中）。
+- 需要内联数据时用成对形态，见 [[docs/paired-tag|paired-tag.md]]。
 
 ## 相关文档
 
 - [[docs/dataset-guide|dataset-guide.md]]——manifest 契约、查询语义、排错清单
-- [[docs/paired-tag|paired-tag.md]]——成对标签形态（计划中）
+- [[docs/paired-tag|paired-tag.md]]——成对标签形态，`<Chart>` 内联 CSV 已可用
