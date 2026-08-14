@@ -59,7 +59,7 @@
 | `granularityOptions` | 逗号分隔的候选粒度，渲染为切换按钮组；缺省全四种 |
 | `unit` | 轴单位；`%` 时数值带后缀，`元/¥/cny/rmb/人民币` 前缀 `¥`、`$/usd/美元/美金` 前缀 `$`，其余只画在轴标题 |
 | `leftUnit` / `rightUnit` | `combo-dual-axis` 左右轴单位，独立套用上述规则 |
-| `labels` | 数值标签：缺省 / `all` 全开（防碰撞自动取舍）；`0/false/hide/hidden/no/none/off` 关闭；或选择器并集——`ends`（每条线首尾）、`extremes`（每条线最值）、`every:N`（每 N 个点取一个），逗号组合，如 `labels="every:3,extremes,ends"`，只在选中点显示数字 |
+| `labels` | 数值标签开关；`0/false/hide/hidden/no/none/off` 之一时关闭，缺省开启 |
 | `title` / `note` | 图表标题与口径说明，渲染在 figure 头部/底部 |
 | `<字段名>Label` / `<字段名>Color` | 单系列显示名与颜色（合法 hex）；Label 缺省取 manifest 的 `label`，颜色缺省 6 色板按显示序循环 |
 
