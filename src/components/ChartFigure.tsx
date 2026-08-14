@@ -4,7 +4,7 @@ import { Chart, ConfigProps } from "./Chart";
 export interface BuiltChart {
 	chartType: string;
 	config: Record<string, unknown>;
-	footnote: string;
+	footnote?: string;
 	warning?: string;
 	granularity: string;
 	availableGranularities: string[];
@@ -83,7 +83,9 @@ export const ChartFigure = ({
 			{built.warning && (
 				<p className="mosaic-figure-warning">{built.warning}</p>
 			)}
-			<p className="mosaic-figure-footnote">{built.footnote}</p>
+			{built.footnote && (
+				<p className="mosaic-figure-footnote">{built.footnote}</p>
+			)}
 		</figure>
 	);
 };
