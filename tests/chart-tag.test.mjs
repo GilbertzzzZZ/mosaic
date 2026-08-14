@@ -105,3 +105,23 @@ test("mixed section finds both forms and isOnlyChartTags accepts it", () => {
 test("open tag with non-attribute inner content is rejected", () => {
 	assert.deepEqual(findChartTags('<Chart title="t" junk>\n```csv\nm,a\n1,2\n```\n</Chart>'), []);
 });
+
+test("paired open tag accepts one attribute per line", () => {
+	const multiline = `<Chart
+	title="成对标签"
+	type="combo"
+	x="month"
+	bars="指标A"
+	lines="指标B"
+>
+\`\`\`csv
+month,指标A,指标B
+2025-01,120,80
+\`\`\`
+</Chart>`;
+	const tags = findChartTags(multiline);
+	assert.equal(tags.length, 1);
+	assert.equal(tags[0].attributes.title, "成对标签");
+	assert.equal(tags[0].attributes.bars, "指标A");
+	assert.equal(tags[0].csv, "month,指标A,指标B\n2025-01,120,80");
+});

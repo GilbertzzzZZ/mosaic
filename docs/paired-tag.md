@@ -10,10 +10,16 @@
 
 ## 基本写法（`<Chart>` 内联 CSV）
 
-属性写在开标签，CSV 数据用围栏块内嵌于标签体，语言标注 `csv` 可省略：
+属性写在开标签（一行一个属性，与自闭合标签同风格），CSV 数据用围栏块内嵌于标签体，语言标注 `csv` 可省略：
 
 ````text
-<Chart title="示例" type="line" x="month" series="指标A,指标B" unit="件">
+<Chart
+  title="示例"
+  type="line"
+  x="month"
+  series="指标A,指标B"
+  unit="件"
+>
 ```csv
 month,指标A,指标B
 2025-01,120,140
