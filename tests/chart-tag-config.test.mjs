@@ -317,19 +317,19 @@ test("combo respects tag writing order (lines first)", () => {
 	});
 });
 
-test("legend markers are circles", () => {
+test("legend markers are squares", () => {
 	const line = buildChartFromTag({
 		manifest,
 		rows,
 		attributes: { ...base, type: "line", series: "总量", granularity: "month" },
 	});
-	assert.deepEqual(line.config.legend, { marker: { symbol: "circle" } });
+	assert.deepEqual(line.config.legend, { marker: { symbol: "square" } });
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
 		attributes: { ...base, type: "combo", bars: "拆分", lines: "总量", granularity: "month" },
 	});
-	assert.deepEqual(combo.config.legend, { marker: { symbol: "circle" } });
+	assert.deepEqual(combo.config.legend, { marker: { symbol: "square" } });
 });
 
 test("percent unit suffixes formatted values", () => {
