@@ -15,6 +15,7 @@ import { ChartFigure } from "../components/ChartFigure";
 import { queryDataset } from "./dataset-query.mjs";
 import { DATASET_GRANULARITIES, isDatasetGranularity } from "./dataset-granularity.mjs";
 import { datasetQueryFromContent } from "../blocks/dataset-table.mjs";
+import { uniqueStrings } from "../blocks/payload.mjs";
 import { DataTableView } from "../components/blocks/DataTableView";
 import { TimelineView } from "../components/blocks/TimelineView";
 import { DecisionBoxView } from "../components/blocks/DecisionBoxView";
@@ -191,12 +192,19 @@ function renderComponentError(host: HTMLElement, e: unknown): void {
 
 // granularityOptions 的渲染层浅校验：措辞与 git-leaf 逐字一致（解析报告 §2.2）。
 // 与 Chart 的 parseGranularityOptions（chart-tag-config.mjs）措辞不同，不能复用。
+// 属性缺省（value === undefined）才回退全四档；属性写了但解析后为空（如
+// "granularityOptions=\" , \""）视为非法输入，同样报词表错误，不能静默兜底。
+// uniqueStrings 去重，避免 "day,day" 这类重复项产出重复的粒度按钮/重复 React key。
 function parseDataTableGranularityOptions(value: string | undefined): string[] {
-	const raw = String(value ?? "")
-		.split(",")
-		.map((s) => s.trim().toLowerCase())
-		.filter(Boolean);
-	if (raw.length === 0) return [...DATASET_GRANULARITIES];
+	if (value === undefined) return [...DATASET_GRANULARITIES];
+	const raw: string[] = uniqueStrings(
+		String(value)
+			.split(",")
+			.map((s) => s.trim().toLowerCase()),
+	);
+	if (raw.length === 0) {
+		throw new Error("granularityOptions supports day, week, month, and quarter.");
+	}
 	for (const g of raw) {
 		if (!isDatasetGranularity(g)) {
 			throw new Error("granularityOptions supports day, week, month, and quarter.");
@@ -230,27 +238,37 @@ interface DataTableFigureProps {
 // 粒度切换是受控组件：DataTableView 自身不管理粒度状态，这里以 build() 闭包
 // 重新 queryDataset（数据已在内存，零 IO）后就地重渲染（镜像 ChartFigure 的
 // initial+build 模式，但没有主题/宽度重建：DataTable 是纯 DOM，不受那两者影响）。
+// 该分支是可达的：例如 columns= 里列了个没有 rollup 的字段，在源粒度下（每桶
+// 恰好 1 行）能透传成功，切到更粗的粒度后 aggregateField 会报
+// `Field "X" needs a rollup before it can be shown in … view.`——与 ChartFigure
+// （src/components/ChartFigure.tsx:40-48/76）同款处理：保留上一次成功渲染的
+// 表格，把错误文案就地显示在图内，下一次切换成功时清空。
 function DataTableFigure({ attributes, body, options, initial, build }: DataTableFigureProps) {
 	const [result, setResult] = useState(initial);
+	const [error, setError] = useState<string | undefined>(undefined);
 	const onGranularity = (granularity: string) => {
 		try {
-			setResult(build(granularity));
-		} catch {
-			// options 已与 meta.availableGranularities 取交集，正常不会走到这里；
-			// 防御性保留当前视图，不让一次异常切换打断已渲染的表格。
+			const next = build(granularity);
+			setResult(next);
+			setError(undefined);
+		} catch (e) {
+			setError(String((e as Error)?.message ?? e));
 		}
 	};
 	return (
-		<DataTableView
-			attributes={{ ...attributes, columns: result.attributes.columns }}
-			body={body}
-			rows={result.rows}
-			columnLabels={result.attributes.columnLabels}
-			meta={buildDataTableFootnote(result.meta)}
-			options={options}
-			granularity={result.meta.granularity}
-			onGranularity={onGranularity}
-		/>
+		<>
+			<DataTableView
+				attributes={{ ...attributes, columns: result.attributes.columns }}
+				body={body}
+				rows={result.rows}
+				columnLabels={result.attributes.columnLabels}
+				meta={buildDataTableFootnote(result.meta)}
+				options={options}
+				granularity={result.meta.granularity}
+				onGranularity={onGranularity}
+			/>
+			{error && <div className="mosaic-error">{error}</div>}
+		</>
 	);
 }
 
