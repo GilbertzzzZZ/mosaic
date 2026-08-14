@@ -14,5 +14,8 @@ Ported files (under src/dataset/):
     Node file-system access, caching and fingerprinting removed; exports
     reshaped into pure functions for the Obsidian host)
 
+Ported files (under src/blocks/):
+  - src/blocks/payload.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (payload extraction & normalization helpers)
+
 Licensed under the Apache License, Version 2.0; you may obtain a copy at
 http://www.apache.org/licenses/LICENSE-2.0
