@@ -15,7 +15,7 @@ Declarative content blocks for [Obsidian](https://obsidian.md) notes: write a de
 | Chart tag (self-closing) | `<Chart ... />` in md / mdx body | External dataset manifests (`.dataset.json`) with time-range filtering and granularity rollup |
 | Chart tag (paired) | `<Chart ...>` + fenced CSV + `</Chart>` | Inline CSV in the note body |
 | Code block | ```` ```chartview ```` with `---` frontmatter | External dataset manifests, or inline CSV below the frontmatter |
-| Other block types (MetricGrid, DataTable, Card) | Paired tags | Planned |
+| Other block types (DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram) | Paired tags | Planned |
 
 Charts follow the Obsidian light / dark theme, format values (thousands grouping, `%` and currency units) and render in reading view.
 

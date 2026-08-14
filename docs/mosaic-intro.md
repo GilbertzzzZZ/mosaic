@@ -102,17 +102,15 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - Data comes from an external dataset manifest, or inline CSV written directly in the declaration.
 - Full attribute contract: [[docs/dataset-guide|dataset-guide.md]].
 
-**MetricGrid** (planned)
+**Planned types** (superset of git-leaf)
 
-- (Placeholder: a grid of key metrics with label, value, delta, and note per cell.)
-
-**Card** (planned)
-
-- (Placeholder: card-style content block.)
+- Mosaic aims to cover every component type git-leaf supports, so the same documents render fully in both places: `Chart` (done), `DataTable`, `MetricGrid`, `Timeline`, `DecisionBox`, `FlowDiagram`.
+- `DataTable` comes first: like Chart it reads external dataset manifests, so the data and query layers are already in place — only the render component is new.
+- The remaining types take inline payloads and extend through the same three-stage pipeline.
 
 **More types** (planned)
 
-- (Placeholder: additional block types extended through the same pipeline.)
+- The git-leaf set is the floor, not the ceiling: additional Mosaic-original block types will extend through the same pipeline.
 
 ---
 
@@ -149,8 +147,8 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 > Planned but not yet implemented; all items are placeholders.
 
-- (Placeholder) MetricGrid block type.
-- (Placeholder) Card block type.
+- (Placeholder) DataTable block type — first in line: reuses the existing dataset/query layers.
+- (Placeholder) MetricGrid, Timeline, DecisionBox and FlowDiagram block types — completing the git-leaf superset.
 - (Placeholder) Live Preview rendering.
 - (Done 2026-08-14) Plugin id migrated to `mosaic`. Marketplace listing plan remains a placeholder.
 
