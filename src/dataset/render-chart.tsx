@@ -1,7 +1,7 @@
 // src/dataset/render-chart.tsx
 // 三入口共享的渲染层：{attributes, csv} → ChartFigure。csv 非空走内联模式，
 // 否则走 dataset 模式。抛错由各入口调用方就地渲染错误框。
-import React from "react";
+import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import { getTheme } from "@antv/g2";
 import MosaicPlugin from "../main";
@@ -12,6 +12,14 @@ import {
 	parseGranularityOptions,
 } from "./chart-tag-config.mjs";
 import { ChartFigure } from "../components/ChartFigure";
+import { queryDataset } from "./dataset-query.mjs";
+import { DATASET_GRANULARITIES, isDatasetGranularity } from "./dataset-granularity.mjs";
+import { datasetQueryFromContent } from "../blocks/dataset-table.mjs";
+import { DataTableView } from "../components/blocks/DataTableView";
+import { TimelineView } from "../components/blocks/TimelineView";
+import { DecisionBoxView } from "../components/blocks/DecisionBoxView";
+import { MetricGridView } from "../components/blocks/MetricGridView";
+import { FlowDiagramView } from "../components/blocks/FlowDiagramView";
 
 // 跟随 Obsidian 主题选择 G2 主题；背景透明，与页面底色融合。
 // 主题切换由 mosaic:theme-change 事件驱动 ChartFigure 内重建，本函数被重新求值。
@@ -148,4 +156,176 @@ export async function renderChartInto(
 		/>,
 		host,
 	);
+}
+
+// ---------------------------------------------------------------------------
+// 五类内容块（DataTable/Timeline/DecisionBox/MetricGrid/FlowDiagram）共享分发。
+// 与 Chart 不同：这五类是纯 DOM/React，无 AntV/主题/宽度重建基建；渲染失败（含
+// dataset 查询失败）就地捕获，落地统一的 mosaic-error DOM，不向调用方抛出。
+
+export interface ComponentSource {
+	name: string;
+	attributes: Record<string, string>;
+	body: string | null;
+}
+
+const PLAIN_VIEWS: Record<
+	string,
+	React.ComponentType<{ attributes: Record<string, string>; body: string }>
+> = {
+	DataTable: DataTableView,
+	Timeline: TimelineView,
+	DecisionBox: DecisionBoxView,
+	MetricGrid: MetricGridView,
+	FlowDiagram: FlowDiagramView,
+};
+
+function renderComponentError(host: HTMLElement, e: unknown): void {
+	ReactDOM.unmountComponentAtNode(host);
+	host.empty();
+	host.createDiv({
+		cls: "mosaic-error",
+		text: `Mosaic: ${String((e as Error)?.message ?? e)}`,
+	});
+}
+
+// granularityOptions 的渲染层浅校验：措辞与 早期内部实现 逐字一致（解析报告 §2.2）。
+// 与 Chart 的 parseGranularityOptions（chart-tag-config.mjs）措辞不同，不能复用。
+function parseDataTableGranularityOptions(value: string | undefined): string[] {
+	const raw = String(value ?? "")
+		.split(",")
+		.map((s) => s.trim().toLowerCase())
+		.filter(Boolean);
+	if (raw.length === 0) return [...DATASET_GRANULARITIES];
+	for (const g of raw) {
+		if (!isDatasetGranularity(g)) {
+			throw new Error("granularityOptions supports day, week, month, and quarter.");
+		}
+	}
+	return raw;
+}
+
+// meta 脚注：格式复用 Chart 的 buildFootnote 风格（chart-tag-config.mjs 私有，未导出，故在此重写）。
+function buildDataTableFootnote(meta: Record<string, any>): string {
+	return (
+		`${meta.datasetTitle} · ${meta.from} → ${meta.to} · ${meta.granularity}` +
+		` · ${meta.sourceRows}/${meta.totalRows} source rows · data through ${meta.dataThrough}`
+	);
+}
+
+interface DataTableQueryResult {
+	rows: Record<string, string | number>[];
+	attributes: Record<string, any>;
+	meta: Record<string, any>;
+}
+
+interface DataTableFigureProps {
+	attributes: Record<string, string>;
+	body: string;
+	options: string[];
+	initial: DataTableQueryResult;
+	build: (granularity: string) => DataTableQueryResult;
+}
+
+// 粒度切换是受控组件：DataTableView 自身不管理粒度状态，这里以 build() 闭包
+// 重新 queryDataset（数据已在内存，零 IO）后就地重渲染（镜像 ChartFigure 的
+// initial+build 模式，但没有主题/宽度重建：DataTable 是纯 DOM，不受那两者影响）。
+function DataTableFigure({ attributes, body, options, initial, build }: DataTableFigureProps) {
+	const [result, setResult] = useState(initial);
+	const onGranularity = (granularity: string) => {
+		try {
+			setResult(build(granularity));
+		} catch {
+			// options 已与 meta.availableGranularities 取交集，正常不会走到这里；
+			// 防御性保留当前视图，不让一次异常切换打断已渲染的表格。
+		}
+	};
+	return (
+		<DataTableView
+			attributes={{ ...attributes, columns: result.attributes.columns }}
+			body={body}
+			rows={result.rows}
+			columnLabels={result.attributes.columnLabels}
+			meta={buildDataTableFootnote(result.meta)}
+			options={options}
+			granularity={result.meta.granularity}
+			onGranularity={onGranularity}
+		/>
+	);
+}
+
+async function renderDataTableDataset(
+	plugin: MosaicPlugin,
+	host: HTMLElement,
+	sourcePath: string,
+	attributes: Record<string, string>,
+	body: string,
+	stale: () => boolean,
+): Promise<void> {
+	const datasetRef = String(attributes.dataset ?? "").trim();
+	if (!datasetRef) {
+		throw new Error("dataset must point to a .dataset.json manifest.");
+	}
+	const granularityOptions = parseDataTableGranularityOptions(attributes.granularityOptions);
+	const granularityAttr = String(attributes.granularity ?? "auto").trim().toLowerCase();
+	if (granularityAttr !== "auto" && !granularityOptions.includes(granularityAttr)) {
+		throw new Error("granularity must be included in granularityOptions.");
+	}
+	const query = datasetQueryFromContent(body);
+	const { manifest, rows } = await loadDatasetForNote(plugin.app, sourcePath, attributes.dataset);
+	if (stale()) return;
+	const build = (granularity?: string): DataTableQueryResult =>
+		queryDataset({
+			manifest,
+			rows,
+			component: "DataTable",
+			attributes,
+			query,
+			granularity: granularity ?? granularityAttr,
+			granularityOptions,
+		});
+	const initial = build(undefined);
+	const options = granularityOptions.filter((g) =>
+		initial.meta.availableGranularities.includes(g),
+	);
+	if (stale()) return;
+	ReactDOM.render(
+		<DataTableFigure
+			attributes={attributes}
+			body={body}
+			options={options}
+			initial={initial}
+			build={build}
+		/>,
+		host,
+	);
+}
+
+export async function renderComponentInto(
+	plugin: MosaicPlugin,
+	host: HTMLElement,
+	sourcePath: string,
+	{ name, attributes, body }: ComponentSource,
+	stale: () => boolean = () => false,
+): Promise<void> {
+	if (!(await whenHostReady(host, stale))) return;
+	const bodyText = body ?? "";
+	try {
+		if (attributes.dataset) {
+			if (name !== "DataTable") {
+				throw new Error("External datasets support Chart and DataTable.");
+			}
+			await renderDataTableDataset(plugin, host, sourcePath, attributes, bodyText, stale);
+			return;
+		}
+		const View = PLAIN_VIEWS[name];
+		if (!View) {
+			throw new Error(`Unsupported component: ${name}.`);
+		}
+		if (stale()) return;
+		ReactDOM.render(<View attributes={attributes} body={bodyText} />, host);
+	} catch (e) {
+		if (stale()) return;
+		renderComponentError(host, e);
+	}
 }
