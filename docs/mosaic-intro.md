@@ -38,15 +38,24 @@
 
 > Three ways to declare a block, all written directly in md / mdx content.
 
-**Code fence**
+**Code block** (`---` frontmatter, optional inline CSV below)
 
 ````text
 ```chartview
-type: Pie
-data: ...
-options: ...
+---
+title: "Example Trend"
+type: line
+series: "Metric A,Metric B"
+unit: "units"
+---
+month,Metric A,Metric B
+2025-01,120,140
+2025-02,140,150
+2025-03,160,155
 ```
 ````
+
+Full reference: [[docs/code-block|code-block.md]].
 
 **Self-closing tag** (one attribute per line)
 
@@ -89,8 +98,9 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 **Chart**
 
-- AntV-based data visualization: Pie, Bar, Radar, Treemap, WordCloud, DualAxes, TinyLine, OrganizationTreeGraph, Mix, and more.
-- Word Count templates: word-frequency charts over a single file, multiple files, a folder, or the whole vault.
+- Line, bar, grouped-bar, stacked-bar, combo and combo-dual-axis, driven by one declarative attribute contract shared across all three entries.
+- Data comes from an external dataset manifest, or inline CSV written directly in the declaration.
+- Full attribute contract: [[docs/dataset-guide|dataset-guide.md]].
 
 **MetricGrid** (planned)
 
@@ -108,16 +118,12 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## Data Sources
 
-> Block data can be written inline, or loaded from vault files and external datasets.
+> Block data can be written inline as CSV, or loaded from an external dataset manifest.
 
-**Inline data**
+**Inline CSV**
 
-- Data lives inside the declaration body — ideal for small, one-off charts.
-
-**CSV files**
-
-- Load from CSV files inside the vault, with multi-file merge support.
-- Desktop builds can also import data from external CSV files.
+- Data is written directly in the declaration: a fenced CSV block in a paired tag body, or a CSV section below the `---` frontmatter in a code block.
+- Ideal for small, one-off charts — no external file needed.
 
 **External datasets (dataset manifest)**
 
@@ -126,19 +132,11 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - Metric semantics (label, note, provenance footnote) stay visible alongside the chart.
 - Design details: [[docs/dataset-guide|dataset-guide.md]].
 
-**Dataview integration**
-
-- Feed charts from Dataview query results inside the data declaration.
-
 ---
 
 ## Companion Features
 
 > Tools and interactions that lower the cost of writing blocks.
-
-**Interaction**
-
-- Optional search interaction on rendered charts.
 
 **Safety boundaries**
 

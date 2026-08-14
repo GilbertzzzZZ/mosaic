@@ -38,15 +38,24 @@
 
 > 三种写法，均直接写在 md / mdx 正文中。
 
-**Code fence（代码围栏）**
+**代码块**（`---` frontmatter，可选内联 CSV 数据区）
 
 ````text
 ```chartview
-type: Pie
-data: ...
-options: ...
+---
+title: "示例趋势"
+type: line
+series: "指标A,指标B"
+unit: "件"
+---
+month,指标A,指标B
+2025-01,120,140
+2025-02,140,150
+2025-03,160,155
 ```
 ````
+
+完整参考见 [[docs/code-block|code-block.md]]。
 
 **自闭合标签**（一行一个属性）
 
@@ -89,8 +98,9 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 **Chart**
 
-- 基于 AntV 的数据可视化：Pie、Bar、Radar、Treemap、WordCloud、DualAxes、TinyLine、OrganizationTreeGraph、Mix 等。
-- Word Count 模板：按单文件、多文件、文件夹或全库统计词频出图。
+- 折线（line）、柱状（bar）、分组柱状（grouped-bar）、堆叠柱状（stacked-bar）、组合图（combo）与双轴组合图（combo-dual-axis），三个入口共用同一份声明式属性契约驱动出图。
+- 数据来自外部数据集 manifest，或直接写在声明体内的内联 CSV。
+- 完整属性契约见 [[docs/dataset-guide|dataset-guide.md]]。
 
 **MetricGrid**（规划中）
 
@@ -108,16 +118,12 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## 数据来源
 
-> 内容块的数据可以内联书写，也可以来自库内文件或外部数据集。
+> 内容块的数据可以内联写成 CSV，也可以来自外部数据集 manifest。
 
-**内联数据**
+**内联 CSV**
 
-- 数据直接写在声明体内，适合小数据量、一次性图表。
-
-**CSV 文件**
-
-- 从库内 CSV 文件加载，支持多文件合并。
-- 桌面端支持从外部 CSV 文件导入数据。
+- 数据直接写在声明体内：成对标签体内的 CSV 围栏块，或代码块 `---` 之后的 CSV 数据区。
+- 适合小数据量、一次性图表，不依赖外部文件。
 
 **外部数据集（dataset manifest）**
 
@@ -126,19 +132,11 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - 口径信息（label、note、溯源脚注）随图可见。
 - 设计细节见 [[docs/dataset-guide|dataset-guide.md]]。
 
-**Dataview 集成**
-
-- 支持在数据声明中调用 Dataview 查询结果出图。
-
 ---
 
 ## 配套能力
 
 > 降低书写成本的工具与交互。
-
-**交互**
-
-- 支持开启图表搜索交互（search interaction）。
 
 **安全边界**
 
