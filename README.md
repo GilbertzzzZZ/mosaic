@@ -22,10 +22,8 @@ Charts follow the Obsidian light / dark theme, format values (thousands grouping
 ## Documentation
 
 - [Mosaic intro](docs/mosaic-intro.md) ([中文](docs/mosaic-intro-zh.md)) — positioning, architecture and roadmap
-- [Chart tag](docs/chart-tag.md) — self-closing `<Chart />` entry: syntax and rendering effects
+- [Chart](docs/chart.md) — the chart block: all three syntaxes (self-closing tag, paired tag, code block), each with error examples
 - [Dataset guide](docs/dataset-guide.md) — dataset manifest contract, query semantics, troubleshooting
-- [Code block](docs/code-block.md) — `chartview` block reference: `---` frontmatter contract, external dataset or inline CSV
-- [Paired tag](docs/paired-tag.md) — attributes on the tag, payload in the body; `<Chart>` inline CSV is available
 
 ## Installing
 

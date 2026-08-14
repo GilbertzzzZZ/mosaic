@@ -7,7 +7,7 @@ export function parseChartBlock(source) {
 	while (i < lines.length && lines[i].trim() === "") i += 1;
 	if ((lines[i] ?? "").trim() !== "---") {
 		throw new Error(
-			'chartview block must start with a "---" attribute section (see docs/code-block.md).',
+			'chartview block must start with a "---" attribute section (see docs/chart.md).',
 		);
 	}
 	let end = -1;
