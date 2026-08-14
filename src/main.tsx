@@ -1,39 +1,19 @@
 import { fileDialog } from 'file-select-dialog';
 import yaml from 'js-yaml';
 
-import React from 'react';
-import ReactDOM from 'react-dom';
-
-import { MarkdownPostProcessorContext, MarkdownView, Plugin, Platform } from 'obsidian';
-import { Chart } from './components/Chart';
-import { parseConfig } from './parser';
+import { MarkdownView, Plugin, Platform } from 'obsidian';
 import { MosaicPluginSettings, MosaicSettingTab, DEFAULT_SETTINGS } from './settings';
 import { insertEditor, parseCsv } from './tools';
 import { ChartTemplateSuggestModal } from './components/Modal';
 import { ChartWizardModal } from './components/ChartWizardModal';
 import { createChartTagProcessor } from './dataset/chart-tag-processor';
+import { createChartBlockProcessor } from './dataset/chart-block-processor';
 
 const CSV_FILE_EXTENSION = "csv";
 const VIEW_TYPE_CSV = "csv";
 
 export default class MosaicPlugin extends Plugin {
 	settings: MosaicPluginSettings;
-
-	async MosaicProcessor(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
-		ReactDOM.unmountComponentAtNode(el);
-		try {
-			const chartProps = await parseConfig(source, this, ctx.sourcePath);
-			ReactDOM.render(
-				<Chart {...chartProps} />,
-				el
-			);
-		} catch (e) {
-			ReactDOM.render(
-				<div style={{ color: 'var(--text-title-h1)' }}>{e.toString()}</div>,
-				el
-			);
-		}
-	}
 
 	rerenderOpenPreviews() {
 		// rebuildView 而非 rerender(true)：后者与阅读视图虚拟化存在竞态，
@@ -50,7 +30,7 @@ export default class MosaicPlugin extends Plugin {
 		try {
 			await this.loadSettings();
 			this.addSettingTab(new MosaicSettingTab(this.app, this));
-			this.registerMarkdownCodeBlockProcessor("chartview", this.MosaicProcessor.bind(this));
+			this.registerMarkdownCodeBlockProcessor("chartview", createChartBlockProcessor(this));
 			this.registerMarkdownPostProcessor(createChartTagProcessor(this));
 
 			// Sections rendered while this plugin was disabled keep their vanilla
