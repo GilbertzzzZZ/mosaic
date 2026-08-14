@@ -107,7 +107,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - Tag entries only (paired tag; `DataTable` also supports a self-closing form for its `dataset` mode) — no `chartview` code block for these five.
 - `DataTable` reads inline tables (CSV/JSON/Markdown) or an external dataset manifest, sharing the same query layer as Chart.
 - `MetricGrid`, `Timeline`, `DecisionBox`, `FlowDiagram` take inline payloads only; each has its own field-alias and status-vocabulary contract.
-- `DecisionBox` is the one type that never renders an error box — an empty or unstructured body falls back to a short rich-text render.
+- `DecisionBox` is the one type that never errors on an empty or unstructured body — it falls back to a short rich-text render instead (misusing `dataset` or malformed JSON still errors).
 - Full contracts: [[docs/data-table|data-table.md]], [[docs/metric-grid|metric-grid.md]], [[docs/timeline|timeline.md]], [[docs/decision-box|decision-box.md]], [[docs/flow-diagram|flow-diagram.md]].
 
 **More types** (planned)

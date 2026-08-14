@@ -107,7 +107,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - 只支持标签入口（成对标签为主；`DataTable` 的 dataset 模式另支持自闭合）——这五类不支持 `chartview` 代码块写法。
 - `DataTable` 支持内联表格（CSV/JSON/Markdown）与外部数据集 manifest 两种数据来源，与 Chart 共用同一套查询层。
 - `MetricGrid`、`Timeline`、`DecisionBox`、`FlowDiagram` 只支持内联 payload，各自有独立的字段别名与状态词表契约。
-- `DecisionBox` 是唯一永不报错的类型：空 payload 或非结构化数据会回退为一段极简富文本。
+- `DecisionBox` 是唯一在空/非结构化 payload 时不报错的类型：会回退为一段极简富文本（误用 `dataset` 或畸形 JSON 仍会报错）。
 - 完整契约见 [[docs/data-table|data-table.md]]、[[docs/metric-grid|metric-grid.md]]、[[docs/timeline|timeline.md]]、[[docs/decision-box|decision-box.md]]、[[docs/flow-diagram|flow-diagram.md]]。
 
 **更多类型**（规划中）

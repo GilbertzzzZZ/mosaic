@@ -44,7 +44,7 @@ sample-c,8,ok
 
 ## 5 Dataset 模式 + query fence 过滤（按门店过滤）
 
-<DataTable dataset="demo.dataset.json" columns="AnchorDate,营收,订单量" from="2025-01-01" to="2025-03-31">
+<DataTable dataset="demo.dataset.json" columns="AnchorDate,营收,订单量" from="2025-01-01" to="2025-03-01">
 ```query
 {"where":[{"field":"门店","op":"eq","value":"示例门店A"}]}
 ```

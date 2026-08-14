@@ -69,7 +69,7 @@ sample-b,5,watch
 **dataset 模式**（有 `dataset` 属性时）：**与内联 payload 完全互斥**。行数据 100% 来自外部 manifest + 数据文件，标签体唯一合法内容是一个可选的 ` ```query ` 围栏，JSON 对象，只能含 `from`/`to`/`where` 三个键（`from`/`to` 优先于同名属性）：
 
 ````text
-<DataTable dataset="demo.dataset.json" columns="AnchorDate,营收" from="2025-01-01" to="2025-06-30">
+<DataTable dataset="demo.dataset.json" columns="AnchorDate,营收" from="2025-01-01" to="2025-06-01">
 ```query
 {"where":[{"field":"门店","op":"eq","value":"示例门店A"}]}
 ```
