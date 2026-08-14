@@ -103,85 +103,11 @@ export function parseGranularityOptions(attributes) {
 	return raw;
 }
 
-// labels 属性三态：all（缺省，防碰撞自动取舍）/ 关闭词 / 选择器并集。
-// 选择器只在选中的点显示数字，其余隐藏：ends（每条线首尾）、extremes（每条
-// 线最大最小值）、every:N（每 N 个点取一个），逗号组合取并集。
-export function parseLabelSpec(attributes) {
-	const raw = String(attributes.labels ?? "")
+function labelsEnabled(attributes) {
+	const v = String(attributes.labels ?? "")
 		.trim()
 		.toLowerCase();
-	if (raw === "" || raw === "all") return { mode: "auto" };
-	if (LABELS_OFF.has(raw)) return { mode: "off" };
-	const spec = { mode: "select", every: 0, extremes: false, ends: false };
-	for (const part of raw
-		.split(",")
-		.map((s) => s.trim())
-		.filter(Boolean)) {
-		if (part === "ends") {
-			spec.ends = true;
-			continue;
-		}
-		if (part === "extremes") {
-			spec.extremes = true;
-			continue;
-		}
-		const every = /^every:([0-9]+)$/.exec(part);
-		if (every && Number(every[1]) >= 1) {
-			spec.every = Number(every[1]);
-			continue;
-		}
-		throw new Error(
-			`Unknown labels value "${part}" (use all, off, ends, extremes, every:N or a comma union).`,
-		);
-	}
-	return spec;
-}
-
-const labelKey = (row) => `${row.series}\u0000${row.period}`;
-
-// 逐系列计算选中的点；空值点不参与取点。
-function selectedLabelKeys(longRows, valueField, spec) {
-	const bySeries = new Map();
-	for (const row of longRows) {
-		if (!Number.isFinite(row[valueField])) continue;
-		if (!bySeries.has(row.series)) bySeries.set(row.series, []);
-		bySeries.get(row.series).push(row);
-	}
-	const keys = new Set();
-	for (const seriesRows of bySeries.values()) {
-		if (spec.every > 0) {
-			for (let i = 0; i < seriesRows.length; i += spec.every) {
-				keys.add(labelKey(seriesRows[i]));
-			}
-		}
-		if (spec.ends) {
-			keys.add(labelKey(seriesRows[0]));
-			keys.add(labelKey(seriesRows[seriesRows.length - 1]));
-		}
-		if (spec.extremes) {
-			let min = seriesRows[0];
-			let max = seriesRows[0];
-			for (const row of seriesRows) {
-				if (row[valueField] < min[valueField]) min = row;
-				if (row[valueField] > max[valueField]) max = row;
-			}
-			keys.add(labelKey(min));
-			keys.add(labelKey(max));
-		}
-	}
-	return keys;
-}
-
-// select 模式下给 label 配置挂 formatter：选中点按单位格式化，其余返回空串。
-function selectiveLabel(base, longRows, valueField, unit, spec) {
-	if (!base || spec.mode !== "select") return base;
-	const keys = selectedLabelKeys(longRows, valueField, spec);
-	const format = valueFormatterFor(unit);
-	return {
-		...base,
-		formatter: (datum) =>
-			keys.has(labelKey(datum)) ? format(datum[valueField]) : "",
-	};
+	return !LABELS_OFF.has(v);
 }
 
 function labelFor(attributes, key) {
@@ -247,8 +173,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		: seriesKeys.length > 1
 			? "line"
 			: "bar";
-	const labelSpec = parseLabelSpec(attrs);
-	const label = labelSpec.mode === "off" ? undefined : {};
+	const label = labelsEnabled(attrs) ? {} : undefined;
 
 	if (type === "combo" || type === "combo-dual-axis") {
 		let barKeys = bars,
@@ -309,25 +234,13 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			geometry: "column",
 			isGroup: barKeys.length > 1,
 			seriesField: "series",
-			label: selectiveLabel(
-				comboLabel,
-				barLong,
-				"barValue",
-				dual ? leftUnit : attrs.unit,
-				labelSpec,
-			),
+			label: comboLabel,
 		};
 		const lineGeometry = {
 			geometry: "line",
 			seriesField: "series",
 			point: LINE_POINT,
-			label: selectiveLabel(
-				comboLabel,
-				lineLong,
-				"lineValue",
-				dual ? rightUnit : attrs.unit,
-				labelSpec,
-			),
+			label: comboLabel,
 		};
 		// combo（单轴）图例顺序跟随标签书写顺序；combo-dual-axis 固定 bars=左轴。
 		const attrKeys = Object.keys(attributes);
@@ -397,7 +310,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		yField: "value",
 		seriesField: "series",
 		color: colorsFor(attrs, seriesKeys),
-		label: selectiveLabel(label, data, "value", unit, labelSpec),
+		label,
 		yAxis: { max: yMax, ...(unit ? { title: { text: unit } } : {}) },
 		meta: { value: { formatter: valueFormatterFor(unit) } },
 		legend: LEGEND,
