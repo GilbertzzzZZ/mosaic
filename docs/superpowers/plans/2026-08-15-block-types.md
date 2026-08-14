@@ -8,9 +8,9 @@
 
 **Tech Stack:** 纯函数 .mjs（node --test 可测）+ React/Preact 视图 + 手写 SVG（FlowDiagram）+ styles.css。零新增第三方依赖。
 
-**Spec:** 两份逐行取证的研究报告（执行时必读，subagent 通过绝对路径访问）：
-- 解析契约：`/Users/gilbertzzzzzzzzz/projects/mosaic/.superpowers/sdd/block-types-research-parsing.md`
-- 渲染规格：`/Users/gilbertzzzzzzzzz/projects/mosaic/.superpowers/sdd/block-types-research-render.md`
+**Spec:** 两份逐行取证的研究报告（已随仓库归档）：
+- 解析契约：`docs/superpowers/research/block-types-research-parsing.md`
+- 渲染规格：`docs/superpowers/research/block-types-research-render.md`
 上游源码可直接对照：`~/projects/git-leaf/src/content/`（只读）。
 
 ## 决策记录（controller rulings，已入 ledger）
