@@ -4,13 +4,9 @@ Declarative content blocks for [Obsidian](https://obsidian.md) notes: write a de
 
 ## What it looks like
 
-A self-closing `<Chart />` tag reads an external dataset manifest and renders an interactive figure — time-range filtering, granularity switching, provenance footnote:
+![DualAxes](https://user-images.githubusercontent.com/150803/119969638-618b5480-bfe1-11eb-8a36-0a5d60408b00.png)
 
-![Chart tag with dataset manifest](docs/assets/chart-tag-dataset.png)
-
-A `chartview` code block renders charts from inline data:
-
-![Code-block pie chart](docs/assets/code-block-pie.png)
+![Pie](https://user-images.githubusercontent.com/150803/119069882-87c95700-ba19-11eb-8cef-02d1e021d1a2.png)
 
 ## Entries
 
