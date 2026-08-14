@@ -17,6 +17,8 @@ Ported files (under src/dataset/):
 Ported files (under src/blocks/):
   - src/blocks/payload.mjs — ported from git-leaf src/content/mdx-lite.mjs (payload extraction & normalization helpers)
   - src/blocks/table-complexity.mjs, src/blocks/table-layout.mjs — ported from git-leaf src/content/ (table heuristics)
+  - src/blocks/flow.mjs — ported from git-leaf src/content/mdx-lite.mjs (FlowDiagram parsing & layered DAG layout)
+  - src/blocks/dataset-table.mjs — ported from git-leaf src/content/mdx-lite.mjs (datasetQueryFromContent)
 
 Licensed under the Apache License, Version 2.0; you may obtain a copy at
 http://www.apache.org/licenses/LICENSE-2.0
