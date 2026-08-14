@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Chart, ConfigProps } from "./Chart";
 
 export interface BuiltChart {
@@ -28,27 +28,49 @@ export const ChartFigure = ({
 	showExportBtn,
 }: ChartFigureProps) => {
 	const [granularity, setGranularity] = useState(initial.granularity);
-	// 主题切换不重渲染 markdown（会与阅读视图虚拟化竞态），由 main.tsx 广播
-	// 事件，这里用 build 闭包按当前主题就地重建配置。
-	const [themeEpoch, setThemeEpoch] = useState(0);
+	// 就地重建的两个触发器，均不重渲染 markdown（与阅读视图虚拟化竞态会丢图）：
+	// 1) 主题切换事件（main.tsx 广播），用 build 闭包按当前主题重建配置；
+	// 2) 宿主宽度变化——打开文件时首渲可能发生在过渡宽度上，标签防碰撞会按
+	//    错误几何取舍并被缓存视图固化；安定后按真实宽度重建一次即恢复。
+	const [rebuildEpoch, setRebuildEpoch] = useState(0);
+	const figureRef = useRef<HTMLElement | null>(null);
 	useEffect(() => {
-		const onThemeChange = () => setThemeEpoch((e) => e + 1);
+		const onThemeChange = () => setRebuildEpoch((e) => e + 1);
 		window.addEventListener("mosaic:theme-change", onThemeChange);
 		return () =>
 			window.removeEventListener("mosaic:theme-change", onThemeChange);
 	}, []);
+	useEffect(() => {
+		const el = figureRef.current;
+		if (!el) return;
+		let lastWidth = el.clientWidth;
+		let timer: number | undefined;
+		const observer = new ResizeObserver(() => {
+			const width = el.clientWidth;
+			// 高度会随重建波动，只看宽度；0 宽（尚未布局）不触发。
+			if (width === 0 || Math.abs(width - lastWidth) < 2) return;
+			lastWidth = width;
+			window.clearTimeout(timer);
+			timer = window.setTimeout(() => setRebuildEpoch((e) => e + 1), 150);
+		});
+		observer.observe(el);
+		return () => {
+			window.clearTimeout(timer);
+			observer.disconnect();
+		};
+	}, []);
 	const { built, error } = useMemo(() => {
-		if (themeEpoch === 0 && granularity === initial.granularity)
+		if (rebuildEpoch === 0 && granularity === initial.granularity)
 			return { built: initial, error: undefined as string | undefined };
 		try {
 			return { built: build(granularity), error: undefined as string | undefined };
 		} catch (e) {
 			return { built: initial, error: String((e as Error)?.message ?? e) };
 		}
-	}, [granularity, themeEpoch]);
+	}, [granularity, rebuildEpoch]);
 
 	return (
-		<figure className="mosaic-figure">
+		<figure className="mosaic-figure" ref={figureRef as never}>
 			{(title || options.length > 1) && (
 				<div className="mosaic-figure-header">
 					{title && (
