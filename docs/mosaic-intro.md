@@ -55,7 +55,7 @@ month,Metric A,Metric B
 ```
 ````
 
-Full reference: [[docs/code-block|code-block.md]].
+Full reference: [[docs/chart|chart.md]].
 
 **Self-closing tag** (one attribute per line)
 

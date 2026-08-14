@@ -55,7 +55,7 @@ month,指标A,指标B
 ```
 ````
 
-完整参考见 [[docs/code-block|code-block.md]]。
+完整参考见 [[docs/chart|chart.md]]。
 
 **自闭合标签**（一行一个属性）
 
