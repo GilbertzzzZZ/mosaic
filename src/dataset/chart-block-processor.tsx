@@ -22,7 +22,7 @@ export function createChartBlockProcessor(plugin: MosaicPlugin) {
 		ctx.addChild(child);
 		try {
 			const parsed = parseChartBlock(source);
-			await renderChartInto(plugin, host, ctx.sourcePath, parsed, () => unloaded);
+			await renderChartInto(plugin, host, ctx.sourcePath, { attributes: parsed.attributes as Record<string, string>, csv: parsed.csv }, () => unloaded);
 		} catch (e) {
 			if (unloaded) return;
 			ReactDOM.unmountComponentAtNode(host);
