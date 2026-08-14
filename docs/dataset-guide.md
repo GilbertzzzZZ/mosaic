@@ -2,6 +2,8 @@
 
 > Mosaic 的 Chart 标签如何读取外部数据集出图：标签写法、manifest 契约、查询语义、展示细节与排错清单。
 
+![Chart 标签渲染效果](assets/chart-tag-dataset.png)
+
 ## 架构总览
 
 > 三段式管线：多入口识别 → 各入口解析处理 → 特定的渲染。
