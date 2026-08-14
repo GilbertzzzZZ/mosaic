@@ -1,0 +1,18 @@
+Mosaic (plugin id mosaic) — NOTICE
+
+This project (MIT) includes source files ported from 早期内部实现
+(（早期内部实现）), licensed under the
+Apache License, Version 2.0:
+
+  Copyright 2026 the author
+
+Ported files (under src/dataset/):
+  - dataset-granularity.mjs  (from src/content/dataset-granularity.mjs, unmodified)
+  - delimited-data.mjs       (from src/content/delimited-data.mjs, unmodified)
+  - dataset-query.mjs        (from src/content/dataset-query.mjs, unmodified)
+  - dataset-loader.mjs       (from src/server/dataset-loader.mjs, modified:
+    Node file-system access, caching and fingerprinting removed; exports
+    reshaped into pure functions for the Obsidian host)
+
+Licensed under the Apache License, Version 2.0; you may obtain a copy at
+http://www.apache.org/licenses/LICENSE-2.0

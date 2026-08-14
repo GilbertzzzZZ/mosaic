@@ -1,0 +1,98 @@
+.mosaic-thumbnail-container.is-selected .mosaic-thumbnail {
+  display: unset;
+  position: fixed;
+  top: 0;
+  right: 0;
+}
+
+.mosaic-thumbnail-container .mosaic-thumbnail {
+  display: none;
+}
+
+/* #### Desktops #### */
+@media screen and (min-width: 1024px) {
+  .mosaic-thumbnail-container .mosaic-thumbnail img {
+    width: 500px;
+  }
+}
+
+/* #### Mobile Phones Portrait or Landscape #### */
+@media screen and (max-device-width: 640px) {
+  .mosaic-thumbnail-container .mosaic-thumbnail img {
+    width: 300px;
+  }
+}
+
+.mosaic-export-button {
+  padding: 5px;
+  position: relative;
+  width: fit-content;
+  display: flex;
+  opacity: 0;
+  transition: opacity 500ms;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.block-language-chartview:hover .mosaic-export-button {
+  opacity: 1;
+}
+
+.mosaic-figure {
+	margin: 1em 0;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+}
+.mosaic-figure-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+.mosaic-figure-title {
+	font-weight: 600;
+}
+.mosaic-granularity-group {
+	display: inline-flex;
+	gap: 2px;
+}
+.mosaic-granularity-btn {
+	font-size: 0.8em;
+	padding: 2px 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: transparent;
+	color: var(--text-muted);
+	border-radius: 4px;
+	cursor: pointer;
+}
+.mosaic-granularity-btn.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+.mosaic-figure-note {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	margin: 4px 0 0;
+}
+.mosaic-figure-warning {
+	font-size: 0.85em;
+	color: var(--text-warning, #d97706);
+	margin: 2px 0 0;
+}
+.mosaic-figure-footnote {
+	font-size: 0.75em;
+	color: var(--text-faint);
+	margin: 2px 0 0;
+}
+.mosaic-error {
+	color: var(--text-error, #dc2626);
+	border: 1px solid currentColor;
+	border-radius: 4px;
+	padding: 6px 10px;
+	font-size: 0.85em;
+}

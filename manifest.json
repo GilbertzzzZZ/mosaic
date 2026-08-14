@@ -1,0 +1,10 @@
+{
+	"id": "mosaic",
+	"name": "Mosaic",
+	"version": "1.3.0",
+	"minAppVersion": "0.9.12",
+	"description": "Declarative content blocks for Obsidian notes: write a declaration in md/mdx, get rich interactive content. Charts (Ant Design Charts) from inline data, CSV files or dataset manifests with time-range filtering and granularity rollup.",
+	"author": "GilbertzzzzzzZZZ",
+	"authorUrl": "https://github.com/GilbertzzzZZ/mosaic",
+	"isDesktopOnly": false
+}
