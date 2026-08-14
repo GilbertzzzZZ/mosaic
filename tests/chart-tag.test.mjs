@@ -56,3 +56,52 @@ test("does not swallow prose into an unterminated tag with a stray closer", () =
 	const text = `<Chart title="x"\n\nsome unrelated paragraph ending with />\n\nmore content after`;
 	assert.equal(findChartTags(text).length, 0);
 });
+
+const PAIRED = `<Chart title="示例" type="line" x="month" series="a,b">
+\`\`\`csv
+month,a,b
+2025-01,120,80
+\`\`\`
+</Chart>`;
+
+test("finds a paired tag with csv payload", () => {
+	const tags = findChartTags(PAIRED);
+	assert.equal(tags.length, 1);
+	assert.equal(tags[0].attributes.title, "示例");
+	assert.equal(tags[0].csv, "month,a,b\n2025-01,120,80");
+	assert.equal(tags[0].start, 0);
+	assert.equal(tags[0].end, PAIRED.length);
+});
+
+test("self-closing tags report csv null", () => {
+	const tags = findChartTags('<Chart dataset="a.dataset.json" />');
+	assert.equal(tags.length, 1);
+	assert.equal(tags[0].csv, null);
+});
+
+test("paired fence language tag is optional", () => {
+	const bare = PAIRED.replace("```csv", "```");
+	assert.equal(findChartTags(bare)[0].csv, "month,a,b\n2025-01,120,80");
+});
+
+test("paired body without a fence is rejected", () => {
+	const noFence = `<Chart title="t">\nmonth,a\n2025-01,1\n</Chart>`;
+	assert.deepEqual(findChartTags(noFence), []);
+});
+
+test("unclosed paired tag is rejected", () => {
+	assert.deepEqual(findChartTags('<Chart title="t">\n```csv\nm,a\n```\n'), []);
+});
+
+test("mixed section finds both forms and isOnlyChartTags accepts it", () => {
+	const text = `<Chart dataset="a.dataset.json" />\n\n${PAIRED}`;
+	const tags = findChartTags(text);
+	assert.equal(tags.length, 2);
+	assert.equal(tags[0].csv, null);
+	assert.ok(tags[1].csv.includes("month,a,b"));
+	assert.ok(isOnlyChartTags(text, tags));
+});
+
+test("open tag with non-attribute inner content is rejected", () => {
+	assert.deepEqual(findChartTags('<Chart title="t" junk>\n```csv\nm,a\n1,2\n```\n</Chart>'), []);
+});
