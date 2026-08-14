@@ -1,28 +1,3 @@
-.mosaic-thumbnail-container.is-selected .mosaic-thumbnail {
-  display: unset;
-  position: fixed;
-  top: 0;
-  right: 0;
-}
-
-.mosaic-thumbnail-container .mosaic-thumbnail {
-  display: none;
-}
-
-/* #### Desktops #### */
-@media screen and (min-width: 1024px) {
-  .mosaic-thumbnail-container .mosaic-thumbnail img {
-    width: 500px;
-  }
-}
-
-/* #### Mobile Phones Portrait or Landscape #### */
-@media screen and (max-device-width: 640px) {
-  .mosaic-thumbnail-container .mosaic-thumbnail img {
-    width: 300px;
-  }
-}
-
 .mosaic-export-button {
   padding: 5px;
   position: relative;
