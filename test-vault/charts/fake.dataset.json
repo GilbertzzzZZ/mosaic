@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "mosaic-test-fake",
+  "title": "测试假数据集",
+  "description": "统一入口验证专用，一眼假数据",
+  "data": "./fake.csv",
+  "format": "csv",
+  "grain": ["AnchorDate"],
+  "primaryKey": ["AnchorDate"],
+  "time": {
+    "field": "AnchorDate",
+    "type": "date",
+    "timezone": "Asia/Shanghai",
+    "weekStartsOn": "monday",
+    "calendar": "calendar",
+    "sourceGranularity": "month"
+  },
+  "fields": [
+    { "name": "AnchorDate", "type": "date", "required": true },
+    { "name": "指标A", "label": "指标A", "type": "integer", "required": true, "rollup": "sum" },
+    { "name": "指标B", "label": "指标B", "type": "integer", "required": true, "rollup": "sum" }
+  ]
+}
