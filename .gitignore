@@ -20,3 +20,6 @@ data.json
 
 # superpowers scratch workspaces (any level)
 .superpowers/
+test-vault/.obsidian/plugins/
+test-vault/.obsidian/workspace.json
+test-vault/.obsidian/workspace-mobile.json
