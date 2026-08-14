@@ -76,7 +76,7 @@ month,指标A,指标B
 />
 ```
 
-**成对标签**（`<Chart>` 内联 CSV 已可用；其余内容块类型规划中——属性写在开标签上，数据 payload 写在标签体内）
+**成对标签**（属性写在开标签上，数据 payload 写在标签体内——`Chart` 与另外五类仅支持标签入口的内容块共用这一写法）
 
 ````text
 <MetricGrid title="Product Overview">
@@ -94,7 +94,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## 内容块类型
 
-> Chart 可用；其余类型为规划中的占位。
+> 早期内部实现 超集的全部六类已可用：Chart、DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram。
 
 **Chart**
 
@@ -102,11 +102,13 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - 数据来自外部数据集 manifest，或直接写在声明体内的内联 CSV。
 - 完整属性契约见 [[docs/dataset-guide|dataset-guide.md]]。
 
-**规划中的类型**（早期内部实现 的超集）
+**DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram**（早期内部实现 超集，只支持标签入口）
 
-- Mosaic 目标覆盖 早期内部实现 支持的全部组件类型，让同一份文档在两边都能完整渲染：`Chart`（已完成）、`DataTable`、`MetricGrid`、`Timeline`、`DecisionBox`、`FlowDiagram`。
-- `DataTable` 排在最前：它与 Chart 一样读取外部数据集 manifest，数据层与查询层已全部就位——增量只有渲染组件。
-- 其余类型均为内联 payload，按同一条三段式管线扩展。
+- 只支持标签入口（成对标签为主；`DataTable` 的 dataset 模式另支持自闭合）——这五类不支持 `chartview` 代码块写法。
+- `DataTable` 支持内联表格（CSV/JSON/Markdown）与外部数据集 manifest 两种数据来源，与 Chart 共用同一套查询层。
+- `MetricGrid`、`Timeline`、`DecisionBox`、`FlowDiagram` 只支持内联 payload，各自有独立的字段别名与状态词表契约。
+- `DecisionBox` 是唯一永不报错的类型：空 payload 或非结构化数据会回退为一段极简富文本。
+- 完整契约见 [[docs/data-table|data-table.md]]、[[docs/metric-grid|metric-grid.md]]、[[docs/timeline|timeline.md]]、[[docs/decision-box|decision-box.md]]、[[docs/flow-diagram|flow-diagram.md]]。
 
 **更多类型**（规划中）
 
@@ -145,11 +147,10 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## Roadmap
 
-> 已规划、尚未实现的方向，均为占位。
+> 已规划、尚未实现的方向为占位；已完成项单独标注。
 
-- （占位）DataTable 内容块类型——排在最前：直接复用现有数据集与查询层。
-- （占位）MetricGrid、Timeline、DecisionBox、FlowDiagram 内容块类型——补齐 早期内部实现 超集。
 - （占位）Live Preview 渲染支持。
+- （已完成 2026-08-15）DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram 内容块类型——补齐 早期内部实现 超集。
 - （已完成 2026-08-14）插件 id 已迁移为 `mosaic`；市场上架方案仍为占位。
 
 ---

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "mosaic-blocks-demo",
+  "title": "Block Types 测试数据集（假数据）",
+  "description": "test-vault/blocks 专用，纯粹演示用，不代表真实业务",
+  "data": "./demo.csv",
+  "format": "csv",
+  "grain": ["AnchorDate"],
+  "primaryKey": ["AnchorDate"],
+  "time": {
+    "field": "AnchorDate",
+    "type": "date",
+    "timezone": "Asia/Shanghai",
+    "weekStartsOn": "monday",
+    "calendar": "calendar",
+    "sourceGranularity": "month"
+  },
+  "fields": [
+    { "name": "AnchorDate", "type": "date", "required": true },
+    { "name": "门店", "type": "string", "required": false },
+    { "name": "营收", "label": "营收（万元）", "type": "integer", "required": true, "rollup": "sum" },
+    { "name": "订单量", "label": "订单量", "type": "integer", "required": true, "rollup": "sum" }
+  ]
+}

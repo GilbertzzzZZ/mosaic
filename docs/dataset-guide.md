@@ -2,6 +2,7 @@
 
 > Mosaic 的 Chart 标签如何读取外部数据集出图：标签写法、manifest 契约、查询语义、展示细节与排错清单。
 > 本文的属性表是自闭合标签、成对标签、代码块三个入口共用的契约，同一属性在任一入口写法一致。
+> DataTable 的 dataset 模式复用同一套 manifest 契约与查询语义（`from`/`to`/`granularity`/`granularityOptions`、粒度切换按钮、溯源脚注均一致），本文的 manifest 契约与排错清单同样适用于 DataTable，见 [[docs/data-table|data-table.md]]。
 
 ## 架构总览
 
@@ -144,7 +145,6 @@
 ## 计划中
 
 - Live Preview 渲染。
-- `MetricGrid`、`DataTable` 等其他内容块类型。
 
 ---
 
