@@ -67,7 +67,7 @@ options: ...
 />
 ```
 
-**成对标签**（规划中——属性写在开标签上，数据 payload 写在标签体内；插件暂不渲染此形态）
+**成对标签**（`<Chart>` 内联 CSV 已可用；其余内容块类型规划中——属性写在开标签上，数据 payload 写在标签体内）
 
 ````text
 <MetricGrid title="Product Overview">
@@ -135,10 +135,6 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 ## 配套能力
 
 > 降低书写成本的工具与交互。
-
-**Chart Wizard**
-
-- 命令面板插入模板：选择图表类型，生成带注释的声明骨架。
 
 **交互**
 

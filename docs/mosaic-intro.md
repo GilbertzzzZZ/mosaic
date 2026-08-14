@@ -67,7 +67,7 @@ options: ...
 />
 ```
 
-**Paired tag** (planned — attributes on the opening tag, data payload in the body; the plugin does not render this form yet)
+**Paired tag** (`<Chart>` inline CSV is available; other block types are planned — attributes on the opening tag, data payload in the body)
 
 ````text
 <MetricGrid title="Product Overview">
@@ -135,10 +135,6 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 ## Companion Features
 
 > Tools and interactions that lower the cost of writing blocks.
-
-**Chart Wizard**
-
-- Insert templates from the command palette: pick a chart type, get an annotated declaration skeleton.
 
 **Interaction**
 
