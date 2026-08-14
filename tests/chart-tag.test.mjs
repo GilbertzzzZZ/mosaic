@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findChartTags, isOnlyChartTags } from "../src/dataset/chart-tag.mjs";
+import {
+	findChartTags,
+	isOnlyChartTags,
+	findComponentTags,
+	isOnlyComponentTags,
+	COMPONENT_NAMES,
+} from "../src/dataset/chart-tag.mjs";
 
 const realTag = `<Chart
   title="一起零售活跃付费率趋势"
@@ -126,4 +132,92 @@ month,指标A,指标B
 	assert.equal(tags[0].attributes.title, "成对标签");
 	assert.equal(tags[0].attributes.bars, "指标A");
 	assert.equal(tags[0].csv, "month,指标A,指标B\n2025-01,120,80");
+});
+
+// --- 识别层泛化（findComponentTags）追加测试 ---
+
+const NON_CHART_NAMES = ["DataTable", "Timeline", "DecisionBox", "MetricGrid", "FlowDiagram"];
+
+test("recognizes a self-closing tag for each allow-listed component name", () => {
+	for (const name of COMPONENT_NAMES) {
+		const text = `<${name} title="t" />`;
+		const tags = findComponentTags(text);
+		assert.equal(tags.length, 1, `${name} self-closing should be recognized`);
+		assert.equal(tags[0].name, name);
+		assert.equal(tags[0].body, null);
+		assert.equal(tags[0].attributes.title, "t");
+		assert.equal(tags[0].start, 0);
+		assert.equal(tags[0].end, text.length);
+	}
+});
+
+test("recognizes a paired tag for each allow-listed component name", () => {
+	for (const name of NON_CHART_NAMES) {
+		const text = `<${name} title="t">\nsome body\n</${name}>`;
+		const tags = findComponentTags(text);
+		assert.equal(tags.length, 1, `${name} paired should be recognized`);
+		assert.equal(tags[0].name, name);
+		assert.equal(tags[0].body, "\nsome body\n");
+		assert.equal(tags[0].end, text.length);
+	}
+});
+
+test("accepts single-quoted attribute values", () => {
+	const tags = findComponentTags(`<DataTable title='示例' columns='a,b' />`);
+	assert.equal(tags.length, 1);
+	assert.equal(tags[0].attributes.title, "示例");
+	assert.equal(tags[0].attributes.columns, "a,b");
+});
+
+test("accepts bare (unquoted) attribute values", () => {
+	const tags = findComponentTags(`<MetricGrid title=demo cols=3 />`);
+	assert.equal(tags.length, 1);
+	assert.equal(tags[0].attributes.title, "demo");
+	assert.equal(tags[0].attributes.cols, "3");
+});
+
+test("does not recognize an unknown component name", () => {
+	assert.equal(findComponentTags('<UnknownWidget title="t" />').length, 0);
+	assert.equal(
+		findComponentTags('<UnknownWidget title="t">\nbody\n</UnknownWidget>').length,
+		0,
+	);
+});
+
+test("paired body is raw passthrough, including a json fence, with no fence validation", () => {
+	const jsonBody = '\n```json\n[{"a":1}]\n```\n';
+	const tags = findComponentTags(`<Timeline title="t">${jsonBody}</Timeline>`);
+	assert.equal(tags.length, 1);
+	assert.equal(tags[0].body, jsonBody);
+});
+
+test("paired body is raw passthrough for bare text with no fence at all", () => {
+	const bareBody = "\njust some notes, no fence here\n";
+	const tags = findComponentTags(`<DecisionBox title="t">${bareBody}</DecisionBox>`);
+	assert.equal(tags.length, 1);
+	assert.equal(tags[0].body, bareBody);
+});
+
+test("Chart compat path: non-csv-fence paired Chart candidates are still dropped", () => {
+	const text = `<Chart title="t">\njust prose, no fence\n</Chart>`;
+	assert.deepEqual(findChartTags(text), []);
+	// but the generalized layer sees the raw candidate (body untouched, no fence check)
+	const generalized = findComponentTags(text).filter((t) => t.name === "Chart");
+	assert.equal(generalized.length, 1);
+	assert.equal(generalized[0].body, "\njust prose, no fence\n");
+});
+
+test("mixed paragraph is not swallowed by a generalized component tag", () => {
+	const text = `<DecisionBox title="x"\n\nsome unrelated paragraph ending with />\n\nmore content after`;
+	assert.equal(findComponentTags(text).length, 0);
+});
+
+test("isOnlyComponentTags mirrors isOnlyChartTags and accepts mixed component names plus whitespace", () => {
+	const text = `<MetricGrid title="a" />\n\n<Timeline title="b">\nrow\n</Timeline>`;
+	const tags = findComponentTags(text);
+	assert.equal(tags.length, 2);
+	assert.equal(isOnlyComponentTags(text, tags), true);
+	assert.equal(isOnlyChartTags, isOnlyComponentTags);
+	const mixed = `before\n${text}`;
+	assert.equal(isOnlyComponentTags(mixed, findComponentTags(mixed)), false);
 });
