@@ -102,17 +102,15 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - 数据来自外部数据集 manifest，或直接写在声明体内的内联 CSV。
 - 完整属性契约见 [[docs/dataset-guide|dataset-guide.md]]。
 
-**MetricGrid**（规划中）
+**规划中的类型**（早期内部实现 的超集）
 
-- （占位：指标网格，每格含 label、value、delta、note。）
-
-**Card**（规划中）
-
-- （占位：卡片式内容块。）
+- Mosaic 目标覆盖 早期内部实现 支持的全部组件类型，让同一份文档在两边都能完整渲染：`Chart`（已完成）、`DataTable`、`MetricGrid`、`Timeline`、`DecisionBox`、`FlowDiagram`。
+- `DataTable` 排在最前：它与 Chart 一样读取外部数据集 manifest，数据层与查询层已全部就位——增量只有渲染组件。
+- 其余类型均为内联 payload，按同一条三段式管线扩展。
 
 **更多类型**（规划中）
 
-- （占位：按同一管线扩展的其他内容块类型。）
+- 早期内部实现 类型集是下限而非上限：Mosaic 原创的更多内容块类型将沿同一管线继续扩展。
 
 ---
 
@@ -149,8 +147,8 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 > 已规划、尚未实现的方向，均为占位。
 
-- （占位）MetricGrid 内容块类型。
-- （占位）Card 内容块类型。
+- （占位）DataTable 内容块类型——排在最前：直接复用现有数据集与查询层。
+- （占位）MetricGrid、Timeline、DecisionBox、FlowDiagram 内容块类型——补齐 早期内部实现 超集。
 - （占位）Live Preview 渲染支持。
 - （已完成 2026-08-14）插件 id 已迁移为 `mosaic`；市场上架方案仍为占位。
 

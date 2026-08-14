@@ -209,4 +209,4 @@ frontmatter 有 dataset 同时又带 CSV 数据区
 ## 相关文档
 
 - [[docs/dataset-guide|dataset-guide.md]]——属性表、manifest 契约、查询语义、排错清单
-- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap（MetricGrid / DataTable / Card 等其他内容块类型规划）
+- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap（DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram 及更多内容块类型规划）
