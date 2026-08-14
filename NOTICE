@@ -1,0 +1,18 @@
+Mosaic (plugin id mosaic) — NOTICE
+
+This project (MIT) includes source files ported from git-leaf
+(https://github.com/MangoFuture1210/git-leaf), licensed under the
+Apache License, Version 2.0:
+
+  Copyright 2026 Shenzhen Mango Future Technology Co., Ltd.
+
+Ported files (under src/dataset/):
+  - dataset-granularity.mjs  (from src/content/dataset-granularity.mjs, unmodified)
+  - delimited-data.mjs       (from src/content/delimited-data.mjs, unmodified)
+  - dataset-query.mjs        (from src/content/dataset-query.mjs, unmodified)
+  - dataset-loader.mjs       (from src/server/dataset-loader.mjs, modified:
+    Node file-system access, caching and fingerprinting removed; exports
+    reshaped into pure functions for the Obsidian host)
+
+Licensed under the Apache License, Version 2.0; you may obtain a copy at
+http://www.apache.org/licenses/LICENSE-2.0
