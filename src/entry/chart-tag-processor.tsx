@@ -27,6 +27,8 @@ const FAST_PATH = new RegExp(`<(${COMPONENT_NAMES.join("|")})`);
 
 export function createChartTagProcessor(plugin: MosaicPlugin) {
 	return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
+		// 插件正在卸载：保留原生 markdown，不再建 host / root / 轮询。
+		if (plugin.isUnloading) return;
 		const info = ctx.getSectionInfo(el);
 		if (!info) return;
 		const section = info.text
@@ -68,13 +70,15 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 		let unloaded = false;
 		const stale = () => unloaded || ACTIVE_RUNS.get(el) !== run;
 
+		// child 由预览视图持有，禁用插件时预览不会 unload 它；registerTeardown 让
+		// 插件卸载成为第三条触发路径，两条路径谁先到谁执行，且只执行一次。
 		const child = new MarkdownRenderChild(el);
-		child.onunload = () => {
+		child.onunload = plugin.registerTeardown(() => {
 			unloaded = true;
 			for (const host of run.hosts) {
 				unmountRoot(host);
 			}
-		};
+		});
 		ctx.addChild(child);
 
 		el.empty();
