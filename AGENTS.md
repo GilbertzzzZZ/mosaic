@@ -21,9 +21,8 @@ Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/mos
                       chart-tag-processor（六类标签，代际 token 防重入）
                       chart-block-processor（```chartview 代码块）
 解析（src/parse/）    纯函数，零 Obsidian 依赖（obsidian-dataset.ts 除外，
-                      是 vault IO 适配）。blocks/ 子目录是 早期内部实现 逐字
-                      移植件（Apache-2.0，见 NOTICE）——只报真 bug，
-                      不做风格重构，保持与 早期内部实现 原文可 diff。
+                      是 vault IO 适配）。blocks/ 子目录是已定型的数据层
+                      实现——只报真 bug，不做风格重构，改动面压到最小。
 渲染（src/render/）   自己的壳（figure/工具栏/脚注/错误框）+ 按需调库
                       （AntV 出图）。render-chart（Chart 分发）、
                       render-component（五类分发）、components/ 视图。
@@ -49,8 +48,7 @@ mosaic/
 │   └── *.md              # 介绍类：mosaic-intro（en 为准）与 zh 镜像
 ├── styles.css            # 插件样式（发布三件套之一）
 ├── manifest.json         # 插件清单（发布三件套之一）
-├── esbuild.config.mjs    # 构建：tsc typecheck + esbuild bundle → main.js
-└── NOTICE                # 早期内部实现 移植件的 Apache-2.0 署名
+└── esbuild.config.mjs    # 构建：tsc typecheck + esbuild bundle → main.js
 ```
 
 - `main.js` 是构建产物，不进 git；分发走 GitHub Releases 三件套（main.js/manifest.json/styles.css）。
@@ -82,7 +80,6 @@ npm run install:vault  # build + 拷三件套到测试 vault
 
 - 官方规范原文归档在 [docs/guides/](docs/guides/)：Developer policies、Submission requirements、Plugin guidelines、self-critique checklist。改 UI/设置页/manifest 前先对照。
 - 已达成并必须保持：无 console 噪音、无 innerHTML、无网络请求、无遥测、UI 文案英文 sentence case、设置页无标题、build 必过 typecheck、`main.js` 不进 git。
-- `src/parse/blocks/` 的 早期内部实现 移植件改动需同步核对 NOTICE。
 
 ## Git 规则
 

@@ -1,7 +1,3 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/mdx-lite.mjs (datasetQueryFromContent, lines 221-239), Apache-2.0.
-// See NOTICE. Local changes: none.
-
 import { extractDataBlock } from "./payload.mjs";
 
 // DataTable dataset mode is mutually exclusive with inline payload: once a

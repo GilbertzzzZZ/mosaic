@@ -1,5 +1,5 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/delimited-data.mjs, Apache-2.0. See NOTICE. Local changes: none.
+// CSV/TSV record parser: quoted cells, doubled quotes as escapes, CRLF and a
+// leading BOM. Used by both inline component payloads and dataset data files.
 
 export function parseDelimitedRecords(content, delimiter = ",") {
   if (delimiter !== "," && delimiter !== "\t") {

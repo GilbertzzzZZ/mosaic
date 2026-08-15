@@ -1,18 +1,14 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/table-complexity.mjs, Apache-2.0. See NOTICE. Local changes:
-// the complexity/toolbar heuristic (thresholds, dense check, override
-// resolution, toolbar derivation) is byte-equivalent to upstream's
-// tableComplexityAttributes({rows, columns, cells, overrides}) and lives here
-// as the private computeComplexityAttributes(); it is wrapped behind a thin
-// tableComplexityAttributes(rows, columns, attributes) adapter that matches
-// the interfaces.md contract (Row[] + column-name[] + raw attribute map,
-// instead of upstream's pre-counted {rows, columns, cells, overrides}
-// object — the two can't share a name with different call shapes, so the
-// contract shape wins the export name). Dropped tableCardAttributeString(),
-// renderTableToolbar() and their escapeHtml/escapeAttribute helpers: those
-// build server-rendered HTML/CSS strings and import 早期内部实现's i18n module,
-// out of scope for this pure-function port — Mosaic renders its own React
-// toolbar.
+// Table complexity heuristic. The private computeComplexityAttributes() holds
+// the whole decision — thresholds, the long-cell density check, override
+// resolution and toolbar derivation — over pre-counted
+// {rows, columns, cells, overrides}.
+// The exported tableComplexityAttributes(rows, columns, attributes) is a thin
+// adapter that does the counting and matches the interfaces.md contract
+// (Row[] + column names + the component's raw attribute map). Keeping the two
+// call shapes in separate functions is deliberate: the contract shape owns the
+// export name, the heuristic stays callable on plain counts.
+// Nothing here builds markup — the React toolbar renders itself from the
+// returned flags.
 
 const DEFAULTS = {
 	complexRows: 20,

@@ -24,7 +24,7 @@ export const TimelineView = ({ attributes, body }: TimelineViewProps) => {
 		throw new Error("Timeline requires CSV, JSON, or a Markdown table.");
 	}
 
-	// Timeline 不过滤字段全空的行——只要 rows 非空即渲染对应数量的 <li>（渲染报告 §3.4）。
+	// Timeline 不过滤字段全空的行——只要 rows 非空即渲染对应数量的 <li>。
 	const items: TimelineEntry[] = rows.map((row) => timelineItem(row));
 
 	return (

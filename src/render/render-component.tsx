@@ -47,7 +47,7 @@ function renderComponentError(host: HTMLElement, e: unknown): void {
 	});
 }
 
-// granularityOptions 的渲染层浅校验：措辞与 早期内部实现 逐字一致（解析报告 §2.2）。
+// granularityOptions 的渲染层浅校验。
 // 与 Chart 的 parseGranularityOptions（chart-tag-config.mjs）措辞不同，不能复用。
 // 属性缺省（value === undefined）才回退全四档；属性写了但解析后为空（如
 // "granularityOptions=\" , \""）视为非法输入，同样报词表错误，不能静默兜底。

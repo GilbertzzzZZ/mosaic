@@ -1,20 +1,14 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/table-layout.mjs, Apache-2.0. See NOTICE. Local changes: the
-// column classification/sizing algorithm (WIDTHS, columnLayout, columnKind,
-// widthForKind and every private helper below) and the layout-mode decision
-// in tableLayoutAttributes() are byte-equivalent to upstream, with one
-// exception: isDetailColumn() keeps upstream's shape but no longer inlines
-// upstream's Chinese-only keyword literals — it reads them from
-// ./detail-keywords.mjs, a Mosaic-owned module that also covers English
-// detail-column names.
-// Dropped tableScrollAttributeString(), tableLayoutStyleString() and
-// renderTableColgroup(): those build server-rendered HTML/CSS attribute
-// strings, out of scope for this pure-function port — Mosaic's React table
-// view owns its own markup. renderTableColgroup's own per-column CSS-width
-// formula (px for scroll mode, else a percentage of preferredWidth) is kept,
-// reused by the thin tableLayout(rows, columns) adapter that matches the
-// interfaces.md contract (columnWidths as CSS width strings, instead of
-// upstream's {kind, width, minWidth} column descriptors).
+// Table column classification and sizing. WIDTHS, columnLayout, columnKind,
+// widthForKind and the private helpers below classify each column and give it
+// a width budget; tableLayoutAttributes() turns those budgets into the layout
+// mode (fit / wrap / scroll) plus the preferred and minimum table widths.
+// isDetailColumn() reads its keyword patterns from ./detail-keywords.mjs, so
+// the keyword list can grow to new languages without touching the algorithm.
+// Nothing here builds markup — the React table view owns it. The per-column
+// CSS-width formula (px in scroll mode, else a percentage of preferredWidth)
+// lives in the thin tableLayout(rows, columns) adapter, which matches the
+// interfaces.md contract by exposing columnWidths as CSS width strings rather
+// than the internal {kind, width, minWidth} column descriptors.
 
 import { DETAIL_HEADER_PATTERN, DETAIL_VALUE_PATTERN } from "./detail-keywords.mjs";
 
@@ -258,9 +252,8 @@ function clamp(value, min, max) {
  *   {mode: "fit"|"wrap"|"scroll", preferredWidth, minWidth, columnWidths: string[]}
  *
  * rows: Row[] (Record<string, string|number>), columns: string[] of column
- * names in display order. columnWidths uses upstream renderTableColgroup's
- * own formula: pixel widths in scroll mode, percentages of preferredWidth
- * otherwise.
+ * names in display order. columnWidths are CSS width strings: pixel widths in
+ * scroll mode, percentages of preferredWidth otherwise.
  *
  * All four fields are produced unconditionally; the return type is left to
  * inference so that renaming a field here breaks DataTableView at compile

@@ -1,10 +1,11 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/mdx-lite.mjs (extractFlowDiagram/normalizeFlowDiagram/computeFlowLevels/
-// layoutFlowDiagram/wrapFlowText), Apache-2.0. See NOTICE. Local changes: layoutFlowDiagram
-// takes a single {nodes,edges} model and returns pure layout data (x/y/lines per node,
-// geometry per edge) instead of building SVG strings — the host renders the markup.
-// parseJsonValue is private to mdx-lite.mjs upstream; reimplemented here on top of
-// payload.mjs's extractDataBlock. renderFlowEdge/renderFlowNode SVG builders are not ported.
+// FlowDiagram parsing and layered DAG layout: extractFlowDiagram /
+// normalizeFlowDiagram read the tag body into a {nodes, edges} model,
+// computeFlowLevels assigns each node a layer, and layoutFlowDiagram turns the
+// model into pure layout data (x/y plus wrapped label lines per node, geometry
+// per edge). Nothing here builds SVG strings — the view renders the markup from
+// that data.
+// parseJsonValue sits on top of payload.mjs's extractDataBlock so a JSON body
+// is accepted both fenced and bare.
 
 import { extractDataBlock, extractRows, listAttribute, normalizeFlowType } from "./payload.mjs";
 

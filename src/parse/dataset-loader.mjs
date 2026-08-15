@@ -1,6 +1,8 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/server/dataset-loader.mjs, Apache-2.0. See NOTICE. Local changes: Node IO,
-// caching and fingerprinting removed; imports flattened; pure-function exports added.
+// Dataset manifest and data-file parsing: parseDatasetManifest() validates the
+// manifest shape (fields, time grain, rollups, size limits), parseDatasetData()
+// turns the raw data text into typed rows against that manifest.
+// Both are pure functions over text — the host reads the vault files and passes
+// their contents in, so there is no file-system access or caching here.
 
 import { parseDelimitedRecords } from "./delimited-data.mjs";
 import {

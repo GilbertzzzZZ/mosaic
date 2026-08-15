@@ -335,7 +335,7 @@
 	table-layout: fixed;
 }
 /* scroll 模式：表格按布局算法给出的宽度伸展，宿主 .table-scroll 横向滚动
-   （对齐 早期内部实现 语义；宽表不再被压进容器宽度）。 */
+   （宽表不被压进容器宽度）。 */
 .mosaic-data-table .table-scroll[data-table-layout="scroll"] table {
 	width: var(--table-preferred-width);
 	min-width: var(--table-min-width);

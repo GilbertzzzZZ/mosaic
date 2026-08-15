@@ -42,7 +42,7 @@ function renderInline(text: string | number, keyPrefix: string): React.ReactNode
 	});
 }
 
-// DecisionBox 永不报错（渲染报告 §4.7）：label/value 行为空时静默回退到富文本
+// DecisionBox 永不报错：label/value 行为空时静默回退到富文本
 // （parseRichBlocks 对空 body 返回空数组，渲染出一个空的 .mosaic-decision-body）。
 export const DecisionBoxView = ({ attributes, body }: DecisionBoxViewProps) => {
 	const statusAttr = attributes.status ?? attributes.decisionStatus;

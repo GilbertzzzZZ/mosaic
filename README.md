@@ -73,4 +73,4 @@ npm run build   # esbuild bundle -> main.js
 
 ## License
 
-MIT. Portions of the data layer are ported from Apache-2.0 licensed code; see [NOTICE](NOTICE).
+MIT. See [LICENSE](LICENSE).

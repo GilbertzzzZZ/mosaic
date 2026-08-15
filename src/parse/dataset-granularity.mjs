@@ -1,5 +1,6 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/dataset-granularity.mjs, Apache-2.0. See NOTICE. Local changes: none.
+// The four dataset time granularities (day/week/month/quarter), which views a
+// given source granularity can safely roll up to, and the period-start
+// arithmetic shared by the loader and the query layer.
 
 export const DATASET_GRANULARITIES = Object.freeze(["day", "week", "month", "quarter"]);
 

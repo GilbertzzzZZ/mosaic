@@ -433,7 +433,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 	// series= 与 bars=/lines= 取并集，而不是「有 series= 就只认 series=」。后者会把
 	// 只在 bars=/lines= 里点过名的列整个丢掉：它在数据里、在标签里都写着，就是不画，
 	// 也不报错。组合图不走这里（它按角色分别读 bars/lines），所以这条只影响单视图
-	// 图型——包括类型写错降级到 line/bar 的那条路。上游 前身项目 同样取并集。
+	// 图型——包括类型写错降级到 line/bar 的那条路。
 	let seriesKeys = explicit.length ? [...new Set([...explicit, ...bars, ...lines])] : [...bars, ...lines];
 	if (seriesKeys.length === 0) {
 		seriesKeys = Object.keys(rows[0] ?? {}).filter((k) => k !== xKey);
@@ -462,7 +462,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		let barKeys = bars,
 			lineKeys = lines;
 		if (barKeys.length === 0 && lineKeys.length === 0) {
-			[barKeys, lineKeys] = [seriesKeys.slice(0, 1), seriesKeys.slice(1)]; // 早期内部实现 默认：首个为 bar，其余为 line
+			[barKeys, lineKeys] = [seriesKeys.slice(0, 1), seriesKeys.slice(1)]; // 缺省分配：首个为 bar，其余为 line
 		}
 		if (barKeys.length === 0 || lineKeys.length === 0) {
 			throw new Error(

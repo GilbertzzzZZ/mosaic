@@ -1,11 +1,9 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/mdx-lite.mjs, Apache-2.0. See NOTICE. Local changes: payload
-// extraction and status/type normalization helpers were module-private
-// functions inside renderXxx() HTML builders; they are extracted here as
-// exported pure functions with identical logic. parseRichBlocks/parseInlineText
-// are the parsing half of renderRichBlock()/renderInlineText(): they return
-// structured data instead of building HTML strings (no escapeHtml — that is
-// the host/view layer's job).
+// Payload helpers shared by the five plain component blocks: fenced-block and
+// row extraction, cell/attribute coercion, and status/type normalization —
+// all pure functions over the raw tag body.
+// parseRichBlocks/parseInlineText return structured data rather than HTML
+// strings, so nothing here escapes or builds markup: that is the view layer's
+// job.
 
 import { parseDelimitedRecords } from "../delimited-data.mjs";
 

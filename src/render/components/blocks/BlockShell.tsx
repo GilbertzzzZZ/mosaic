@@ -1,8 +1,7 @@
 import React from "react";
 
 // 共享卡片外壳 + 标题 / kicker / 统一错误渲染，供五类内容块视图复用。
-// 对应 早期内部实现 的 `mdx-component` / `mdx-component-title` / `mdx-component-kicker`，
-// class 前缀按决策记录 4 替换为 `mosaic-`。
+// 外壳、标题、kicker 三层的 class 一律走 `mosaic-` 前缀，与 styles.css 对应。
 
 export type BlockName =
 	"data-table" | "metric-grid" | "timeline" | "decision-box" | "flow-diagram";

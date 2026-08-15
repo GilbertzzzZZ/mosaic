@@ -1,5 +1,6 @@
-// Ported from 早期内部实现 (（早期内部实现）)
-// src/content/dataset-query.mjs, Apache-2.0. See NOTICE. Local changes: none.
+// Dataset query layer: validates the {from, to, where} query shape, resolves
+// the requested granularity against the source data, rolls rows up and returns
+// the rows/columns a component view renders.
 
 import {
   DATASET_GRANULARITIES,

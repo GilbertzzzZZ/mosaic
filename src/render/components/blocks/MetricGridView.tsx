@@ -24,8 +24,8 @@ export const MetricGridView = ({ attributes, body }: MetricGridViewProps) => {
 		throw new Error("MetricGrid requires CSV, JSON, or a Markdown table.");
 	}
 
-	// 无 label 且无 value 的行被过滤；rows 非空但过滤后为空是允许的静默空网格
-	// （对齐 早期内部实现 现状，见渲染报告 §2.4）。
+	// 无 label 且无 value 的行被过滤；rows 非空但过滤后为空是允许的静默空网格，
+	// 不报错。
 	const items: MetricItem[] = rows
 		.map((row) => metricItem(row))
 		.filter((item) => item.label || item.value !== "");

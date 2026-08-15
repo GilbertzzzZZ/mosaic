@@ -43,8 +43,8 @@ export const FlowDiagramView = ({ attributes, body }: FlowDiagramViewProps) => {
 		() => (valid ? layoutFlowDiagram(model) : null),
 		[valid, model],
 	);
-	// 静态 marker id 在同页多图时会重复（早期内部实现 现状同样如此，见渲染报告 §5.2）；
-	// 这里按实例随机化以避免箭头样式跨图串扰，不影响单图视觉输出。
+	// 静态 marker id 在同页多图时会重复，箭头样式会跨图串扰；
+	// 这里按实例随机化，不影响单图视觉输出。
 	const markerId = useMemo(
 		() => `mosaic-flow-arrow-${Math.random().toString(36).slice(2)}`,
 		[]

@@ -1,5 +1,5 @@
 // 详情列关键词表：命中即按 detail 列型排版（更宽的列宽配额）。
-// 与算法分离，便于将来扩充其他语言而不动移植来的分类算法。
+// 与算法分离，便于将来扩充其他语言而不动 table-layout.mjs 的分类算法。
 // 英文词一律加 \b 词边界，避免 rule→ruler、cause→because、path→sympathy、
 // source→resource、note→denote、origin→original 这类子串误命中。
 export const DETAIL_HEADER_PATTERN =
