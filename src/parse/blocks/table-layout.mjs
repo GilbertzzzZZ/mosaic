@@ -261,6 +261,13 @@ function clamp(value, min, max) {
  * names in display order. columnWidths uses upstream renderTableColgroup's
  * own formula: pixel widths in scroll mode, percentages of preferredWidth
  * otherwise.
+ *
+ * All four fields are produced unconditionally; the return type is left to
+ * inference so that renaming a field here breaks DataTableView at compile
+ * time.
+ *
+ * @param {Record<string, string | number>[]} rows
+ * @param {string[]} columns
  */
 export function tableLayout(rows, columns) {
 	const rowList = Array.isArray(rows) ? rows : [];

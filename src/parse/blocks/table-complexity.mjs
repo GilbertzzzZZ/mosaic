@@ -111,6 +111,14 @@ function booleanOverride(value, fallback) {
  * rows: Row[] (Record<string, string|number>), columns: string[] of column
  * names, attributes: the component's raw attribute map (may carry
  * complexity/search/freeze(FirstColumn)/copy(Csv)/sticky(Header) overrides).
+ *
+ * All eight fields are produced unconditionally; the return type is left to
+ * inference so that renaming a field here breaks DataTableView at compile
+ * time.
+ *
+ * @param {Record<string, string | number>[]} rows
+ * @param {string[]} columns
+ * @param {Record<string, string>} [attributes]
  */
 export function tableComplexityAttributes(rows, columns, attributes = {}) {
 	const rowList = Array.isArray(rows) ? rows : [];

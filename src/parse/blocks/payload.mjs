@@ -28,6 +28,17 @@ export function extractDataBlock(content) {
  * Fenced json/tsv change the parse path; any other language tag (including
  * a missing one) degrades to CSV. Bare content is sniffed: leading `[`/`{`
  * is JSON, containing `|` is a markdown table, otherwise CSV.
+ *
+ * `@returns` is declared rather than inferred: the JSON branch runs through
+ * JSON.parse, so inference collapses the whole function to `any` and the
+ * consuming views lose every check. The declared element type is the block
+ * system's Row contract — the CSV/TSV/Markdown branches guarantee it via
+ * parseCell(), while the JSON branch passes parsed values straight through,
+ * so a JSON payload carrying booleans/objects reaches the views as declared
+ * string|number cells.
+ *
+ * @param {string} content
+ * @returns {Record<string, string | number>[]}
  */
 export function extractRows(content) {
 	const dataBlock = extractDataBlock(content);
@@ -160,6 +171,12 @@ function stripTextFence(content) {
  * block's `lines` are the raw (untrimmed-of-inline-markup) source lines,
  * to be joined with a space (paragraph) or rendered one <li> per line
  * (list) by the view layer, after running parseInlineText on the text.
+ *
+ * `@returns` is declared rather than inferred: `blocks` is an evolving `[]`,
+ * which infers as `any[]` and gives the view layer nothing to check.
+ *
+ * @param {string} content
+ * @returns {{type: "p" | "ul", lines: string[]}[]}
  */
 export function parseRichBlocks(content) {
 	const stripped = stripTextFence(content).trim();
@@ -207,6 +224,12 @@ export function parseRichBlocks(content) {
  * that). Code spans are extracted first (matching renderInlineText's
  * backtick-before-bold replacement order), then bold spans are found
  * within the remaining plain-text segments.
+ *
+ * Token `type` is one of "text" | "code" | "bold"; the return type is left to
+ * inference (which widens `type` to string) so that renaming a token field
+ * still breaks the view layer at compile time.
+ *
+ * @param {unknown} text
  */
 export function parseInlineText(text) {
 	const raw = String(text ?? "");
@@ -247,7 +270,15 @@ export function parseInlineText(text) {
 	return tokens;
 }
 
-/** Timeline row → normalized item (§3.3 alias chain, renderTimelineItem). */
+/**
+ * Timeline row → normalized item (§3.3 alias chain, renderTimelineItem).
+ * All five fields are produced unconditionally: `status` is bucketed by
+ * normalizeStatus(), the other four fall back to "" when no alias matches.
+ * The return type is left to inference so that renaming a field here breaks
+ * TimelineView at compile time.
+ *
+ * @param {Record<string, string | number>} row
+ */
 export function timelineItem(row) {
 	return {
 		status: normalizeStatus(row.status),
@@ -258,7 +289,15 @@ export function timelineItem(row) {
 	};
 }
 
-/** MetricGrid row → normalized item (§5.3 alias chain, renderMetricGrid). */
+/**
+ * MetricGrid row → normalized item (§5.3 alias chain, renderMetricGrid).
+ * All five fields are produced unconditionally: `status` is bucketed by
+ * normalizeMetricStatus(), the other four fall back to "" when no alias
+ * matches. The return type is left to inference so that renaming a field
+ * here breaks MetricGridView at compile time.
+ *
+ * @param {Record<string, string | number>} row
+ */
 export function metricItem(row) {
 	return {
 		label: row.label ?? row.metric ?? row.name ?? row.title ?? "",
@@ -274,6 +313,12 @@ export function metricItem(row) {
  * renderDecisionBox). Rows where both label and value are empty are
  * dropped — an empty result signals the caller to fall back to
  * parseRichBlocks() on the raw content instead.
+ *
+ * Both fields are produced unconditionally (falling back to "" when no alias
+ * matches); the return type is left to inference so that renaming a field
+ * here breaks DecisionBoxView at compile time.
+ *
+ * @param {Record<string, string | number>[]} rows
  */
 export function decisionItems(rows) {
 	return rows

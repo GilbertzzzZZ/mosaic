@@ -13,9 +13,11 @@ export interface DecisionBoxViewProps {
 	body: string;
 }
 
+// label/value 用 string | number：decisionItems() 直接透传单元格，而 parseCell()
+// 会把纯数字单元格转成 number，所以 string 是不实的收窄。
 interface DecisionItem {
-	label: string;
-	value: string;
+	label: string | number;
+	value: string | number;
 }
 
 interface RichBlock {
@@ -23,13 +25,15 @@ interface RichBlock {
 	lines: string[];
 }
 
+// type 写成 string 而非 "text"|"code"|"bold"：字面量联合只能靠断言或 .mjs 侧
+// @returns 声明取得，两者都会截断类型流，反而让改名不再报错。
 interface InlineToken {
-	type: "text" | "code" | "bold";
+	type: string;
 	text: string;
 }
 
-function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
-	const tokens: InlineToken[] = (parseInlineText(text) ?? []) as InlineToken[];
+function renderInline(text: string | number, keyPrefix: string): React.ReactNode[] {
+	const tokens: InlineToken[] = parseInlineText(text) ?? [];
 	return tokens.map((token, index) => {
 		const key = `${keyPrefix}-${index}`;
 		if (token.type === "code") return <code key={key}>{token.text}</code>;

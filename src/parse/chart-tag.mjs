@@ -16,6 +16,11 @@ const PAIRED_BODY = /^\s*```(?:csv)?[ \t]*\n([\s\S]*?)\n```[ \t]*\s*$/;
 
 // 六名字通用识别：自闭合/成对标签边界 + 属性解析。body 原文透传，不做 fence 校验
 // （fence/payload 校验是解析层各消费方的职责，见 findChartTags 的兼容 wrapper）。
+// 每个标签无条件产出 name/start/end/attributes/body 五个字段（自闭合标签的 body
+// 为 null）；返回类型交给推断，改字段名时 chart-tag-processor 会编译期报错。
+/**
+ * @param {string} text
+ */
 export function findComponentTags(text) {
 	const source = String(text ?? "");
 	const tags = [];
@@ -76,6 +81,12 @@ function matchPaired(source, start, name) {
 }
 
 // inner 仅由 attr=value 对（双引号/单引号/裸值三形态）和空白组成时返回属性表，否则 null。
+// 属性表是动态键的字符串字典，推断只能得到空对象类型 `{}`，因此这里显式声明——
+// 没有固定字段名，声明不会掩盖任何改名。
+/**
+ * @param {string} inner
+ * @returns {Record<string, string> | null}
+ */
 function parseAttrs(inner) {
 	if (inner.includes("<")) return null;
 	let remainder = inner;
@@ -108,6 +119,11 @@ export function isOnlyComponentTags(text, tags) {
 
 // 兼容导出：Chart-only 过滤 + 现有 PAIRED_BODY csv-fence 校验，语义与改造前逐字一致
 // （非 csv fence 的成对候选照旧被丢弃，保证 Chart 渲染行为零变化）。
+// 每个结果无条件产出 start/end/attributes/csv 四个字段（自闭合标签的 csv 为 null）；
+// 返回类型交给推断，改字段名时 chart-tag-processor 会编译期报错。
+/**
+ * @param {string} text
+ */
 export function findChartTags(text) {
 	const tags = findComponentTags(text).filter((tag) => tag.name === "Chart");
 	const result = [];

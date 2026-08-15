@@ -7,12 +7,14 @@ export interface MetricGridViewProps {
 	body: string;
 }
 
+// 字段全部 required：metricItem() 无条件产出这五个字段，required 才能让 tsc
+// 在 .mjs 侧改字段名时报 TS2322，而不是让卡片上那一栏静默变空。
 interface MetricItem {
-	label?: string;
-	value?: string | number;
-	delta?: string | number;
-	note?: string;
-	status?: string;
+	label: string | number;
+	value: string | number;
+	delta: string | number;
+	note: string | number;
+	status: string;
 }
 
 export const MetricGridView = ({ attributes, body }: MetricGridViewProps) => {
@@ -25,7 +27,7 @@ export const MetricGridView = ({ attributes, body }: MetricGridViewProps) => {
 	// 无 label 且无 value 的行被过滤；rows 非空但过滤后为空是允许的静默空网格
 	// （对齐 早期内部实现 现状，见渲染报告 §2.4）。
 	const items: MetricItem[] = rows
-		.map((row) => metricItem(row) as MetricItem)
+		.map((row) => metricItem(row))
 		.filter((item) => item.label || item.value !== "");
 
 	return (
