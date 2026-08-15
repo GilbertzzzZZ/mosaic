@@ -18,7 +18,11 @@ Ported files (under src/parse/blocks/):
   - payload.mjs           (from src/content/mdx-lite.mjs: payload extraction
     and normalization helpers)
   - table-complexity.mjs  (from src/content/: table complexity heuristics)
-  - table-layout.mjs      (from src/content/: table layout heuristics)
+  - table-layout.mjs      (from src/content/: table layout heuristics,
+    modified: isDetailColumn() no longer inlines upstream's Chinese-only
+    keyword literals; it reads them from detail-keywords.mjs, a Mosaic-owned
+    module that also covers English detail-column names. Everything else in
+    the file is unmodified)
   - flow.mjs              (from src/content/mdx-lite.mjs: FlowDiagram parsing
     and layered DAG layout)
   - dataset-table.mjs     (from src/content/mdx-lite.mjs: dataset query

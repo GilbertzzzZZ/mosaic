@@ -2,8 +2,12 @@
 // src/content/table-layout.mjs, Apache-2.0. See NOTICE. Local changes: the
 // column classification/sizing algorithm (WIDTHS, columnLayout, columnKind,
 // widthForKind and every private helper below) and the layout-mode decision
-// in tableLayoutAttributes() are byte-equivalent to upstream. Dropped
-// tableScrollAttributeString(), tableLayoutStyleString() and
+// in tableLayoutAttributes() are byte-equivalent to upstream, with one
+// exception: isDetailColumn() keeps upstream's shape but no longer inlines
+// upstream's Chinese-only keyword literals — it reads them from
+// ./detail-keywords.mjs, a Mosaic-owned module that also covers English
+// detail-column names.
+// Dropped tableScrollAttributeString(), tableLayoutStyleString() and
 // renderTableColgroup(): those build server-rendered HTML/CSS attribute
 // strings, out of scope for this pure-function port — Mosaic's React table
 // view owns its own markup. renderTableColgroup's own per-column CSS-width
@@ -11,6 +15,8 @@
 // reused by the thin tableLayout(rows, columns) adapter that matches the
 // interfaces.md contract (columnWidths as CSS width strings, instead of
 // upstream's {kind, width, minWidth} column descriptors).
+
+import { DETAIL_HEADER_PATTERN, DETAIL_VALUE_PATTERN } from "./detail-keywords.mjs";
 
 const WIDTHS = {
 	number: { min: 64, max: 108 },
@@ -201,12 +207,10 @@ function expansionWeight(kind) {
 }
 
 function isDetailColumn(header, values) {
-	if (/口径|路径|说明|备注|描述|来源|依据|公式|计算|规则|原因/.test(header)) {
+	if (DETAIL_HEADER_PATTERN.test(header)) {
 		return true;
 	}
-	return values.some((value) =>
-		/(?:^|[ 　])=|源表|合并表|口径|路径|快照/.test(value),
-	);
+	return values.some((value) => DETAIL_VALUE_PATTERN.test(value));
 }
 
 function isNumberLike(value) {
