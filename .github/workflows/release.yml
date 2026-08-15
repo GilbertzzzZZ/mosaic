@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Verify tag
+        run: |
+          node -e '
+            const { verifyReleaseTag } = await import("./scripts/verify-release-tag.mjs");
+            const fs = await import("node:fs");
+            const read = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
+            const result = verifyReleaseTag({
+              tag: process.env.GITHUB_REF.replace("refs/tags/", ""),
+              manifestVersion: read("./manifest.json").version,
+              packageVersion: read("./package.json").version,
+              versionsJson: read("./versions.json"),
+            });
+            if (!result.ok) { console.error(`::error::${result.error}`); process.exit(1); }
+          ' --input-type=module
+      - name: Install
+        run: npm ci
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            main.js
+            styles.css
+      - name: Create draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" --title "$tag" --draft main.js manifest.json styles.css
