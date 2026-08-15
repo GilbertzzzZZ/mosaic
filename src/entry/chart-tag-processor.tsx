@@ -6,9 +6,10 @@ import { findComponentTags, findChartTags, isOnlyComponentTags, COMPONENT_NAMES 
 import { renderChartInto } from "../render/render-chart";
 import { renderComponentInto } from "../render/render-component";
 
-const RUN_KEY = "__mosaicTagRun";
-
 type ChartTagRun = { hosts: HTMLElement[] };
+
+// 每个 section el 的当前渲染代（WeakMap 随 el 回收，无泄漏）。
+const ACTIVE_RUNS = new WeakMap<HTMLElement, ChartTagRun>();
 
 // 两个解析器（findChartTags / findComponentTags）产出的标签统一形态：
 // Chart 带 csv（fence 已剥出），其余五类只带 body 原文。
@@ -54,18 +55,18 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 		// 在 await 之后发现自己已过期，从而不再写入已被新调用清空/接管的 el。
 		// run 同时记录本轮 render 过的 host,供重入接管（下方）和 section 被丢弃时
 		// （child.onunload）两条路径 unmount，避免 AntV 图表实例泄漏。
-		const prevRun = (el as any)[RUN_KEY] as ChartTagRun | undefined;
+		const prevRun = ACTIVE_RUNS.get(el);
 		if (prevRun) {
 			for (const host of prevRun.hosts) {
 				ReactDOM.unmountComponentAtNode(host);
 			}
 		}
 		const run: ChartTagRun = { hosts: [] };
-		(el as any)[RUN_KEY] = run;
+		ACTIVE_RUNS.set(el, run);
 		// unloaded 必须并入 stale()：section 被丢弃时只有 onunload 会触发，
 		// 若仅比对代际 token，whenHostReady 的轮询会对 detached 节点永远等下去。
 		let unloaded = false;
-		const stale = () => unloaded || (el as any)[RUN_KEY] !== run;
+		const stale = () => unloaded || ACTIVE_RUNS.get(el) !== run;
 
 		const child = new MarkdownRenderChild(el);
 		child.onunload = () => {

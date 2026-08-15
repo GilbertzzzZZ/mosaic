@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, TFile, normalizePath } from "obsidian";
 import { parseDatasetManifest, parseDatasetData } from "./dataset-loader.mjs";
 import { resolveVaultPath } from "./vault-path.mjs";
 
@@ -12,7 +12,7 @@ async function readVaultText(
 	path: string,
 	label: string,
 ): Promise<string> {
-	const file = app.vault.getAbstractFileByPath(path);
+	const file = app.vault.getAbstractFileByPath(normalizePath(path));
 	if (!(file instanceof TFile)) {
 		throw new Error(`${label} not found in vault: ${path}`);
 	}
