@@ -20,15 +20,3 @@ data.json
 
 # superpowers scratch workspaces (any level)
 .superpowers/
-
-# 内部规划与调研文档：只在本地留存，不进公开仓库
-# （目录结构由各自的 .gitkeep 保留，见 AGENTS.md 的 File structure 一节）
-docs/plans/*.md
-docs/research/*.md
-
-# Obsidian 官方文档的归档副本：本地对照用，不随公开仓库分发
-# （上游 obsidianmd/obsidian-developer-docs 未声明 license）
-docs/guides/developer-policies.md
-docs/guides/plugin-guidelines.md
-docs/guides/plugin-self-critique-checklist.md
-docs/guides/submission-requirements-for-plugins.md
