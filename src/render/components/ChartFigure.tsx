@@ -60,12 +60,17 @@ export const ChartFigure = ({
 			observer.disconnect();
 		};
 	}, []);
+	// 每次都重新 build，绝不把 initial 交回渲染器第二次：plots 在渲染时会就地
+	// 改写传入的配置（把 label 搬进 labels、删掉 label 键），而它的 transform
+	// 不是幂等的——同一个对象再渲染一遍，labels 会被清空且无从恢复，数值标签
+	// 就此永久消失。切到别的粒度再切回来正好走这条路。build 是纯计算，重跑
+	// 一次的代价远小于这个 bug。
 	const { built, error } = useMemo(() => {
-		if (rebuildEpoch === 0 && granularity === initial.granularity)
-			return { built: initial, error: undefined as string | undefined };
 		try {
 			return { built: build(granularity), error: undefined as string | undefined };
 		} catch (e) {
+			// 降级路径：新粒度构建失败时保留上一次的图并附错误说明。这里的
+			// initial 同样可能已被渲染器消费过，但比整块图消失更可用。
 			return { built: initial, error: `Mosaic: ${String((e as Error)?.message ?? e)}` };
 		}
 	}, [granularity, rebuildEpoch]);
