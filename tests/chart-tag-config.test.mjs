@@ -855,6 +855,33 @@ test("dual-axis percent suffix applies per side", () => {
 	assert.equal(lineChild.label.formatter(2.6), "2.6%");
 });
 
+test("value labels are set 2px above the rest of the chart's type", () => {
+	for (const dark of [false, true]) {
+		for (const layer of labelTextStyle(dark)) {
+			// axis ticks, axis titles and the legend stay on the theme's 12px — only
+			// the numbers the chart exists to convey get lifted
+			assert.equal(layer.fontSize, 14, dark ? "dark" : "light");
+		}
+	}
+});
+
+test("labels also de-overlap across marks, not just within one", () => {
+	// the group-level transform buckets by label, so a bar's number and a line's
+	// number never see each other; on a dual axis they end up all but touching
+	for (const [name, attrs] of CHART_SHAPES) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
+		});
+		assert.deepEqual(
+			built.config.labelTransform,
+			[{ type: "overlapHide" }],
+			`${name}: no view-level pass`,
+		);
+	}
+});
+
 test("single-view charts round the axis top, dual-axis children do not", () => {
 	// both Column and DualAxes ship nice: true in their own defaults, so every path
 	// has to state its choice rather than inherit one

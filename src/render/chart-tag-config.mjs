@@ -50,6 +50,11 @@ const LABEL_TRANSFORM = [
 	{ type: "exceedAdjust", bounds: "main" },
 	{ type: "overlapHide" },
 ];
+// 上面那组是组级的：runtime 按 label 分组、逐组去重叠，所以柱标签和折线标签互相看
+// 不见——双轴图上「$ 123,800」和「4%」几乎贴在一起却都留着。这一份跑在视图级，对全
+// 视图的标签一次性去重叠，是升级前没有的能力。单视图图表只有一个 mark，配了等价于
+// 无害；真正吃到的是组合图和双轴图。
+const VIEW_LABEL_TRANSFORM = [{ type: "overlapHide" }];
 // 标签默认从锚点往下画：柱状图的锚点是柱顶，文字落进柱体内部；折线的锚点只有
 // 一个点、位置处理器不给对齐方式，退回 G 的 start/alphabetic，文字落在点右侧。
 // 改成往上画：文本框底边距锚点 4px，框底到数字底部还有约 4px 字体下伸空间，
@@ -194,6 +199,12 @@ function valueLabel(field, formatter) {
 // 又还贴着字形的外廓走；再往上光晕会盖过字号本身的粗细，读起来像一块白底。
 const LABEL_HALO_WIDTH = 2;
 
+// 数值标签的字号。图里其余文字（轴刻度、轴标题、图例）都不设，仍走引擎主题的 12px
+// ——数值是图表要传达的那个东西，只把它抬起来。
+// 光晕宽度不跟着字号走：两层画法里光晕是下层字形的描边，外扩量由 lineWidth 单独决定，
+// 与字号无关。只有单层描边才需要按笔画粗细算比例。
+const LABEL_FONT_SIZE = 14;
+
 // 数值标签画成两层：先画一层「光晕」——同一段文字，用光晕色同时描边和填充，得到
 // 一个沿字形轮廓外扩 lineWidth/2 的纯色底；再把真正的字叠在上面。
 // 非这样不可：v5 的渲染器对文本先填充后描边，描边居中于轮廓，会从笔画两侧各吃掉
@@ -215,7 +226,12 @@ const LABEL_HALO_WIDTH = 2;
 export function labelTextStyle(dark) {
 	const text = dark ? "#FFFFFF" : "#000000";
 	const halo = dark ? "#1F1F1F" : "#FFFFFF";
-	const shared = { fillOpacity: 1, fontWeight: "bold", lineWidth: LABEL_HALO_WIDTH * 2 };
+	const shared = {
+		fillOpacity: 1,
+		fontWeight: "bold",
+		fontSize: LABEL_FONT_SIZE,
+		lineWidth: LABEL_HALO_WIDTH * 2,
+	};
 	return [
 		{ ...shared, fill: halo, stroke: halo },
 		{ ...shared, fill: text, stroke: "transparent" },
@@ -497,6 +513,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 				xField: "period",
 				scale: { color: { range }, x: fresh(BAR_X_SCALE) },
 				legend: fresh(LEGEND),
+				labelTransform: fresh(VIEW_LABEL_TRANSFORM),
 				state: fresh(HOVER_BAND_STATE),
 				children: linesFirst
 					? [lineChild, pointChild, barChild]
@@ -532,6 +549,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		colorField: "series",
 		scale: { color: { range: colorsFor(attrs, seriesKeys) }, y: yScale({ domainMax: yMax }) },
 		label: showLabels ? valueLabel("value", formatter) : undefined,
+		labelTransform: fresh(VIEW_LABEL_TRANSFORM),
 		axis: { y: { ...fresh(Y_AXIS), labelFormatter: formatter, ...(unit ? { title: unit } : {}) } },
 		tooltip: valueTooltip("value", formatter),
 		legend: fresh(LEGEND),
