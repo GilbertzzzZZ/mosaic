@@ -1,3 +1,5 @@
+import { applyLabelStyle, labelHaloStyle } from "./chart-tag-config.mjs";
+
 // 跟随 Obsidian 明暗主题选择 G2 内置主题。classic 与 classicDark 的
 // colorBackground 都是 transparent，页面底色直接透上来，无需再覆盖背景——
 // 而且 ClassicDark 的 view 是浅合并，只改其中一个 fill 会冲掉其余几个。
@@ -7,36 +9,40 @@ function isDarkTheme(): boolean {
 	return document.body.classList.contains("theme-dark");
 }
 
-// 数值标签常压在彩色柱体上，纯色文字对比不足（dark 主题尤甚）。按主题给
-// 标签加「亮字 + 背景色描边」的 halo：描边制造一圈近背景色光晕，数字压在
-// 任何颜色上都可读。
-function labelHaloStyle(dark: boolean): Record<string, unknown> {
+// 数值标签常压在彩色图元上，纯色文字对比不足。按主题给标签配一对色值：字色 +
+// 光晕色（光晕取近背景色，在字外托出一圈，数字压在任何颜色上都可读）。光晕怎么
+// 画由 chart-tag-config 的 labelHaloStyle 决定，这里只挑颜色。
+function labelHalo(dark: boolean): Record<string, unknown> {
 	return dark
-		? { fill: "#E6E6E6", stroke: "#1F1F1F", lineWidth: 2 }
-		: { fill: "#595959", stroke: "#FFFFFF", lineWidth: 2 };
+		? labelHaloStyle("#E6E6E6", "#1F1F1F")
+		: labelHaloStyle("#595959", "#FFFFFF");
 }
 
-function haloLabel(
-	label: Record<string, any>,
-	style: Record<string, unknown>,
-): Record<string, unknown> {
-	return { ...label, style: { ...label.style, ...style } };
+// 网格线颜色：主题默认拿前景色加低透明度画，暗色下偏亮，压过了数据本身。
+// 这里按主题写死一条固定的极淡灰，线宽 / 实线 / 不透明度在 chart-tag-config
+// 的 y 轴默认值里给。
+function gridStroke(dark: boolean): string {
+	return dark ? "#262626" : "#D9D9D9";
 }
 
-function withLabelHalo(config: Record<string, any>, dark: boolean): void {
-	const style = labelHaloStyle(dark);
-	// 单视图图表的标签在 config.label；DualAxes 逐 child 各带一份。
-	if (config.label) config.label = haloLabel(config.label, style);
+// y 轴挂在单视图的 config.axis 上，DualAxes 则逐 child 各带一份；折线和它的
+// 数据点共用一段 y scale，两份 axis 内容必须保持一致。
+function withGridStroke(config: Record<string, any>, dark: boolean): void {
+	const stroke = gridStroke(dark);
+	const paint = (node: Record<string, any> | undefined) => {
+		if (!node?.axis?.y) return;
+		node.axis = { ...node.axis, y: { ...node.axis.y, gridStroke: stroke } };
+	};
+	paint(config);
 	if (Array.isArray(config.children)) {
-		for (const child of config.children) {
-			if (child?.label) child.label = haloLabel(child.label, style);
-		}
+		for (const child of config.children) paint(child);
 	}
 }
 
 export function withTheme<T extends { config: Record<string, unknown> }>(built: T): T {
 	const dark = isDarkTheme();
 	built.config.theme = { type: dark ? "classicDark" : "classic" };
-	withLabelHalo(built.config as Record<string, any>, dark);
+	applyLabelStyle(built.config, labelHalo(dark));
+	withGridStroke(built.config as Record<string, any>, dark);
 	return built;
 }

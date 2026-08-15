@@ -45,6 +45,16 @@ const LABEL_TRANSFORM = [
 	{ type: "exceedAdjust", bounds: "main" },
 	{ type: "overlapHide" },
 ];
+// 标签默认从锚点往下画：柱状图的锚点是柱顶，文字落进柱体内部；折线的锚点只有
+// 一个点、位置处理器不给对齐方式，退回 G 的 start/alphabetic，文字落在点右侧。
+// 改成往上画：文本框底边距锚点 4px，框底到数字底部还有约 4px 字体下伸空间，
+// 合起来是图元上方约 8px 的空隙。
+const LABEL_ABOVE = { textAlign: "center", textBaseline: "bottom", dy: -4 };
+// 柱宽由 x band 比例尺的 padding 决定，默认 paddingInner/paddingOuter 都是 0.1
+// （柱宽 = 槽宽的 0.9，柱子几乎相接）。paddingInner 0.5 把柱宽压回槽宽的一半，
+// 配套的 paddingOuter 0.25 让首尾两槽与中间等宽、柱子仍居槽中央。折线图的 x
+// 是 point 比例尺（bandWidth 恒为 0），不走这套。
+const BAR_X_SCALE = { paddingInner: 0.5, paddingOuter: 0.25 };
 
 export function formatChartNumber(value) {
 	if (value == null || !Number.isFinite(value)) return "";
@@ -110,10 +120,74 @@ function yScale({ key, domainMin, domainMax }) {
 	return scale;
 }
 
+// 刻度步长：默认实现的步长只取 1、2、5 × 10^k，凑不到 count 档就一律退到更细
+// 的一档，档数接近翻倍（$69,660 的值域被切成 $10,000 一档共 7 档）。这里把 2.5
+// 也算进候选，并在 1/2/2.5/5 × 10^k 里挑档数最接近 count 的那个步长，档数打平
+// 时取更细的（同一值域给出 $20,000 一档共 4 档）。只返回落在值域内的刻度。
+const TICK_STEPS = [1, 2, 2.5, 5];
+
+function niceTicks(min, max, count = 5) {
+	if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return [min];
+	const target = Math.max(2, Math.round(count));
+	// 候选从「理想步长的十分之一」起往上铺四个数量级，足够把最优解框在里面。
+	const base = Math.floor(Math.log10((max - min) / target)) - 1;
+	let best;
+	for (let k = base; k <= base + 3; k += 1) {
+		for (const mantissa of TICK_STEPS) {
+			const step = mantissa * 10 ** k;
+			const first = Math.ceil(min / step);
+			const last = Math.floor(max / step);
+			if (last < first) continue;
+			const miss = Math.abs(last - first + 1 - target);
+			if (best === undefined || miss < best.miss) best = { step, first, last, miss };
+		}
+	}
+	if (best === undefined) return [min];
+	const ticks = [];
+	for (let i = best.first; i <= best.last; i += 1) {
+		const value = i * best.step;
+		// i * step 会带浮点尾巴（0.25 的 13 倍算成 3.2500000000000004），
+		// 尾巴会原样出现在轴文案里。
+		ticks.push(value === 0 ? 0 : Number(value.toPrecision(12)));
+	}
+	return ticks;
+}
+
+// y 轴默认画 4px 刻度线，网格线是虚线（主题 axis.gridLineDash = [3, 4]）。这里
+// 关掉刻度线、把网格改回 1px 实线；网格颜色跟主题走，由 chart-theme 补上。
+const Y_AXIS = {
+	tick: false,
+	tickMethod: niceTicks,
+	gridLineDash: [0, 0],
+	gridLineWidth: 1,
+	gridStrokeOpacity: 1,
+};
+
 // 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
 // 共用一个对象时后一个 mark 会沿用前一个的字段。
 function valueLabel(field, formatter) {
-	return { text: field, formatter, transform: LABEL_TRANSFORM };
+	return { text: field, formatter, transform: LABEL_TRANSFORM, ...LABEL_ABOVE };
+}
+
+// 数值标签的 halo（字外一圈近背景色的光晕，让数字压在彩色图元上也能读）。
+// 光晕不能画成描边：v1 的渲染器对文本先描边再填充，描边落在字形背后；v5 的渲染器
+// 反过来先填充再描边，2px 描边会盖掉 12px 字形约 1.3px 宽的笔画，字被描边色吃掉
+// ——浅色主题下深灰字压在蓝色柱体上就整个变成了白字。阴影跟着 fill 一起画在字形
+// 背后，不碰字形本身，因此走 shadowColor / shadowBlur。
+// 两套色值由 chart-theme 按明暗主题给，这里只定画法。
+export function labelHaloStyle(fill, halo) {
+	return { fill, fillOpacity: 1, shadowColor: halo, shadowBlur: 2 };
+}
+
+// 带数值标签的 mark：单视图挂在 config 上，DualAxes 逐 child 各带一份（柱一份、
+// 折线一份，数据点那份 mark 不带标签）。返回改到的 mark，调用方可以核对覆盖面。
+export function applyLabelStyle(config, style) {
+	const marks = [config, ...(Array.isArray(config.children) ? config.children : [])];
+	const labelled = marks.filter((mark) => mark?.label);
+	for (const mark of labelled) {
+		mark.label = { ...mark.label, style: { ...mark.label.style, ...style } };
+	}
+	return labelled;
 }
 
 // v5 的 scale 没有 formatter：轴刻度走 axis.labelFormatter，数值标签走
@@ -252,13 +326,18 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		}
 		const barAxis = {
 			y: {
+				...Y_AXIS,
 				labelFormatter: barFormatter,
 				...(dual && leftUnit ? { title: leftUnit } : {}),
 			},
 		};
 		const lineAxis = {
 			y: {
+				...Y_AXIS,
 				position: "right",
+				// 每条连续轴默认自带一层网格。右轴的刻度和左轴不在同一批高度上，
+				// 两层网格叠出来是两倍密度的横线；网格只留给左轴。
+				grid: false,
 				labelFormatter: lineFormatter,
 				...(dual && rightUnit ? { title: rightUnit } : {}),
 			},
@@ -319,7 +398,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			chartType: "DualAxes",
 			config: {
 				xField: "period",
-				scale: { color: { range } },
+				scale: { color: { range }, x: BAR_X_SCALE },
 				legend: LEGEND,
 				children: linesFirst
 					? [lineChild, pointChild, barChild]
@@ -355,7 +434,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		colorField: "series",
 		scale: { color: { range: colorsFor(attrs, seriesKeys) }, y: yScale({ domainMax: yMax }) },
 		label: showLabels ? valueLabel("value", formatter) : undefined,
-		axis: { y: { labelFormatter: formatter, ...(unit ? { title: unit } : {}) } },
+		axis: { y: { ...Y_AXIS, labelFormatter: formatter, ...(unit ? { title: unit } : {}) } },
 		tooltip: valueTooltip("value", formatter),
 		legend: LEGEND,
 	};
@@ -365,19 +444,24 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			chartType: "Line",
 			config: { ...config, point: LINE_POINT },
 		};
+	// 柱宽只对 interval mark 有意义，折线图不加。
+	const barConfig = {
+		...config,
+		scale: { ...config.scale, x: BAR_X_SCALE },
+	};
 	if (type === "grouped-bar")
 		return {
 			...common,
 			chartType: "Column",
-			config: { ...config, group: true },
+			config: { ...barConfig, group: true },
 		};
 	if (type === "stacked-bar")
 		return {
 			...common,
 			chartType: "Column",
-			config: { ...config, stack: true },
+			config: { ...barConfig, stack: true },
 		};
-	return { ...common, chartType: "Column", config }; // "bar"
+	return { ...common, chartType: "Column", config: barConfig }; // "bar"
 }
 
 export function buildChartFromTag({

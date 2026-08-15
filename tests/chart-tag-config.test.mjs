@@ -9,6 +9,8 @@ import {
 	buildChartFromInline,
 	parseGranularityOptions,
 	formatChartNumber,
+	applyLabelStyle,
+	labelHaloStyle,
 } from "../src/render/chart-tag-config.mjs";
 
 const manifest = parseDatasetManifest(
@@ -478,6 +480,148 @@ test("labels get anti-overlap transforms", () => {
 	for (const child of combo.config.children) {
 		if (!child.label) continue; // the point mark carries no labels
 		assert.deepEqual(child.label.transform, expected);
+	}
+});
+
+test("every mark that carries a value label receives the theme label style", () => {
+	const style = { fill: "#ff00ff", shadowColor: "#00ff00" };
+	// combo/combo-dual-axis draw the bars and the line as separate marks, so a walk
+	// that only reaches the first one leaves half the labels on the engine default
+	const cases = [
+		["line", { type: "line", series: "Total,Split" }, 1],
+		["bar", { type: "bar", series: "Total" }, 1],
+		["grouped-bar", { type: "grouped-bar", series: "Total,Split" }, 1],
+		["stacked-bar", { type: "stacked-bar", series: "Total,Split" }, 1],
+		["combo", { type: "combo", bars: "Split", lines: "Total" }, 2],
+		["combo-dual-axis", { type: "combo-dual-axis", bars: "Split", lines: "Total" }, 2],
+	];
+	for (const [name, attrs, expected] of cases) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
+		});
+		const touched = applyLabelStyle(built.config, style);
+		assert.equal(touched.length, expected, `${name}: labelled marks reached`);
+		const marks = [built.config, ...(built.config.children ?? [])];
+		const labelled = marks.filter((mark) => mark.label);
+		assert.equal(labelled.length, expected, `${name}: labelled marks present`);
+		for (const mark of labelled) {
+			assert.deepEqual(mark.label.style, style, `${name}/${mark.type ?? "view"}`);
+		}
+	}
+});
+
+test("the label halo is painted behind the glyph, never as a stroke over it", () => {
+	// v5 fills text before stroking it, so a stroke halo eats the glyph it should
+	// be framing; the halo has to ride along with the fill instead
+	const halo = labelHaloStyle("#595959", "#FFFFFF");
+	assert.equal(halo.fill, "#595959");
+	assert.equal(halo.fillOpacity, 1); // the engine default of 0.65 washes the text out
+	assert.equal(halo.shadowColor, "#FFFFFF");
+	assert.ok(halo.shadowBlur > 0); // a blur of 0 draws no shadow at all
+	assert.equal(halo.stroke, undefined);
+	assert.equal(halo.lineWidth, undefined);
+});
+
+test("value labels sit above the mark instead of inside it", () => {
+	const above = { textAlign: "center", textBaseline: "bottom", dy: -4 };
+	const line = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "line",
+			series: "Total",
+			labels: "all",
+			granularity: "month",
+		},
+	});
+	for (const [key, value] of Object.entries(above)) {
+		assert.equal(line.config.label[key], value);
+	}
+	const combo = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo",
+			bars: "Split",
+			lines: "Total",
+			labels: "all",
+			granularity: "month",
+		},
+	});
+	for (const child of combo.config.children) {
+		if (!child.label) continue; // the point mark carries no labels
+		for (const [key, value] of Object.entries(above)) {
+			assert.equal(child.label[key], value);
+		}
+	}
+});
+
+test("interval charts halve the bar width, line charts leave x alone", () => {
+	const padding = { paddingInner: 0.5, paddingOuter: 0.25 };
+	for (const type of ["bar", "grouped-bar", "stacked-bar"]) {
+		const r = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, type, series: "Total,Split", granularity: "month" },
+		});
+		assert.deepEqual(r.config.scale.x, padding, type);
+	}
+	const line = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "line", series: "Total", granularity: "month" },
+	});
+	assert.equal(line.config.scale.x, undefined); // a point scale, no band to narrow
+	const combo = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo",
+			bars: "Split",
+			lines: "Total",
+			granularity: "month",
+		},
+	});
+	assert.deepEqual(combo.config.scale.x, padding);
+});
+
+test("y axes drop tick marks, draw solid grid lines and pick round ticks", () => {
+	const line = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "line", series: "Total", granularity: "month" },
+	});
+	const axis = line.config.axis.y;
+	assert.equal(axis.tick, false);
+	assert.deepEqual(axis.gridLineDash, [0, 0]);
+	assert.equal(axis.gridLineWidth, 1);
+	assert.equal(axis.gridStrokeOpacity, 1);
+	// $0–$69,660 is the sales demo's left axis: 4 ticks $20,000 apart, not 7 at $10,000
+	assert.deepEqual(axis.tickMethod(0, 69660, 5), [0, 20000, 40000, 60000]);
+	// 3.2%–4.428% is its right axis: a 0.25 step, which a 1/2/5-only step set cannot reach
+	assert.deepEqual(axis.tickMethod(3.2, 4.428, 5), [3.25, 3.5, 3.75, 4, 4.25]);
+	assert.deepEqual(axis.tickMethod(5, 5, 5), [5]); // flat data still yields one tick
+	const combo = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo-dual-axis",
+			bars: "Split",
+			lines: "Total",
+			granularity: "month",
+		},
+	});
+	for (const child of combo.config.children) {
+		assert.equal(child.axis.y.tick, false);
+		assert.deepEqual(child.axis.y.gridLineDash, [0, 0]);
+		// only the left axis draws grid lines: two sets of ticks would double them up
+		assert.equal(child.axis.y.grid, child.axis.y.position === "right" ? false : undefined);
 	}
 });
 
