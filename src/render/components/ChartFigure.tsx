@@ -44,15 +44,28 @@ export const ChartFigure = ({
 	useEffect(() => {
 		const el = figureRef.current;
 		if (!el) return;
+		// lastWidth 记录"上一次真正据以重建的宽度"，不是"ResizeObserver 上一次看到
+		// 的宽度"。阅读视图把段落虚拟化摘离时 ResizeObserver 会先报 0×0、回到布局
+		// 时再报回真实宽度；若在摘离那一刻就把 lastWidth 推到新值，回来时宽度与
+		// lastWidth 相等，这次 resize 就被自己吃掉了，图表永远停在错误几何上。
 		let lastWidth = el.clientWidth;
 		let timer: number | undefined;
 		const observer = new ResizeObserver(() => {
 			const width = el.clientWidth;
-			// 高度会随重建波动，只看宽度；0 宽（尚未布局）不触发。
+			// 高度会随重建波动，只看宽度；0 宽（尚未布局，或宿主已被摘离/隐藏）
+			// 不触发，也不推进 lastWidth。
 			if (width === 0 || Math.abs(width - lastWidth) < 2) return;
-			lastWidth = width;
 			window.clearTimeout(timer);
-			timer = window.setTimeout(() => setRebuildEpoch((e) => e + 1), 150);
+			timer = window.setTimeout(() => {
+				// 防抖窗口里宿主可能刚好被摘离。此刻重建会让 G2 量到一个没有布局盒
+				// 的容器，退回 640×480 默认画布（见 Chart.tsx 的尺寸不变量注释）。
+				// 放弃这一次即可——宿主回到布局里时 ResizeObserver 会再报一次，
+				// 那时 lastWidth 还停在旧值，比较仍然成立。
+				const settled = el.clientWidth;
+				if (settled === 0) return;
+				lastWidth = settled;
+				setRebuildEpoch((e) => e + 1);
+			}, 150);
 		});
 		observer.observe(el);
 		return () => {
