@@ -1,7 +1,7 @@
 {
   "name": "mosaic",
-  "version": "1.3.0",
-  "description": "Declarative content blocks for Obsidian notes: charts from inline data, CSV files or dataset manifests, rendered in reading view.",
+  "version": "1.0.0",
+  "description": "Declarative content blocks for your notes: charts, data tables, timelines, metric cards, decision records and flow diagrams from inline CSV, JSON or dataset files.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -10,9 +10,16 @@
     "install:vault": "npm run build && cp main.js manifest.json styles.css ../mosaic-test-vault/.obsidian/plugins/mosaic/"
   },
   "keywords": [
-    "chart",
-    "obsidian",
-    "obsidian-plugin"
+    "obsidian-plugin",
+    "charts",
+    "data-table",
+    "timeline",
+    "flow-diagram",
+    "metrics",
+    "csv",
+    "dataset",
+    "content-blocks",
+    "visualization"
   ],
   "author": "GilbertzzzzzzZZZ",
   "license": "MIT",

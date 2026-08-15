@@ -1,9 +1,9 @@
 {
 	"id": "mosaic",
 	"name": "Mosaic",
-	"version": "1.3.0",
+	"version": "1.0.0",
 	"minAppVersion": "1.0.0",
-	"description": "Declarative content blocks for your notes: write a declaration in Markdown or MDX, get rich interactive content. Charts (Ant Design Charts) from inline data, CSV files or dataset manifests with time-range filtering and granularity rollup.",
+	"description": "Declarative content blocks for your notes: charts, data tables, timelines, metric cards, decision records and flow diagrams from inline CSV, JSON or dataset files.",
 	"author": "GilbertzzzzzzZZZ",
 	"authorUrl": "https://github.com/GilbertzzzZZ",
 	"isDesktopOnly": false
