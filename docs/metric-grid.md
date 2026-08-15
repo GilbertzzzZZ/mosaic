@@ -102,7 +102,7 @@ label,value,delta,note,status
 
 自适应网格 + good / risk / watch / neutral 四色状态顶边：
 
-![MetricGrid status cards](assets/metric-grid.png)
+![MetricGrid status cards](_assets/metric-grid.png)
 
 ## 相关文档
 

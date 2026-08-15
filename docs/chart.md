@@ -234,15 +234,15 @@ frontmatter 有 dataset 同时又带 CSV 数据区
 
 **内联 CSV · combo 图**（成对标签写法，数值标签含首尾）：
 
-![Inline combo chart](assets/readme-chart.png)
+![Inline combo chart](_assets/readme-chart.png)
 
 **外部数据集 · combo-dual-axis**（粒度切换按钮组、`$`/`%` 单位格式化、千分位、note 与溯源脚注）：
 
-![Dataset dual-axis chart](assets/chart-dataset.png)
+![Dataset dual-axis chart](_assets/chart-dataset.png)
 
 **错误框呈现**（manifest 路径不存在时就地报错，不影响同页其他内容）：
 
-![Chart error box](assets/chart-error.png)
+![Chart error box](_assets/chart-error.png)
 
 ---
 

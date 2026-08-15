@@ -107,7 +107,7 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 纵向时间线，竖线连接、末项截断；done / active / default 状态圆点（`active` 跟随 Obsidian 主题强调色）：
 
-![Timeline milestones](assets/timeline.png)
+![Timeline milestones](_assets/timeline.png)
 
 ## 相关文档
 

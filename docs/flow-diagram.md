@@ -136,7 +136,7 @@ c,节点C,action,a
 
 分层 DAG 布局、六类节点配色、边标签与箭头：
 
-![FlowDiagram layout](assets/flow-diagram.png)
+![FlowDiagram layout](_assets/flow-diagram.png)
 
 ## 相关文档
 

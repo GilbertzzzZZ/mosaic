@@ -120,7 +120,7 @@ dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where
 
 上：内联 CSV + 工具栏（搜索 / 冻结首列 / 复制 CSV，属性强制开启）；下：dataset 模式（month/quarter 粒度按钮组，表头显示 manifest label）：
 
-![DataTable inline and dataset modes](assets/data-table.png)
+![DataTable inline and dataset modes](_assets/data-table.png)
 
 ## 相关文档
 

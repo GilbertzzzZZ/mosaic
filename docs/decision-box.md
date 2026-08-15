@@ -118,7 +118,7 @@ fenced json 围栏内是不合法 JSON
 
 结构化 label/value 两列布局 + status / owner / source 徽标（accepted 与 proposed 两种状态）：
 
-![DecisionBox records](assets/decision-box.png)
+![DecisionBox records](_assets/decision-box.png)
 
 ## 相关文档
 

@@ -6,7 +6,7 @@ Apache License, Version 2.0:
 
   Copyright 2026 the author
 
-Ported files (under src/dataset/):
+Ported files (under src/parse/):
   - dataset-granularity.mjs  (from src/content/dataset-granularity.mjs, unmodified)
   - delimited-data.mjs       (from src/content/delimited-data.mjs, unmodified)
   - dataset-query.mjs        (from src/content/dataset-query.mjs, unmodified)
@@ -14,11 +14,11 @@ Ported files (under src/dataset/):
     Node file-system access, caching and fingerprinting removed; exports
     reshaped into pure functions for the Obsidian host)
 
-Ported files (under src/blocks/):
-  - src/blocks/payload.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (payload extraction & normalization helpers)
-  - src/blocks/table-complexity.mjs, src/blocks/table-layout.mjs — ported from 早期内部实现 src/content/ (table heuristics)
-  - src/blocks/flow.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (FlowDiagram parsing & layered DAG layout)
-  - src/blocks/dataset-table.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (datasetQueryFromContent)
+Ported files (under src/parse/blocks/):
+  - src/parse/blocks/payload.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (payload extraction & normalization helpers)
+  - src/parse/blocks/table-complexity.mjs, src/blocks/table-layout.mjs — ported from 早期内部实现 src/content/ (table heuristics)
+  - src/parse/blocks/flow.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (FlowDiagram parsing & layered DAG layout)
+  - src/parse/blocks/dataset-table.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (datasetQueryFromContent)
 
 Licensed under the Apache License, Version 2.0; you may obtain a copy at
 http://www.apache.org/licenses/LICENSE-2.0

@@ -4,9 +4,9 @@ Declarative content blocks for your notes: write a plain-text declaration, get r
 
 ## What it looks like
 
-![Inline combo chart rendered in reading view](docs/assets/readme-chart.png)
+![Inline combo chart rendered in reading view](docs/_assets/readme-chart.png)
 
-![MetricGrid and Timeline blocks](docs/assets/readme-blocks.png)
+![MetricGrid and Timeline blocks](docs/_assets/readme-blocks.png)
 
 ## Quick example
 
