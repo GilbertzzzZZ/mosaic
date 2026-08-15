@@ -17,8 +17,8 @@ sample-b,5,watch
 </DataTable>
 ````
 
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。这是 Obsidian 宿主的段落切分规则，早期内部实现 原实现允许开标签跨多行（累积到未被引号包裹的 `>` 为止），Mosaic 不支持这一点。
-- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，后续内容（含围栏和闭标签）被当作独立段落解析，标签同样不会被接管。早期内部实现 没有这个限制（它自己实现的是纯字符串扫描的块级规则，不经过宿主的段落切分）。
+- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。这是 Obsidian 宿主的段落切分规则决定的，不支持开标签跨多行。
+- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，后续内容（含围栏和闭标签）被当作独立段落解析，标签同样不会被接管。
 - 属性值支持双引号、单引号或不加引号三种写法：`title="示例"`、`title='示例'`、`title=示例` 均合法，但不加引号时值不能含空白、引号或 `>`、`/`；属性的 `=` 两侧不能有空格（`title = "示例"` 不被识别，整个标签按原文渲染）。
 - 闭合标签必须独占一行、与开标签同名，大小写敏感：`</DataTable>`。
 
@@ -53,7 +53,7 @@ sample-b,5,watch
 
 布尔属性（`search`/`freeze`/`copy`/`sticky`）接受 `true`/`false`、`1`/`0`、`yes`/`no`、`on`/`off`，大小写不敏感；其余值回退默认值。
 
-**`columnLabels` 陷阱**：DataTable 支持一个「列显示名映射」概念，但它**只能通过 dataset 查询结果自动生成**（取 manifest 里每个字段的 `label`），**不能**当作标签属性直接写。标签属性解析永远产出字符串，`columnLabels="..."` 无论写什么都会被判定「不是对象」而静默忽略，表头依旧显示原始列名。想要自定义表头文案，请在 manifest 的 `fields[].label` 里声明（见 [[docs/dataset-guide|dataset-guide.md]]），而不是在标签上加这个属性。
+**`columnLabels` 陷阱**：DataTable 支持一个「列显示名映射」概念，但它**只能通过 dataset 查询结果自动生成**（取 manifest 里每个字段的 `label`），**不能**当作标签属性直接写。标签属性解析永远产出字符串，`columnLabels="..."` 无论写什么都会被判定「不是对象」而静默忽略，表头依旧显示原始列名。想要自定义表头文案，请在 manifest 的 `fields[].label` 里声明（见 [dataset-guide.md](dataset-guide.md)），而不是在标签上加这个属性。
 
 ## Payload 契约
 
@@ -76,7 +76,7 @@ sample-b,5,watch
 </DataTable>
 ````
 
-粒度按钮组、溯源脚注（数据集标题 · 生效窗口 · 粒度 · N/M source rows · data through）、时间对齐校验、`rollup` 语义与 dataset manifest 契约本身，与 Chart 完全一致，见 [[docs/dataset-guide|dataset-guide.md]]。唯一的差异：Chart 会因为「图表可读密度上限 120 点」剔除过密的粒度选项，DataTable **不受此限制**，所有安全粗化后的粒度都保留在候选集合里。
+粒度按钮组、溯源脚注（数据集标题 · 生效窗口 · 粒度 · N/M source rows · data through）、时间对齐校验、`rollup` 语义与 dataset manifest 契约本身，与 Chart 完全一致，见 [dataset-guide.md](dataset-guide.md)。唯一的差异：Chart 会因为「图表可读密度上限 120 点」剔除过密的粒度选项，DataTable **不受此限制**，所有安全粗化后的粒度都保留在候选集合里。
 
 ### 报错示例
 
@@ -105,7 +105,7 @@ granularityOptions 出现 day/week/month/quarter 之外的值
 → Mosaic: granularityOptions supports day, week, month, and quarter.
 ```
 
-dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where` 校验、`rollup` 缺失等）与 Chart 共用同一套查询语义，完整列表见 [[docs/dataset-guide|dataset-guide.md]] 排错清单。
+dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where` 校验、`rollup` 缺失等）与 Chart 共用同一套查询语义，完整列表见 [dataset-guide.md](dataset-guide.md) 排错清单。
 
 按原文渲染（不接管、不是错误框）：
 
@@ -116,17 +116,19 @@ dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where
 
 ## 渲染效果
 
-> 图片均为待补充占位；示例截图一律使用明显的假数据。
+> 示例截图一律使用明显的假数据。
 
-- 内联 CSV / JSON / Markdown 表格三种 payload 渲染一致：![待补充]
-- 简单表格 vs 复杂表格（自动列宽、工具栏显隐）：![待补充]
-- 搜索 / 冻结首列 / 复制 CSV / 表头吸顶：![待补充]
-- dataset 模式：粒度按钮组与溯源脚注：![待补充]
-- 明暗主题跟随：![待补充]
-- 错误框呈现：![待补充]
+<!-- TODO: screenshot pending -->
+
+- 内联 CSV / JSON / Markdown 表格三种 payload 渲染一致：![三种 payload 渲染一致](assets/data-table-payloads.png)
+- 简单表格 vs 复杂表格（自动列宽、工具栏显隐）：![简单表格 vs 复杂表格](assets/data-table-complexity.png)
+- 搜索 / 冻结首列 / 复制 CSV / 表头吸顶：![工具栏能力](assets/data-table-toolbar.png)
+- dataset 模式：粒度按钮组与溯源脚注：![dataset 模式](assets/data-table-dataset.png)
+- 明暗主题跟随：![明暗主题跟随](assets/data-table-theme.png)
+- 错误框呈现：![错误框呈现](assets/data-table-error.png)
 
 ## 相关文档
 
-- [[docs/dataset-guide|dataset-guide.md]]——dataset 模式共用的 manifest 契约、查询语义、排错清单
-- [[docs/chart|chart.md]]——Chart 内容块，dataset 模式的姊妹实现
-- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap
+- [dataset-guide.md](dataset-guide.md)——dataset 模式共用的 manifest 契约、查询语义、排错清单
+- [chart.md](chart.md)——Chart 内容块，dataset 模式的姊妹实现
+- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap

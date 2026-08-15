@@ -1,7 +1,7 @@
 # Chart
 
 > Chart 内容块的完整文档：一种图表，三种写法——自闭合标签、成对标签、代码块。
-> 三种写法共用同一套属性契约（见 [[docs/dataset-guide|dataset-guide.md]] 属性表），同一属性无论写成哪种形态，渲染结果完全一致。
+> 三种写法共用同一套属性契约（见下文[属性表](#属性表)），同一属性无论写成哪种形态，渲染结果完全一致。
 
 ## 三种写法一览
 
@@ -13,10 +13,9 @@
 
 **共同规则**
 
-- 属性契约、类型映射（`line` / `bar` / `grouped-bar` / `stacked-bar` / `combo` / `combo-dual-axis`）与展示语义见 [[docs/dataset-guide|dataset-guide.md]]，本文不重复。
+- 属性契约与展示语义见下文[属性表](#属性表)与[类型映射与展示语义](#类型映射与展示语义)，三种写法完全一致。
 - 属性的 `=` 两侧不能有空格（`a = "b"` 不被识别，整个标签按原文渲染）。
 - 标签写法仅接管「整段只有标签与空白」的段落，混排段落保持原样；每个图表独立渲染与报错，一处失败不影响同页其他内容。
-- 数值格式化、单位前缀/后缀、Y 轴 8% 留白、方块图例、Obsidian 明暗主题跟随，三种写法完全一致。
 - 仅阅读视图；Live Preview（计划中）。
 
 **内联模式（成对标签与代码块 CSV 共用的边界）**
@@ -25,6 +24,40 @@
 - `x` 缺省取 CSV 首列；显式声明的列必须存在于 CSV 表头。
 - 数值列必须是数字或留空，留空表示断点；不合法时报错并给出行号。
 - 无溯源脚注、无粒度切换按钮。
+
+---
+
+## 属性表
+
+三个入口共用的契约；标签写法一行一个属性、属性值双引号，代码块写法为 frontmatter 的 `key: value`。
+
+| 属性 | 说明 |
+| --- | --- |
+| `dataset` | manifest 路径，相对当前笔记所在目录，须以 `.dataset.json` 结尾，不可越出库根 |
+| `type` | `line` / `bar` / `grouped-bar` / `stacked-bar` / `combo` / `combo-dual-axis`；缺省时多系列取 line、单系列取 bar |
+| `x` | X 轴字段；外部数据集模式须为 manifest 时间字段名或字面量 `period`，内联模式缺省取 CSV 首列 |
+| `series`（别名 `y`） | 逗号分隔的系列字段；未声明时回退到全部带 rollup 的数值字段（内联模式回退到首列以外的全部列） |
+| `lines` / `bars`（别名 `line` / `bar`） | combo 系列的角色划分；均未写时首个系列为 bar、其余为 line |
+| `from` / `to` | 闭区间端点，`YYYY-MM-DD`，须对齐源周期起点（仅外部数据集模式） |
+| `granularity` | 展示粒度，缺省 `auto`（取可用集合中最细）；大小写不敏感（仅外部数据集模式） |
+| `granularityOptions` | 逗号分隔的候选粒度，渲染为切换按钮组；缺省全四种（仅外部数据集模式） |
+| `unit` | 轴单位；`%` 时数值带后缀，`元/¥/cny/rmb/人民币` 前缀 `¥`、`$/usd/美元/美金` 前缀 `$`，其余只画在轴标题 |
+| `leftUnit` / `rightUnit` | `combo-dual-axis` 左右轴单位，独立套用上述规则 |
+| `labels` | 数值标签开关；`0/false/hide/hidden/no/none/off` 之一时关闭，缺省开启 |
+| `title` / `note` | 图表标题与口径说明，渲染在 figure 头部/底部 |
+| `<字段名>Label` / `<字段名>Color` | 单系列显示名与颜色（合法 hex）；Label 缺省取 manifest 的 `label`，颜色缺省 6 色板按显示序循环 |
+
+`dataset` / `from` / `to` / `granularity` / `granularityOptions` 属于外部数据集语义，内联模式（成对标签、代码块内联 CSV）不支持，见上文[内联模式边界](#三种写法一览)；manifest 契约与查询语义见 [dataset-guide.md](dataset-guide.md)。
+
+## 类型映射与展示语义
+
+- `combo`：单一刻度语义——左右轴钉同 `min:0/max`；图例顺序跟随标签书写顺序（`lines` 写在 `bars` 前则线系列在前）。
+- `combo-dual-axis`：左右轴独立，bars 固定挂左轴。
+- 所有图 Y 轴上限自动加 8% 头部空间（stacked-bar 按每期堆叠和计）。
+- 折线节点为实心圆点；数值标签统一千分位 + 最多 2 位小数；标签防碰撞——放得下就显示，放不下就隐藏。
+- 方块图例；图表跟随 Obsidian 明暗主题，切换主题即时就地换肤；figure 带主题色淡边框。
+
+**溯源脚注**（仅外部数据集模式）：每张图底部自动生成 `数据集标题 · from → to · 粒度 · N/M source rows · data through 日期`；区间内有不完整/缺失周期时追加警告行。
 
 ---
 
@@ -76,6 +109,7 @@
 按原文渲染（不接管、不是错误框）：
 
 - 属性值内出现字面 `/>`（提前截断，安全拒绝）。
+- 属性值内含 `>` 时须用双引号包裹；单引号内的 `>` 不被识别（标签在 `>` 处提前结束），整个标签回退为原文。
 - 属性名含非 ASCII 字符（如中文字段名的 `<字段名>Label` / `<字段名>Color`）——整个标签弃候选；此类属性请改用代码块写法（frontmatter 支持非 ASCII key）。
 - 段落里混有标签以外的内容。
 
@@ -196,18 +230,20 @@ frontmatter 有 dataset 同时又带 CSV 数据区
 
 ## 渲染效果
 
-> 图片均为待补充占位；示例截图一律使用明显的假数据。三种写法效果一致，不分开截图。
+> 示例截图一律使用明显的假数据。三种写法效果一致，不分开截图。
 
-- 折线 / 柱状 / 堆叠 / 组合图：![待补充]
-- 粒度切换按钮组（仅外部数据集模式）：![待补充]
-- 单位与格式化（`%` 后缀、货币前缀、千分位）：![待补充]
-- 明暗主题跟随：![待补充]
-- 溯源脚注与不完整周期警告（仅外部数据集模式）：![待补充]
-- 错误框呈现：![待补充]
+<!-- TODO: screenshot pending -->
+
+- 折线 / 柱状 / 堆叠 / 组合图：![折线 / 柱状 / 堆叠 / 组合图](assets/chart-types.png)
+- 粒度切换按钮组（仅外部数据集模式）：![粒度切换按钮组](assets/chart-granularity.png)
+- 单位与格式化（`%` 后缀、货币前缀、千分位）：![单位与格式化](assets/chart-units.png)
+- 明暗主题跟随：![明暗主题跟随](assets/chart-theme.png)
+- 溯源脚注与不完整周期警告（仅外部数据集模式）：![溯源脚注与不完整周期警告](assets/chart-footnote.png)
+- 错误框呈现：![错误框呈现](assets/chart-error.png)
 
 ---
 
 ## 相关文档
 
-- [[docs/dataset-guide|dataset-guide.md]]——属性表、manifest 契约、查询语义、排错清单
-- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap（DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram 及更多内容块类型规划）
+- [dataset-guide.md](dataset-guide.md)——manifest 契约、查询语义、排错清单
+- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap（DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram 及更多内容块类型规划）

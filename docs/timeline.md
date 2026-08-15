@@ -20,8 +20,8 @@
 </Timeline>
 ````
 
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。早期内部实现 原实现允许开标签跨多行，Mosaic 不支持这一点。
-- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。早期内部实现 没有这个限制。
+- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。不支持开标签跨多行。
+- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。
 - 属性值支持双引号、单引号或不加引号三种写法。
 - 闭合标签必须独占一行、与开标签同名，大小写敏感：`</Timeline>`。
 
@@ -54,7 +54,7 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 **没有必填字段校验**——即使一行的 `date`/`title`/`body`/`owner` 全为空，也只是渲染出一个空壳节点（各字段只在非空时才渲染对应子元素）。
 
-**status 状态词表**（`normalizeStatus`，四个桶，默认 `default`）：
+**status 状态词表**（状态词自动归一化为四个桶，默认 `default`，支持的词表见下）：
 
 | 归一化结果 | 命中输入 |
 | --- | --- |
@@ -65,7 +65,7 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 注意：`risk`/`warning` 归入 `blocked` 桶，不是单独的状态——这与 MetricGrid 的 `risk` 桶命名相似但语义不同，容易混淆。
 
-**空数据报错**：`rows.length === 0` 时触发。
+**空数据报错**：解析不出任何数据行时触发。
 
 **最小示例**（伪造数据）：
 
@@ -92,7 +92,7 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 → Mosaic: External datasets support Chart and DataTable.
 ```
 
-注意：错误文案只提「CSV or JSON」，但裸 Markdown 表格路径实际上也被接受（继承自通用的行提取规则）——这是文案与实际能力的一处偏差，Mosaic 与 早期内部实现 保持一致，未做修正。
+注意：错误文案只提「CSV or JSON」，但裸 Markdown 表格路径实际上也被接受（继承自通用的行提取规则）——这是文案与实际能力的一处已知偏差。
 
 按原文渲染（不接管、不是错误框）：
 
@@ -103,15 +103,17 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 ## 渲染效果
 
-> 图片均为待补充占位；示例截图一律使用明显的假数据。
+> 示例截图一律使用明显的假数据。
 
-- 纵向时间线，竖线连接、末项截断：![待补充]
-- done / active / blocked / default 四色状态圆点（`active` 跟随 Obsidian 主题强调色）：![待补充]
-- 明暗主题跟随：![待补充]
-- 错误框呈现：![待补充]
+<!-- TODO: screenshot pending -->
+
+- 纵向时间线，竖线连接、末项截断：![纵向时间线](assets/timeline-layout.png)
+- done / active / blocked / default 四色状态圆点（`active` 跟随 Obsidian 主题强调色）：![四色状态圆点](assets/timeline-status.png)
+- 明暗主题跟随：![明暗主题跟随](assets/timeline-theme.png)
+- 错误框呈现：![错误框呈现](assets/timeline-error.png)
 
 ## 相关文档
 
-- [[docs/metric-grid|metric-grid.md]]——同样使用 `extractRows` 通用行提取，字段别名归一化思路一致
-- [[docs/decision-box|decision-box.md]]
-- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap
+- [metric-grid.md](metric-grid.md)——同样使用通用行提取规则，字段别名归一化思路一致
+- [decision-box.md](decision-box.md)
+- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap

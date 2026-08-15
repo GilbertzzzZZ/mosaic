@@ -55,7 +55,7 @@ month,指标A,指标B
 ```
 ````
 
-完整参考见 [[docs/chart|chart.md]]。
+完整参考见 [chart.md](chart.md)。
 
 **自闭合标签**（一行一个属性）
 
@@ -94,25 +94,25 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## 内容块类型
 
-> 早期内部实现 超集的全部六类已可用：Chart、DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram。
+> 六类内容块已可用：Chart、DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram。
 
 **Chart**
 
 - 折线（line）、柱状（bar）、分组柱状（grouped-bar）、堆叠柱状（stacked-bar）、组合图（combo）与双轴组合图（combo-dual-axis），三个入口共用同一份声明式属性契约驱动出图。
 - 数据来自外部数据集 manifest，或直接写在声明体内的内联 CSV。
-- 完整属性契约见 [[docs/dataset-guide|dataset-guide.md]]。
+- 完整属性契约见 [chart.md](chart.md)；数据集 manifest 契约见 [dataset-guide.md](dataset-guide.md)。
 
-**DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram**（早期内部实现 超集，只支持标签入口）
+**DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram**（只支持标签入口）
 
 - 只支持标签入口（成对标签为主；`DataTable` 的 dataset 模式另支持自闭合）——这五类不支持 `chartview` 代码块写法。
 - `DataTable` 支持内联表格（CSV/JSON/Markdown）与外部数据集 manifest 两种数据来源，与 Chart 共用同一套查询层。
 - `MetricGrid`、`Timeline`、`DecisionBox`、`FlowDiagram` 只支持内联 payload，各自有独立的字段别名与状态词表契约。
 - `DecisionBox` 是唯一在空/非结构化 payload 时不报错的类型：会回退为一段极简富文本（误用 `dataset` 或畸形 JSON 仍会报错）。
-- 完整契约见 [[docs/data-table|data-table.md]]、[[docs/metric-grid|metric-grid.md]]、[[docs/timeline|timeline.md]]、[[docs/decision-box|decision-box.md]]、[[docs/flow-diagram|flow-diagram.md]]。
+- 完整契约见 [data-table.md](data-table.md)、[metric-grid.md](metric-grid.md)、[timeline.md](timeline.md)、[decision-box.md](decision-box.md)、[flow-diagram.md](flow-diagram.md)。
 
 **更多类型**（规划中）
 
-- 早期内部实现 类型集是下限而非上限：Mosaic 原创的更多内容块类型将沿同一管线继续扩展。
+- 现有类型集是下限而非上限：Mosaic 原创的更多内容块类型将沿同一管线继续扩展。
 
 ---
 
@@ -130,7 +130,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - 数据文件旁放置 `.dataset.json` sidecar manifest，声明指标口径与上卷规则。
 - 标签声明时间区间与展示粒度，插件按 manifest 完成区间过滤与粒度上卷。
 - 口径信息（label、note、溯源脚注）随图可见。
-- 设计细节见 [[docs/dataset-guide|dataset-guide.md]]。
+- 设计细节见 [dataset-guide.md](dataset-guide.md)。
 
 ---
 
@@ -150,7 +150,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 > 已规划、尚未实现的方向为占位；已完成项单独标注。
 
 - （占位）Live Preview 渲染支持。
-- （已完成 2026-08-15）DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram 内容块类型——补齐 早期内部实现 超集。
+- （已完成 2026-08-15）DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram 内容块类型——补齐六类内置内容块。
 - （已完成 2026-08-14）插件 id 已迁移为 `mosaic`；市场上架方案仍为占位。
 
 ---

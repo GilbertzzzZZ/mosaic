@@ -18,8 +18,8 @@ label,value,delta,note,status
 </MetricGrid>
 ````
 
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。早期内部实现 原实现允许开标签跨多行，Mosaic 不支持这一点。
-- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。早期内部实现 没有这个限制。
+- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。不支持开标签跨多行。
+- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。
 - 属性值支持双引号、单引号或不加引号三种写法。
 - 闭合标签必须独占一行、与开标签同名，大小写敏感：`</MetricGrid>`。
 
@@ -52,7 +52,7 @@ MetricGrid **没有其他属性**——不支持 `dataset`、不支持粒度/时
 
 `label` 与 `value` 都为空的行会被丢弃，不计入渲染。
 
-**status 状态词表**（`normalizeMetricStatus`，四个桶）：
+**status 状态词表**（状态词自动归一化为四个桶，支持的词表见下）：
 
 | 归一化结果 | 命中输入 |
 | --- | --- |
@@ -63,7 +63,7 @@ MetricGrid **没有其他属性**——不支持 `dataset`、不支持粒度/时
 
 即：以 `+`/`-` 开头的 `delta` 列（如 `"+5%"`）不显式声明 `status` 也能自动判定颜色。
 
-**空数据报错**：`rows.length === 0` 时触发，即使过滤别名后 `items` 为空（label/value 都缺）也不会二次报错，只会渲染一个空的网格容器。
+**空数据报错**：解析不出任何数据行时触发；若行存在、但 label/value 均为空而被全部过滤，则不报错，只渲染一个空的网格容器。
 
 **最小示例**（伪造数据）：
 
@@ -98,15 +98,17 @@ label,value,delta,note,status
 
 ## 渲染效果
 
-> 图片均为待补充占位；示例截图一律使用明显的假数据。
+> 示例截图一律使用明显的假数据。
 
-- 自适应网格布局（卡片数量越多列数越多，最小宽 150px）：![待补充]
-- good / risk / watch / neutral 四色状态边框：![待补充]
-- 明暗主题跟随：![待补充]
-- 错误框呈现：![待补充]
+<!-- TODO: screenshot pending -->
+
+- 自适应网格布局（卡片数量越多列数越多，最小宽 150px）：![自适应网格布局](assets/metric-grid-layout.png)
+- good / risk / watch / neutral 四色状态边框：![四色状态边框](assets/metric-grid-status.png)
+- 明暗主题跟随：![明暗主题跟随](assets/metric-grid-theme.png)
+- 错误框呈现：![错误框呈现](assets/metric-grid-error.png)
 
 ## 相关文档
 
-- [[docs/timeline|timeline.md]]——同样使用 `extractRows` 通用行提取，字段别名归一化思路一致
-- [[docs/decision-box|decision-box.md]]
-- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap
+- [timeline.md](timeline.md)——同样使用通用行提取规则，字段别名归一化思路一致
+- [decision-box.md](decision-box.md)
+- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap

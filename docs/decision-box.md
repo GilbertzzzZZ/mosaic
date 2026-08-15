@@ -25,8 +25,8 @@ label,value
 </DecisionBox>
 ```
 
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。早期内部实现 原实现允许开标签跨多行，Mosaic 不支持这一点。
-- **标签体内不能有空行，这一点对 DecisionBox 的富文本回退影响尤其大**：早期内部实现 的自由文本解析（`renderRichBlock`）按空行切分多个段落——但 Obsidian 的 HTML block 规则一旦遇到标签体内的空行就会提前结束整个块，标签根本不会被接管，更谈不上解析出第二段。因此在 Mosaic 里，**自由文本回退实际只能承载单段文字或一个无序列表**，写多段落（段落之间留空行）会直接导致整个标签按原文渲染，而不是渲染出多个 `<p>`。需要多段说明时请改用结构化 label/value 数据（每行不含空行）。
+- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。不支持开标签跨多行。
+- **标签体内不能有空行，这一点对 DecisionBox 的富文本回退影响尤其大**：Obsidian 的 HTML block 规则一旦遇到标签体内的空行就会提前结束整个块，标签根本不会被接管，更谈不上解析出第二段。因此**自由文本回退实际只能承载单段文字或一个无序列表**，写多段落（段落之间留空行）会直接导致整个标签按原文渲染，而不是渲染出多个 `<p>`。需要多段说明时请改用结构化 label/value 数据（每行不含空行）。
 - 无序列表写法（`- ` 或 `* ` 开头）在同一段落内是安全的，因为列表项之间不需要空行：
 
 ```text
@@ -50,7 +50,7 @@ label,value
 
 DecisionBox **不支持 `dataset`**。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。
 
-**status 状态词表**（`normalizeDecisionStatus`）：
+**status 状态词表**（状态词自动归一化，支持的词表见下）：
 
 | 归一化结果 | 命中输入 |
 | --- | --- |
@@ -99,11 +99,11 @@ DecisionBox 本身没有「空数据」错误路径。会触发红色错误框�
 标签上出现 dataset 属性（DecisionBox 不支持外部数据集）
 → Mosaic: External datasets support Chart and DataTable.
 
-fenced json 围栏内是不合法 JSON（JSON.parse 直接抛异常，未被业务化包装）
+fenced json 围栏内是不合法 JSON
 → Mosaic: Unexpected token ... in JSON at position ...（原生 JSON 解析错误，文案随具体错误位置变化）
 ```
 
-后者不是 DecisionBox 专属——`extractRows` 对 `json` 格式的解析失败会向上抛出原生 `SyntaxError`，被最外层统一 try/catch 兜底成错误框，其余四类组件遇到同样的畸形 JSON 也会走这条路径。
+后者不是 DecisionBox 专属——通用行提取对 `json` 围栏的解析失败会直接透出原生 JSON 解析错误，其余四类组件遇到同样的畸形 JSON 也会走这条路径。
 
 按原文渲染（不接管、不是错误框）：
 
@@ -114,15 +114,17 @@ fenced json 围栏内是不合法 JSON（JSON.parse 直接抛异常，未被业�
 
 ## 渲染效果
 
-> 图片均为待补充占位；示例截图一律使用明显的假数据。
+> 示例截图一律使用明显的假数据。
 
-- 结构化 label/value 两列布局：![待补充]
-- 富文本回退（单段 / 无序列表）：![待补充]
-- status / owner / source 徽标：![待补充]
-- 明暗主题跟随：![待补充]
+<!-- TODO: screenshot pending -->
+
+- 结构化 label/value 两列布局：![结构化 label/value 布局](assets/decision-box-structured.png)
+- 富文本回退（单段 / 无序列表）：![富文本回退](assets/decision-box-fallback.png)
+- status / owner / source 徽标：![徽标](assets/decision-box-badges.png)
+- 明暗主题跟随：![明暗主题跟随](assets/decision-box-theme.png)
 
 ## 相关文档
 
-- [[docs/timeline|timeline.md]]
-- [[docs/metric-grid|metric-grid.md]]
-- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap
+- [timeline.md](timeline.md)
+- [metric-grid.md](metric-grid.md)
+- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap

@@ -38,10 +38,10 @@ c,结束,end,
 </FlowDiagram>
 ````
 
-- **两种形态的判定**：标签体是唯一一个语言标签恰为 `json` 的围栏（或裸文本以 `{`/`[` 开头），且解析出的顶层值是非数组对象、含 `Array.isArray(...nodes)` → 形态 A；否则一律回退形态 B（走通用行提取）。写 ` ```csv ` 但内容恰好是合法 JSON **不会**被当成图解析，仍按 CSV 处理。
+- **两种形态的判定**：标签体是唯一一个语言标签恰为 `json` 的围栏（或裸文本以 `{`/`[` 开头），且解析出的顶层值是非数组对象、`nodes` 字段是数组 → 形态 A；否则一律回退形态 B（走通用行提取）。写 ` ```csv ` 但内容恰好是合法 JSON **不会**被当成图解析，仍按 CSV 处理。
 - **两种形态最终汇入同一套归一化**：即使走了形态 A（显式 JSON graph），节点上的 `next`/`to` 字段依然会**再次**被拿去生成隐式边并追加到显式 `edges` 数组后面，两者合并、不去重。所有引用不存在节点 id 的边（无论显式给的还是 `next` 派生的）都被静默过滤掉，不报错。
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。早期内部实现 原实现允许开标签跨多行，Mosaic 不支持这一点。
-- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。早期内部实现 没有这个限制。
+- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。不支持开标签跨多行。
+- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。
 - 属性值支持双引号、单引号或不加引号三种写法。
 - 闭合标签必须独占一行、与开标签同名，大小写敏感：`</FlowDiagram>`。
 
@@ -81,7 +81,7 @@ FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写
 
 **边归一化**：`from`/`to` 支持别名 `source`/`target`；`label` 支持别名 `title`；引用不存在节点 id 的边被静默过滤。
 
-**type 状态词表**（`normalizeFlowType`，默认 `action`）：
+**type 状态词表**（类型词自动归一化，默认 `action`，支持的词表见下）：
 
 | 归一化结果 | 命中输入 |
 | --- | --- |
@@ -109,7 +109,7 @@ c,节点C,action,a
 
 三个节点会被逐一拉开成三层纵向排布，而不是折叠成一个视觉闭环。
 
-**空数据报错**：`nodes.length === 0` 时触发（即使 `edges` 有内容，没有一个 id 非空的节点也不够）。
+**空数据报错**：解析不出任何有效节点时触发（即使 `edges` 有内容，没有一个 id 非空的节点也不够）。
 
 ### 报错示例
 
@@ -132,16 +132,18 @@ c,节点C,action,a
 
 ## 渲染效果
 
-> 图片均为待补充占位；示例截图一律使用明显的假数据。
+> 示例截图一律使用明显的假数据。
 
-- 形态 A（显式 graph JSON）分层布局：![待补充]
-- 形态 B（表格式行，`next` 隐式生成边）分层布局：![待补充]
-- 环退化布局（环节点拉直为纵向链）：![待补充]
-- start/end/decision/gate/risk/action 六色节点：![待补充]
-- 明暗主题跟随：![待补充]
-- 错误框呈现：![待补充]
+<!-- TODO: screenshot pending -->
+
+- 形态 A（显式 graph JSON）分层布局：![形态 A 分层布局](assets/flow-diagram-json.png)
+- 形态 B（表格式行，`next` 隐式生成边）分层布局：![形态 B 分层布局](assets/flow-diagram-rows.png)
+- 环退化布局（环节点拉直为纵向链）：![环退化布局](assets/flow-diagram-cycle.png)
+- start/end/decision/gate/risk/action 六色节点：![六色节点](assets/flow-diagram-types.png)
+- 明暗主题跟随：![明暗主题跟随](assets/flow-diagram-theme.png)
+- 错误框呈现：![错误框呈现](assets/flow-diagram-error.png)
 
 ## 相关文档
 
-- [[docs/data-table|data-table.md]]
-- [[docs/mosaic-intro|mosaic-intro.md]]——整体定位与 Roadmap
+- [data-table.md](data-table.md)
+- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap

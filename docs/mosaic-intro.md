@@ -55,7 +55,7 @@ month,Metric A,Metric B
 ```
 ````
 
-Full reference: [[docs/chart|chart.md]].
+Full reference: [chart.md](chart.md).
 
 **Self-closing tag** (one attribute per line)
 
@@ -94,25 +94,25 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 ## Block Types
 
-> All six types from the 早期内部实现 superset are available: Chart, DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram.
+> Six block types are available: Chart, DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram.
 
 **Chart**
 
 - Line, bar, grouped-bar, stacked-bar, combo and combo-dual-axis, driven by one declarative attribute contract shared across all three entries.
 - Data comes from an external dataset manifest, or inline CSV written directly in the declaration.
-- Full attribute contract: [[docs/dataset-guide|dataset-guide.md]].
+- Full attribute contract: [chart.md](chart.md); dataset manifest contract: [dataset-guide.md](dataset-guide.md).
 
-**DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram** (早期内部实现 superset, tag entries only)
+**DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram** (tag entries only)
 
 - Tag entries only (paired tag; `DataTable` also supports a self-closing form for its `dataset` mode) — no `chartview` code block for these five.
 - `DataTable` reads inline tables (CSV/JSON/Markdown) or an external dataset manifest, sharing the same query layer as Chart.
 - `MetricGrid`, `Timeline`, `DecisionBox`, `FlowDiagram` take inline payloads only; each has its own field-alias and status-vocabulary contract.
 - `DecisionBox` is the one type that never errors on an empty or unstructured body — it falls back to a short rich-text render instead (misusing `dataset` or malformed JSON still errors).
-- Full contracts: [[docs/data-table|data-table.md]], [[docs/metric-grid|metric-grid.md]], [[docs/timeline|timeline.md]], [[docs/decision-box|decision-box.md]], [[docs/flow-diagram|flow-diagram.md]].
+- Full contracts: [data-table.md](data-table.md), [metric-grid.md](metric-grid.md), [timeline.md](timeline.md), [decision-box.md](decision-box.md), [flow-diagram.md](flow-diagram.md).
 
 **More types** (planned)
 
-- The 早期内部实现 set is the floor, not the ceiling: additional Mosaic-original block types will extend through the same pipeline.
+- The current set is the floor, not the ceiling: additional Mosaic-original block types will extend through the same pipeline.
 
 ---
 
@@ -130,7 +130,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - Place a `.dataset.json` sidecar manifest next to the data file to declare metric semantics and roll-up rules.
 - The tag declares the time range and display granularity; the plugin applies range filtering and granularity roll-up per the manifest.
 - Metric semantics (label, note, provenance footnote) stay visible alongside the chart.
-- Design details: [[docs/dataset-guide|dataset-guide.md]].
+- Design details: [dataset-guide.md](dataset-guide.md).
 
 ---
 
@@ -150,7 +150,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 > Planned but not yet implemented; all items are placeholders unless marked done.
 
 - (Placeholder) Live Preview rendering.
-- (Done 2026-08-15) DataTable, MetricGrid, Timeline, DecisionBox and FlowDiagram block types — completing the 早期内部实现 superset.
+- (Done 2026-08-15) DataTable, MetricGrid, Timeline, DecisionBox and FlowDiagram block types — completing the six built-in block types.
 - (Done 2026-08-14) Plugin id migrated to `mosaic`. Marketplace listing plan remains a placeholder.
 
 ---
