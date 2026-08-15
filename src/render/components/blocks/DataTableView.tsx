@@ -128,7 +128,15 @@ export const DataTableView = ({
 
 	return (
 		<div className="mosaic-block mosaic-data-table" data-mosaic-block="data-table">
-			<GranularityButtons options={options} active={granularity} onSelect={onGranularity} />
+			{options.length > 1 && (
+				<div className="mosaic-control-group">
+					<GranularityButtons
+						options={options}
+						active={granularity}
+						onSelect={onGranularity}
+					/>
+				</div>
+			)}
 			<div
 				className={cardClass}
 				data-table-layout={layout.mode}

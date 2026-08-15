@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import { setIcon } from "obsidian";
 import * as Plots from "@ant-design/plots";
 import { PlotErrorBoundary } from "./PlotErrorBoundary";
 
@@ -11,12 +10,14 @@ export interface ConfigProps {
 export interface ChartProps {
 	type: string;
 	config: ConfigProps;
-	showExportBtn?: boolean;
+	// 图表实例的出口。导出 PNG 的按钮和粒度按钮同属图注头部的一组控件，由
+	// ChartFigure 渲染，所以实例要交到它手里。
+	onInstance?: (instance: PlotInstance | null) => void;
 }
 
 // AntV 图表实例：出图组件依赖导出 PNG，以及 chart 上的两个尺寸相关能力
 // （见下方 attachSizeGuard 的说明）。
-interface PlotInstance {
+export interface PlotInstance {
 	downloadImage?: (name: string) => void;
 	chart?: {
 		forceFit?: () => unknown;
@@ -29,17 +30,10 @@ const PLOT_COMPONENTS = Plots as unknown as Record<
 	React.ComponentType<ConfigProps>
 >;
 
-export const Chart = ({ type, config, showExportBtn = false }: ChartProps) => {
+export const Chart = ({ type, config, onInstance }: ChartProps) => {
 	const PlotComponent = PLOT_COMPONENTS[type];
-	const plotRef = useRef<PlotInstance | null>(null);
-	const buttonRef = useRef<HTMLButtonElement | null>(null);
 	const sizeGuardRef = useRef<ResizeObserver | null>(null);
 	const { onReady } = config ?? {};
-
-	// 图标用 Obsidian 内置 lucide 库注入，不自带 svg 资源。
-	useEffect(() => {
-		if (buttonRef.current) setIcon(buttonRef.current, "image-down");
-	}, []);
 
 	// 尺寸不变量：画布尺寸必须等于容器尺寸。
 	// G2 的 sizeOf() 在 autoFit 下量容器，量到 0 就退回 640×480 默认画布；一个被
@@ -70,27 +64,20 @@ export const Chart = ({ type, config, showExportBtn = false }: ChartProps) => {
 		() => () => {
 			sizeGuardRef.current?.disconnect();
 			sizeGuardRef.current = null;
+			// 卸载时收回实例：导出按钮拿着的引用不能指向一张已经拆掉的图。
+			onInstance?.(null);
 		},
 		[],
 	);
 
 	return (
 		<PlotErrorBoundary>
-			{showExportBtn && (
-				<button
-					type="button"
-					ref={buttonRef}
-					className="mosaic-export-button"
-					aria-label="Export to PNG"
-					onClick={() => plotRef.current?.downloadImage?.(`${type}.png`)}
-				/>
-			)}
 			<PlotComponent
 				{...config}
 				onReady={(instance: unknown) => {
 					onReady?.(instance);
-					plotRef.current = instance as PlotInstance;
-					attachSizeGuard(plotRef.current);
+					attachSizeGuard(instance as PlotInstance);
+					onInstance?.(instance as PlotInstance);
 				}}
 			/>
 		</PlotErrorBoundary>

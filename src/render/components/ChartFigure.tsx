@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Chart, ConfigProps } from "./Chart";
+import { setIcon } from "obsidian";
+import { Chart, ConfigProps, PlotInstance } from "./Chart";
 import { GranularityButtons } from "./GranularityButtons";
 
 export interface BuiltChart {
@@ -35,6 +36,12 @@ export const ChartFigure = ({
 	//    错误几何取舍并被缓存视图固化；安定后按真实宽度重建一次即恢复。
 	const [rebuildEpoch, setRebuildEpoch] = useState(0);
 	const figureRef = useRef<HTMLElement | null>(null);
+	const plotRef = useRef<PlotInstance | null>(null);
+	const exportRef = useRef<HTMLButtonElement | null>(null);
+	// 图标用 Obsidian 内置的 lucide 库注入，不自带 svg 资源。
+	useEffect(() => {
+		if (exportRef.current) setIcon(exportRef.current, "image-down");
+	}, [showExportBtn]);
 	useEffect(() => {
 		const onThemeChange = () => setRebuildEpoch((e) => e + 1);
 		window.addEventListener("mosaic:theme-change", onThemeChange);
@@ -90,23 +97,42 @@ export const ChartFigure = ({
 
 	return (
 		<figure className="mosaic-figure" ref={figureRef}>
-			{(title || options.length > 1) && (
+			{(title || options.length > 1 || showExportBtn) && (
 				<div className="mosaic-figure-header">
 					{title && (
 						<figcaption className="mosaic-figure-title">{title}</figcaption>
 					)}
-					<GranularityButtons
-						options={options}
-						active={granularity}
-						onSelect={setGranularity}
-					/>
+					{/* 一组控件，不是两组：粒度按钮和导出按钮并排在同一个容器里。 */}
+					<div className="mosaic-control-group">
+						<GranularityButtons
+							options={options}
+							active={granularity}
+							onSelect={setGranularity}
+						/>
+						{showExportBtn && (
+							<button
+								type="button"
+								ref={exportRef}
+								// clickable-icon 是 Obsidian 自己的图标按钮类（视图头部
+								// 那些按钮用的就是它），尺寸、悬停底色、focus ring 全由
+								// 宿主提供，这里不再写一行样式。
+								className="clickable-icon"
+								aria-label="Export to PNG"
+								onClick={() =>
+									plotRef.current?.downloadImage?.(`${built.chartType}.png`)
+								}
+							/>
+						)}
+					</div>
 				</div>
 			)}
 			{error && <div className="mosaic-error">{error}</div>}
 			<Chart
 				type={built.chartType}
 				config={built.config as ConfigProps}
-				showExportBtn={showExportBtn}
+				onInstance={(instance) => {
+					plotRef.current = instance;
+				}}
 			/>
 			{note && <p className="mosaic-figure-note">{note}</p>}
 			{built.warning && (

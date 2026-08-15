@@ -1,25 +1,5 @@
-/* 导出 PNG 按钮：仅 showExportBtn 开启时渲染；平时透明，
-   悬停图表宿主或键盘聚焦时浮现。 */
-.mosaic-export-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	position: relative;
-	padding: 4px 6px;
-	border: none;
-	border-radius: var(--radius-s, 4px);
-	background-color: var(--interactive-accent);
-	color: var(--text-on-accent);
-	cursor: pointer;
-	opacity: 0;
-	transition: opacity 300ms ease;
-}
-
-.block-language-chartview:hover .mosaic-export-button,
-.mosaic-tag-host:hover .mosaic-export-button,
-.mosaic-export-button:focus-visible {
-	opacity: 1;
-}
+/* 导出 PNG 按钮没有自己的样式：它用 Obsidian 的 clickable-icon，和视图头部那些
+   图标按钮同一套。开关由设置项决定——开了就在按钮组里，关了就不渲染。 */
 
 .mosaic-figure {
 	margin: 1em 0;
@@ -37,8 +17,10 @@
 .mosaic-figure-title {
 	font-weight: 600;
 }
-.mosaic-granularity-group {
+/* 图注头部右侧的那一组控件：粒度切换按钮和导出按钮共用它，不再各占一个容器。 */
+.mosaic-control-group {
 	display: inline-flex;
+	align-items: center;
 	gap: var(--size-2-1);
 }
 /* Everything else about these buttons is Obsidian's own: the host button
@@ -295,7 +277,7 @@
 }
 
 /* DataTable */
-.mosaic-data-table > .mosaic-granularity-group {
+.mosaic-data-table > .mosaic-control-group {
 	margin-bottom: 6px;
 }
 .mosaic-data-table .table-card {
@@ -317,14 +299,8 @@
 	padding: 8px 10px;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
-.mosaic-data-table .table-search input {
-	font-size: 12px;
-	padding: 3px 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	background: var(--background-primary);
-	color: var(--text-normal);
-}
+/* 过滤输入框同样不写样式：它是 input[type="search"]，Obsidian 对这个类型有完整的
+   原生样式（尺寸、底色、边框、focus ring），手写那一套只是把它们又抄了一遍。 */
 .mosaic-data-table .table-toggle {
 	display: inline-flex;
 	align-items: center;
