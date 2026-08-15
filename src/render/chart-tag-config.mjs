@@ -60,6 +60,19 @@ const LABEL_ABOVE = { textAlign: "center", textBaseline: "bottom", dy: -4 };
 // 是 point 比例尺（bandWidth 恒为 0），不走这套。
 const BAR_X_SCALE = { paddingInner: 0.5, paddingOuter: 0.25 };
 
+// plots 和 G2 会就地改写传进去的配置：label 被搬进 labels 数组、legend 上提、
+// 顶层 scale 下发进每个 child、转换过的键随后被删掉。上面这些模块级常量只是模板，
+// 直接放进配置就等于把它们借给渲染层去改——同一页的两张图、同一张图的两次重建，
+// 都会拿到别人改过的那一份。取用时一律深拷贝。
+// 函数按引用透传：函数不会被就地改写，拷贝反而会毁掉相等性判断。
+function fresh(value) {
+	if (Array.isArray(value)) return value.map(fresh);
+	if (value === null || typeof value !== "object") return value;
+	return Object.fromEntries(
+		Object.entries(value).map(([key, inner]) => [key, fresh(inner)]),
+	);
+}
+
 export function formatChartNumber(value) {
 	if (value == null || !Number.isFinite(value)) return "";
 	return CHART_NUMBER_FORMAT.format(value);
@@ -170,42 +183,56 @@ const Y_AXIS = {
 // 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
 // 共用一个对象时后一个 mark 会沿用前一个的字段。
 function valueLabel(field, formatter) {
-	return { text: field, formatter, transform: LABEL_TRANSFORM, ...LABEL_ABOVE };
+	return { text: field, formatter, transform: fresh(LABEL_TRANSFORM), ...LABEL_ABOVE };
 }
 
-// 数值标签：纯色字 + 一圈描边光晕，压在饱和色的柱体上也要读得清。
-// 描边宽度不能照抄升级前的 2。升级前的渲染器对文本先描边再填充，描边整个落在字
-// 形背后，2px 描边只有向外的 1px 露在外面，字身分毫无损；v5 反过来先填充再描边，
-// 描边居中于轮廓，lineWidth w 会从笔画两侧各吃掉 w/2，剩下的字芯只有「笔画宽度
-// 减 w」。量过 12px 常规字重的竖笔画约 1.0–1.3px，bold 撑到约 1.5–2.0px：
-//   w=2   字芯 ≤0    —— 字被描边色整个换掉，就是升级后糊成一片的原因
-//   w=1.5 字芯 0–0.5 —— 保守估计下仍然吃光
-//   w=1   字芯 0.5–1.0（笔画的三到五成保持纯色），向外露 0.5px 光晕
-// 取 1：在保守的笔画估计下仍能让字保持自己的颜色，同时把光晕留到最大。代价是外
-// 圈只有升级前的一半宽，这是 v5 的绘制顺序换来的，改不回去。
-// 字色取两端的纯色而不是升级前的灰：描边不管吃掉多少，剩下的字芯都是最深/最浅
-// 的那一档，加粗后立得住。
+// 光晕往字形轮廓外扩的像素数（两层画法里等于 lineWidth 的一半）。参照系：升级前
+// 是 1px，改成两层之前只剩 0.5px。取 2 —— 是升级前的两倍、当前的四倍，明显更厚，
+// 又还贴着字形的外廓走；再往上光晕会盖过字号本身的粗细，读起来像一块白底。
+const LABEL_HALO_WIDTH = 2;
+
+// 数值标签画成两层：先画一层「光晕」——同一段文字，用光晕色同时描边和填充，得到
+// 一个沿字形轮廓外扩 lineWidth/2 的纯色底；再把真正的字叠在上面。
+// 非这样不可：v5 的渲染器对文本先填充后描边，描边居中于轮廓，会从笔画两侧各吃掉
+// lineWidth/2。实测 bold 12px 的竖笔画约 2px（浅色主题下量到的纯黑字芯 1px，加上
+// 当时 lineWidth=1 吃掉的 1px），所以单层最多只能给到 lineWidth<2，外圈不足 1px：
+//   单层 w=1   字芯 1.0px，外圈 0.5px
+//   单层 w=1.5 字芯 0.5px，外圈 0.75px —— 字已经快被描边色换掉
+//   单层 w=2   字芯 0    —— 字整个没了
+// 分两层之后描边只作用在下层，上层的字分毫无损，外圈宽度就不再受笔画宽度限制，
+// 等于把升级前「描边落在字形背后」的效果拿了回来。
+// 上层给一个透明描边、宽度与下层相同：只为让两层的 renderBounds 一致——
+// exceedAdjust 按 renderBounds 把越界的标签推回绘图区，两层宽度不同就会推出位移，
+// 光晕和字会错开。透明色在 G 里不是 none，照样计入包围盒，但画出来没有颜色。
+// 字色取两端的纯色，配 bold：光晕再宽，字身也始终是最深 / 最浅的那一档。
 // fontWeight 取关键字 "bold"：G 的 fontWeight 只认 normal / bold / bolder /
 // lighter 这几个关键字，数字字重还要看用户主题的字体有没有对应字面，"bold" 有
 // CSS 合成加粗兜底，换字体也稳定。
 // fillOpacity 必须显式给满：主题的 label 默认 0.65，只改 fill 会被冲淡三成。
 export function labelTextStyle(dark) {
-	return {
-		fill: dark ? "#FFFFFF" : "#000000",
-		fillOpacity: 1,
-		fontWeight: "bold",
-		stroke: dark ? "#1F1F1F" : "#FFFFFF",
-		lineWidth: 1,
-	};
+	const text = dark ? "#FFFFFF" : "#000000";
+	const halo = dark ? "#1F1F1F" : "#FFFFFF";
+	const shared = { fillOpacity: 1, fontWeight: "bold", lineWidth: LABEL_HALO_WIDTH * 2 };
+	return [
+		{ ...shared, fill: halo, stroke: halo },
+		{ ...shared, fill: text, stroke: "transparent" },
+	];
 }
 
 // 带数值标签的 mark：单视图挂在 config 上，DualAxes 逐 child 各带一份（柱一份、
-// 折线一份，数据点那份 mark 不带标签）。返回改到的 mark，调用方可以核对覆盖面。
-export function applyLabelStyle(config, style) {
+// 折线一份，数据点那份 mark 不带标签）。每个 mark 的 label 展开成一层一份，字段和
+// 防碰撞配置共用，只有 style 不同。返回改到的 mark，调用方可以核对覆盖面。
+// label 写成数组还顺带绕开了 plots 的一处不幂等：单个 label 对象会被搬进 labels 并
+// 打上 __transform__ 标记，同一个配置对象再过一次转换时那些元素会被当成上一轮的残留
+// 清掉，标签就此消失；数组形式是直接赋值，不打标记，重复转换也留得住。
+export function applyLabelStyle(config, styles) {
+	const layers = Array.isArray(styles) ? styles : [styles];
 	const marks = [config, ...(Array.isArray(config.children) ? config.children : [])];
 	const labelled = marks.filter((mark) => mark?.label);
 	for (const mark of labelled) {
-		mark.label = { ...mark.label, style: { ...mark.label.style, ...style } };
+		const first = Array.isArray(mark.label) ? mark.label[0] : mark.label;
+		const { style: _replaced, ...base } = first;
+		mark.label = layers.map((style) => ({ ...fresh(base), style: fresh(style) }));
 	}
 	return labelled;
 }
@@ -346,14 +373,14 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		}
 		const barAxis = {
 			y: {
-				...Y_AXIS,
+				...fresh(Y_AXIS),
 				labelFormatter: barFormatter,
 				...(dual && leftUnit ? { title: leftUnit } : {}),
 			},
 		};
 		const lineAxis = {
 			y: {
-				...Y_AXIS,
+				...fresh(Y_AXIS),
 				position: "right",
 				// 每条连续轴默认自带一层网格。右轴的刻度和左轴不在同一批高度上，
 				// 两层网格叠出来是两倍密度的横线；网格只留给左轴。
@@ -380,7 +407,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			colorField: "series",
 			scale: { y: lineY },
 			axis: lineAxis,
-			style: LINE_STROKE,
+			style: fresh(LINE_STROKE),
 			label: showLabels ? valueLabel("lineValue", lineFormatter) : undefined,
 			tooltip: valueTooltip("lineValue", lineFormatter),
 		};
@@ -389,7 +416,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		// 它和折线共用同一段 y scale，因此必须给出同一份 axis——G2 按 scale 分组
 		// 合并 guide，两份不一致时后写的会覆盖先写的。
 		const pointChild = {
-			...LINE_POINT,
+			...fresh(LINE_POINT),
 			type: "point",
 			data: lineLong,
 			yField: "lineValue",
@@ -419,8 +446,8 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			chartType: "DualAxes",
 			config: {
 				xField: "period",
-				scale: { color: { range }, x: BAR_X_SCALE },
-				legend: LEGEND,
+				scale: { color: { range }, x: fresh(BAR_X_SCALE) },
+				legend: fresh(LEGEND),
 				children: linesFirst
 					? [lineChild, pointChild, barChild]
 					: [barChild, lineChild, pointChild],
@@ -455,20 +482,20 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		colorField: "series",
 		scale: { color: { range: colorsFor(attrs, seriesKeys) }, y: yScale({ domainMax: yMax }) },
 		label: showLabels ? valueLabel("value", formatter) : undefined,
-		axis: { y: { ...Y_AXIS, labelFormatter: formatter, ...(unit ? { title: unit } : {}) } },
+		axis: { y: { ...fresh(Y_AXIS), labelFormatter: formatter, ...(unit ? { title: unit } : {}) } },
 		tooltip: valueTooltip("value", formatter),
-		legend: LEGEND,
+		legend: fresh(LEGEND),
 	};
 	if (type === "line")
 		return {
 			...common,
 			chartType: "Line",
-			config: { ...config, point: LINE_POINT, style: LINE_STROKE },
+			config: { ...config, point: fresh(LINE_POINT), style: fresh(LINE_STROKE) },
 		};
 	// 柱宽只对 interval mark 有意义，折线图不加。
 	const barConfig = {
 		...config,
-		scale: { ...config.scale, x: BAR_X_SCALE },
+		scale: { ...config.scale, x: fresh(BAR_X_SCALE) },
 	};
 	if (type === "grouped-bar")
 		return {

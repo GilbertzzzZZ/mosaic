@@ -484,7 +484,8 @@ test("labels get anti-overlap transforms", () => {
 });
 
 test("every mark that carries a value label receives the theme label style", () => {
-	const style = { fill: "#ff00ff", shadowColor: "#00ff00" };
+	const style = { fill: "#ff00ff" };
+	const other = { fill: "#00ff00" };
 	// combo/combo-dual-axis draw the bars and the line as separate marks, so a walk
 	// that only reaches the first one leaves half the labels on the engine default
 	const cases = [
@@ -501,13 +502,18 @@ test("every mark that carries a value label receives the theme label style", () 
 			rows,
 			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
 		});
-		const touched = applyLabelStyle(built.config, style);
+		const touched = applyLabelStyle(built.config, [style, other]);
 		assert.equal(touched.length, expected, `${name}: labelled marks reached`);
 		const marks = [built.config, ...(built.config.children ?? [])];
 		const labelled = marks.filter((mark) => mark.label);
 		assert.equal(labelled.length, expected, `${name}: labelled marks present`);
 		for (const mark of labelled) {
-			assert.deepEqual(mark.label.style, style, `${name}/${mark.type ?? "view"}`);
+			const where = `${name}/${mark.type ?? "view"}`;
+			// one label per layer, each reading the same field through its own style
+			assert.equal(mark.label.length, 2, where);
+			assert.deepEqual(mark.label[0].style, style, where);
+			assert.deepEqual(mark.label[1].style, other, where);
+			assert.equal(mark.label[0].text, mark.label[1].text, where);
 		}
 	}
 });
@@ -517,22 +523,30 @@ function isBold(weight) {
 	return weight === "bold" || weight === "bolder";
 }
 
-test("value labels are bold pure black or white inside a thin halo stroke", () => {
-	assert.equal(labelTextStyle(false).fill, "#000000"); // light theme
-	assert.equal(labelTextStyle(true).fill, "#FFFFFF"); // dark theme
-	assert.equal(labelTextStyle(false).stroke, "#FFFFFF");
-	assert.equal(labelTextStyle(true).stroke, "#1F1F1F");
+test("value labels stack a halo layer under a bold pure black or white glyph", () => {
+	// v5 strokes text after filling it, so a single layer caps the halo below the
+	// stem width (~2px bold) — past that the stroke colour replaces the glyph. Two
+	// layers dodge it: the halo is a separate, wider-stroked copy underneath.
 	for (const dark of [false, true]) {
-		const style = labelTextStyle(dark);
 		const name = dark ? "dark" : "light";
-		assert.equal(style.fillOpacity, 1, name); // the engine default of 0.65 washes it out
-		assert.ok(isBold(style.fontWeight), `${name}: ${style.fontWeight} is not bold`);
-		// v5 strokes text after filling it, so the stroke bites w/2 into each side of a
-		// stem. A bold 12px stem is only ~1.5-2px wide, so anything past 1 leaves no
-		// glyph behind — which is exactly how the upgrade washed these labels out.
-		assert.ok(style.lineWidth > 0, `${name}: no halo at all`);
-		assert.ok(style.lineWidth <= 1, `${name}: ${style.lineWidth} eats the glyph`);
-		assert.equal(style.background, undefined, name); // a plate reads as a box on the bar
+		const layers = labelTextStyle(dark);
+		assert.equal(layers.length, 2, `${name}: needs a halo layer and a glyph layer`);
+		const [halo, glyph] = layers;
+		const [text, backdrop] = dark ? ["#FFFFFF", "#1F1F1F"] : ["#000000", "#FFFFFF"];
+		assert.equal(glyph.fill, text, name); // the glyph stays a pure extreme
+		assert.equal(halo.fill, backdrop, name);
+		assert.equal(halo.stroke, backdrop, name); // stroke + fill == a solid dilated backing
+		// the glyph layer must not paint a stroke over itself, but has to match the halo's
+		// width so both layers keep the same render bounds and exceedAdjust cannot split them
+		assert.equal(glyph.stroke, "transparent", name);
+		assert.equal(glyph.lineWidth, halo.lineWidth, `${name}: layers would drift apart`);
+		// the halo now has to be wider than a single layer could ever manage
+		assert.ok(halo.lineWidth > 2, `${name}: ${halo.lineWidth} is within single-layer reach`);
+		for (const layer of layers) {
+			assert.equal(layer.fillOpacity, 1, name); // the engine default of 0.65 washes it out
+			assert.ok(isBold(layer.fontWeight), `${name}: ${layer.fontWeight} is not bold`);
+			assert.equal(layer.background, undefined, name); // a plate reads as a box on the bar
+		}
 	}
 });
 
@@ -556,13 +570,87 @@ test("every value label is configured identically apart from the field it reads"
 			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
 		});
 		for (const mark of applyLabelStyle(built.config, labelTextStyle(false))) {
-			seen.push([`${name}/${mark.type ?? "view"}`, shapeOf(mark.label)]);
+			mark.label.forEach((layer, i) => {
+				seen.push([`${name}/${mark.type ?? "view"}#${i}`, shapeOf(layer)]);
+			});
 		}
 	}
-	assert.ok(seen.length >= 8, `only ${seen.length} labelled marks found`);
-	const [[firstName, first], ...rest] = seen;
-	for (const [name, shape] of rest) {
-		assert.deepEqual(shape, first, `${name} drifted from ${firstName}`);
+	assert.ok(seen.length >= 16, `only ${seen.length} label layers found`);
+	// compare layer 0 against every other layer 0, and likewise for layer 1
+	for (const which of ["#0", "#1"]) {
+		const group = seen.filter(([name]) => name.endsWith(which));
+		const [[firstName, first], ...rest] = group;
+		for (const [name, shape] of rest) {
+			assert.deepEqual(shape, first, `${name} drifted from ${firstName}`);
+		}
+	}
+});
+
+// Two configs may hold the same function (formatters, the tick method) — those are
+// immutable here. Any shared object or array is a hazard: plots and G2 rewrite the
+// config in place, so a shared node lets one render leak into the next.
+function sharedRefs(a, b, path = "", out = []) {
+	if (a === null || b === null) return out;
+	if (typeof a !== "object" || typeof b !== "object") return out;
+	if (a === b) {
+		out.push(path || "(root)");
+		return out;
+	}
+	for (const key of Object.keys(a)) {
+		if (key in b) sharedRefs(a[key], b[key], path ? `${path}.${key}` : key, out);
+	}
+	return out;
+}
+
+// Functions are fresh closures per build, so compare structure with them stubbed out.
+const snapshot = (config) =>
+	JSON.stringify(config, (key, value) => (typeof value === "function" ? "[fn]" : value));
+
+const CHART_SHAPES = [
+	["line", { type: "line", series: "Total,Split" }],
+	["bar", { type: "bar", series: "Total" }],
+	["grouped-bar", { type: "grouped-bar", series: "Total,Split" }],
+	["stacked-bar", { type: "stacked-bar", series: "Total,Split" }],
+	["combo", { type: "combo", bars: "Split", lines: "Total" }],
+	["combo-dual-axis", { type: "combo-dual-axis", bars: "Split", lines: "Total" }],
+];
+
+test("rebuilding hands back a config that shares nothing with the previous one", () => {
+	for (const [name, attrs] of CHART_SHAPES) {
+		const of = () =>
+			buildChartFromTag({
+				manifest,
+				rows,
+				attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
+			}).config;
+		const first = of();
+		const second = of();
+		assert.equal(snapshot(second), snapshot(first), `${name}: builds diverged`);
+		assert.deepEqual(
+			sharedRefs(first, second),
+			[],
+			`${name}: the renderer would write through these into the next render`,
+		);
+	}
+});
+
+test("a build at another granularity in between leaves the next one untouched", () => {
+	// month -> quarter -> month is the granularity toggle, and the third build has to
+	// come back byte for byte identical to the first
+	for (const [name, attrs] of CHART_SHAPES) {
+		const of = (granularity) =>
+			buildChartFromTag({
+				manifest,
+				rows,
+				attributes: { ...base, ...attrs, labels: "all" },
+				granularity,
+			}).config;
+		const month = of("month");
+		const quarter = of("quarter");
+		const again = of("month");
+		assert.equal(snapshot(again), snapshot(month), `${name}: month drifted`);
+		assert.deepEqual(sharedRefs(month, quarter), [], `${name}: month/quarter share state`);
+		assert.deepEqual(sharedRefs(month, again), [], `${name}: the two month builds share state`);
 	}
 });
 
