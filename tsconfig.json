@@ -1,25 +1,15 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "inlineSourceMap": true,
-    "inlineSources": true,
     "module": "ESNext",
-    "target": "es6",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
     "allowJs": true,
+    "noEmit": true,
     "noImplicitAny": true,
-    "moduleResolution": "node",
-    "importHelpers": true,
-    "jsx": "react",
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
-    "lib": [
-      "dom",
-      "es5",
-      "scripthost",
-      "es2022"
-    ]
+    "jsx": "react",
+    "lib": ["DOM", "ES2022"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.mjs"]
 }

@@ -87,9 +87,13 @@ async function renderDataTableDataset(
 	const query = datasetQueryFromContent(body);
 	const { manifest, rows } = await loadDatasetForNote(plugin.app, sourcePath, attributes.dataset);
 	if (stale()) return;
-	// queryDataset 是无类型 .mjs 纯函数，返回形态由测试保证；在边界断言一次。
+	// queryDataset 是无类型 .mjs 纯函数（参数默认值会让 TS 推出闭合形参类型），
+	// 返回形态由测试保证；在边界断言一次。
+	const runQuery = queryDataset as unknown as (
+		args: Record<string, unknown>,
+	) => DataTableQueryResult;
 	const build = (granularity?: string): DataTableQueryResult =>
-		queryDataset({
+		runQuery({
 			manifest,
 			rows,
 			component: "DataTable",
@@ -97,7 +101,7 @@ async function renderDataTableDataset(
 			query,
 			granularity: granularity ?? granularityAttr,
 			granularityOptions,
-		}) as unknown as DataTableQueryResult;
+		});
 	const initial = build(undefined);
 	const options = granularityOptions.filter((g) =>
 		initial.meta.availableGranularities.includes(g),

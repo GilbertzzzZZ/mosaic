@@ -4,7 +4,7 @@ import { createChartTagProcessor } from './entry/chart-tag-processor';
 import { createChartBlockProcessor } from './entry/chart-block-processor';
 
 export default class MosaicPlugin extends Plugin {
-	settings: MosaicPluginSettings;
+	declare settings: MosaicPluginSettings;
 
 	rerenderOpenPreviews() {
 		// rebuildView（未进 d.ts 的私有 API，故可选调用）而非 rerender(true)：

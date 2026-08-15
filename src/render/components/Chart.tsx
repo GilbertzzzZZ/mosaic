@@ -39,7 +39,7 @@ export const Chart = ({ type, config, showExportBtn = false }: ChartProps) => {
         {...config}
         onReady={(instance: unknown) => {
           onReady?.(instance);
-          ref.current = instance;
+          ref.current = instance as PlotInstance;
         }}
       />
     </ErrorBoundary>
