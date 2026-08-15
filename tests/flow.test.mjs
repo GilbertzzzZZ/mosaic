@@ -48,7 +48,7 @@ test("extractFlowDiagram edges accept source/target and title aliases", () => {
 	assert.deepEqual(result.edges, [{ from: "x", to: "y", label: "hop" }]);
 });
 
-test("extractFlowDiagram row form derives implicit edges from next (doubled: extractFlowDiagram pre-derives them, normalizeFlowDiagram derives them again from the same next field, upstream does not dedupe)", () => {
+test("extractFlowDiagram row form derives implicit edges from next (doubled: extractFlowDiagram pre-derives them, normalizeFlowDiagram derives them again from the same next field, the second pass does not dedupe)", () => {
 	const content = [
 		"```csv",
 		"id,label,type,next",
