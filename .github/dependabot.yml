@@ -26,8 +26,6 @@ updates:
       # 必须人工规划并做全量视觉回归，不接受自动 PR。
       - dependency-name: "@ant-design/plots"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "@antv/g2"
-        update-types: ["version-update:semver-major"]
       # react/react-dom 是指向 @preact/compat 的 npm alias，两个名字都列以覆盖
       # Dependabot 对 alias 的匹配歧义。
       - dependency-name: react

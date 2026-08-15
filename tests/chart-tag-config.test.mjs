@@ -54,7 +54,8 @@ test("line: long-format data, labels from manifest, footnote from meta", () => {
 	assert.equal(r.chartType, "Line");
 	assert.equal(r.config.data.length, 6); // 3 periods × 2 series
 	assert.equal(r.config.xField, "period");
-	assert.equal(r.config.seriesField, "series");
+	// colorField, not seriesField: seriesField only splits series in v2, it does not colour them
+	assert.equal(r.config.colorField, "series");
 	assert.equal(r.config.data[0].series, "Total metric"); // manifest label applies
 	assert.match(r.footnote, /Monthly test data/);
 	assert.match(r.footnote, /3\/3 source rows/);
@@ -79,7 +80,7 @@ test("quarter rollup honours per-field rollup (avg vs sum)", () => {
 	assert.equal(byLabel.get("Split"), 6); // sum(1,2,3)
 });
 
-test("grouped-bar maps to Column with isGroup", () => {
+test("grouped-bar maps to Column with grouped bars", () => {
 	const r = buildChartFromTag({
 		manifest,
 		rows,
@@ -91,7 +92,7 @@ test("grouped-bar maps to Column with isGroup", () => {
 		},
 	});
 	assert.equal(r.chartType, "Column");
-	assert.equal(r.config.isGroup, true);
+	assert.equal(r.config.group, true);
 });
 
 test("combo pins both implicit axes to one scale", () => {
@@ -107,10 +108,16 @@ test("combo pins both implicit axes to one scale", () => {
 		},
 	});
 	assert.equal(r.chartType, "DualAxes");
-	assert.deepEqual(r.config.yField, ["barValue", "lineValue"]);
-	assert.equal(r.config.yAxis.barValue.max, r.config.yAxis.lineValue.max);
-	assert.equal(r.config.geometryOptions[0].geometry, "column");
-	assert.equal(r.config.geometryOptions[1].geometry, "line");
+	assert.deepEqual(
+		r.config.children.map((c) => c.type),
+		["interval", "line", "point"],
+	);
+	const [barChild, lineChild] = r.config.children;
+	assert.equal(barChild.scale.y.domainMin, 0);
+	assert.equal(lineChild.scale.y.domainMin, 0);
+	assert.equal(barChild.scale.y.domainMax, lineChild.scale.y.domainMax);
+	assert.equal(barChild.yField, "barValue");
+	assert.equal(lineChild.yField, "lineValue");
 });
 
 test("combo-dual-axis keeps axes independent with unit titles", () => {
@@ -127,10 +134,13 @@ test("combo-dual-axis keeps axes independent with unit titles", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(r.config.yAxis.barValue.max, 3 * 1.08); // Split max=3 + headroom
-	assert.equal(r.config.yAxis.lineValue.max, 30 * 1.08); // Total max=30 + headroom
-	assert.equal(r.config.yAxis.barValue.title.text, "people");
-	assert.equal(r.config.yAxis.lineValue.title.text, "%");
+	const [barChild, lineChild] = r.config.children;
+	assert.equal(barChild.scale.y.domainMax, 3 * 1.08); // Split max=3 + headroom
+	assert.equal(lineChild.scale.y.domainMax, 30 * 1.08); // Total max=30 + headroom
+	assert.equal(barChild.axis.y.title, "people");
+	assert.equal(lineChild.axis.y.title, "%");
+	assert.equal(lineChild.axis.y.position, "right"); // the second axis has to be moved off the left edge
+	assert.notEqual(barChild.scale.y.key, lineChild.scale.y.key); // separate scale groups keep the two axes apart
 });
 
 test("color overrides and defaults", () => {
@@ -145,7 +155,7 @@ test("color overrides and defaults", () => {
 			granularity: "month",
 		},
 	});
-	assert.deepEqual(r.config.color, ["#112233", "#dc2626"]); // overrides the 1st; the 2nd falls back to the default palette's 2nd color
+	assert.deepEqual(r.config.scale.color.range, ["#112233", "#dc2626"]); // overrides the 1st; the 2nd falls back to the default palette's 2nd color
 });
 
 test("combo default palette does not collide between bars and lines", () => {
@@ -160,8 +170,33 @@ test("combo default palette does not collide between bars and lines", () => {
 			granularity: "month",
 		},
 	});
-	assert.deepEqual(r.config.geometryOptions[0].color, ["#2563eb"]);
-	assert.deepEqual(r.config.geometryOptions[1].color, ["#dc2626"]);
+	// one shared colour scale for the whole view: the range follows the draw order
+	assert.deepEqual(
+		r.config.children.map((c) => c.type),
+		["interval", "line", "point"],
+	);
+	assert.deepEqual(r.config.scale.color.range, ["#2563eb", "#dc2626"]);
+});
+
+test("dual axis children carry their own data and the line points repeat it", () => {
+	const r = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo",
+			bars: "Split",
+			lines: "Total",
+			granularity: "month",
+		},
+	});
+	assert.equal(r.config.data, undefined); // view-level data is not handed down to children
+	const [barChild, lineChild, pointChild] = r.config.children;
+	assert.equal(barChild.data.length, 3);
+	assert.equal(lineChild.data.length, 3);
+	assert.equal(pointChild.data, lineChild.data); // points do not inherit the line's data
+	assert.deepEqual(pointChild.scale.y, lineChild.scale.y);
+	assert.equal(pointChild.tooltip, false);
 });
 
 test("labels attribute toggles value labels", () => {
@@ -249,7 +284,7 @@ test("formatChartNumber rounds and groups", () => {
 	assert.equal(formatChartNumber(null), "");
 });
 
-test("configs carry meta value formatters", () => {
+test("configs carry value formatters on the axis, the labels and the tooltip", () => {
 	const line = buildChartFromTag({
 		manifest,
 		rows,
@@ -260,7 +295,9 @@ test("configs carry meta value formatters", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(typeof line.config.meta.value.formatter, "function");
+	assert.equal(typeof line.config.axis.y.labelFormatter, "function");
+	assert.equal(typeof line.config.label.formatter, "function");
+	assert.equal(typeof line.config.tooltip.items[0], "function");
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
@@ -272,8 +309,29 @@ test("configs carry meta value formatters", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(typeof combo.config.meta.barValue.formatter, "function");
-	assert.equal(typeof combo.config.meta.lineValue.formatter, "function");
+	const [barChild, lineChild] = combo.config.children;
+	assert.equal(typeof barChild.axis.y.labelFormatter, "function");
+	assert.equal(typeof barChild.label.formatter, "function");
+	assert.equal(typeof lineChild.axis.y.labelFormatter, "function");
+	assert.equal(typeof lineChild.label.formatter, "function");
+});
+
+test("value labels read the field they belong to", () => {
+	const combo = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo",
+			bars: "Split",
+			lines: "Total",
+			granularity: "month",
+		},
+	});
+	const [barChild, lineChild] = combo.config.children;
+	assert.equal(barChild.label.text, "barValue");
+	assert.equal(lineChild.label.text, "lineValue");
+	assert.notEqual(barChild.label, lineChild.label); // each mark needs its own label object
 });
 
 test("line charts render points", () => {
@@ -288,9 +346,8 @@ test("line charts render points", () => {
 		},
 	});
 	assert.deepEqual(r.config.point, {
-		size: 3,
-		shape: "circle",
-		style: { lineWidth: 0 },
+		shapeField: "circle",
+		style: { r: 3, lineWidth: 0 },
 	});
 });
 
@@ -306,16 +363,15 @@ test("combo respects tag writing order (lines first)", () => {
 			granularity: "month",
 		},
 	});
-	assert.deepEqual(r.config.yField, ["lineValue", "barValue"]);
-	assert.equal(r.config.geometryOptions[0].geometry, "line");
-	assert.deepEqual(r.config.geometryOptions[0].color, ["#2563eb"]);
-	assert.deepEqual(r.config.geometryOptions[1].color, ["#dc2626"]);
-	assert.equal(r.config.yAxis.lineValue.max, r.config.yAxis.barValue.max);
-	assert.deepEqual(r.config.geometryOptions[0].point, {
-		size: 3,
-		shape: "circle",
-		style: { lineWidth: 0 },
-	});
+	assert.deepEqual(
+		r.config.children.map((c) => c.type),
+		["line", "point", "interval"],
+	);
+	assert.deepEqual(r.config.scale.color.range, ["#2563eb", "#dc2626"]);
+	const [lineChild, pointChild, barChild] = r.config.children;
+	assert.equal(lineChild.scale.y.domainMax, barChild.scale.y.domainMax);
+	assert.equal(pointChild.shapeField, "circle");
+	assert.deepEqual(pointChild.style, { r: 3, lineWidth: 0 });
 });
 
 test("legend markers are squares", () => {
@@ -324,13 +380,13 @@ test("legend markers are squares", () => {
 		rows,
 		attributes: { ...base, type: "line", series: "Total", granularity: "month" },
 	});
-	assert.deepEqual(line.config.legend, { marker: { symbol: "square" } });
+	assert.deepEqual(line.config.legend, { color: { itemMarker: "square" } });
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
 		attributes: { ...base, type: "combo", bars: "Split", lines: "Total", granularity: "month" },
 	});
-	assert.deepEqual(combo.config.legend, { marker: { symbol: "square" } });
+	assert.deepEqual(combo.config.legend, { color: { itemMarker: "square" } });
 });
 
 test("percent unit suffixes formatted values", () => {
@@ -345,8 +401,9 @@ test("percent unit suffixes formatted values", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(pct.config.meta.value.formatter(2.6), "2.6%");
-	assert.equal(pct.config.meta.value.formatter(null), "");
+	assert.equal(pct.config.axis.y.labelFormatter(2.6), "2.6%");
+	assert.equal(pct.config.label.formatter(2.6), "2.6%");
+	assert.equal(pct.config.axis.y.labelFormatter(null), "");
 	const plain = buildChartFromTag({
 		manifest,
 		rows,
@@ -358,7 +415,7 @@ test("percent unit suffixes formatted values", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(plain.config.meta.value.formatter(1234.5), "1,234.5");
+	assert.equal(plain.config.axis.y.labelFormatter(1234.5), "1,234.5");
 });
 
 test("currency units prefix formatted values", () => {
@@ -373,8 +430,8 @@ test("currency units prefix formatted values", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(yuan.config.meta.value.formatter(12), "¥ 12");
-	assert.equal(yuan.config.meta.value.formatter(null), "");
+	assert.equal(yuan.config.axis.y.labelFormatter(12), "¥ 12");
+	assert.equal(yuan.config.label.formatter(null), "");
 	const usd = buildChartFromTag({
 		manifest,
 		rows,
@@ -386,11 +443,27 @@ test("currency units prefix formatted values", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(usd.config.meta.value.formatter(1234.5), "$ 1,234.5");
+	assert.equal(usd.config.axis.y.labelFormatter(1234.5), "$ 1,234.5");
 });
 
-test("combo labels get anti-overlap layout", () => {
-	const r = buildChartFromTag({
+test("labels get anti-overlap transforms", () => {
+	const expected = [
+		{ type: "exceedAdjust", bounds: "main" },
+		{ type: "overlapHide" },
+	];
+	const line = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "line",
+			series: "Total",
+			labels: "all",
+			granularity: "month",
+		},
+	});
+	assert.deepEqual(line.config.label.transform, expected);
+	const combo = buildChartFromTag({
 		manifest,
 		rows,
 		attributes: {
@@ -402,12 +475,9 @@ test("combo labels get anti-overlap layout", () => {
 			granularity: "month",
 		},
 	});
-	for (const geo of r.config.geometryOptions) {
-		assert.deepEqual(geo.label.layout, [
-			{ type: "limit-in-plot" },
-			{ type: "hide-overlap" },
-			{ type: "limit-in-plot", cfg: { action: "hide" } },
-		]);
+	for (const child of combo.config.children) {
+		if (!child.label) continue; // the point mark carries no labels
+		assert.deepEqual(child.label.transform, expected);
 	}
 });
 
@@ -422,7 +492,8 @@ test("y axis gets headroom above the max value", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(line.config.yAxis.max, 30 * 1.08);
+	assert.equal(line.config.scale.y.domainMax, 30 * 1.08);
+	assert.equal(line.config.scale.y.nice, false); // nice would round the headroom away
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
@@ -434,8 +505,8 @@ test("y axis gets headroom above the max value", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(combo.config.yAxis.barValue.max, 30 * 1.08);
-	assert.equal(combo.config.yAxis.lineValue.max, 30 * 1.08);
+	assert.equal(combo.config.children[0].scale.y.domainMax, 30 * 1.08);
+	assert.equal(combo.config.children[1].scale.y.domainMax, 30 * 1.08);
 	const stacked = buildChartFromTag({
 		manifest,
 		rows,
@@ -446,7 +517,8 @@ test("y axis gets headroom above the max value", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(stacked.config.yAxis.max, 33 * 1.08); // max of the per-period stacked sum is 33
+	assert.equal(stacked.config.stack, true);
+	assert.equal(stacked.config.scale.y.domainMax, 33 * 1.08); // max of the per-period stacked sum is 33
 });
 
 test("dual-axis percent suffix applies per side", () => {
@@ -463,8 +535,11 @@ test("dual-axis percent suffix applies per side", () => {
 			granularity: "month",
 		},
 	});
-	assert.equal(r.config.meta.barValue.formatter(1000), "1,000");
-	assert.equal(r.config.meta.lineValue.formatter(2.6), "2.6%");
+	const [barChild, lineChild] = r.config.children;
+	assert.equal(barChild.axis.y.labelFormatter(1000), "1,000");
+	assert.equal(barChild.label.formatter(1000), "1,000");
+	assert.equal(lineChild.axis.y.labelFormatter(2.6), "2.6%");
+	assert.equal(lineChild.label.formatter(2.6), "2.6%");
 });
 
 const INLINE_CSV = "month,a,b\n2025-01,120,80\n2025-02,140,\n2025-03,160,95";
@@ -484,7 +559,7 @@ test("inline: builds a line chart from csv with defaults", () => {
 		(d) => d.period === "2025-02" && d.series === "b",
 	);
 	assert.equal(feb.value, null);
-	assert.deepEqual(built.config.legend, { marker: { symbol: "square" } });
+	assert.deepEqual(built.config.legend, { color: { itemMarker: "square" } });
 });
 
 test("inline: x defaults to the first csv column", () => {
@@ -515,7 +590,8 @@ test("inline: percent unit formatter applies", () => {
 		attributes: { x: "month", series: "a", unit: "%" },
 		csv: INLINE_CSV,
 	});
-	assert.equal(built.config.meta.value.formatter(12.5), "12.5%");
+	assert.equal(built.config.axis.y.labelFormatter(12.5), "12.5%");
+	assert.equal(built.config.label.formatter(12.5), "12.5%");
 });
 
 test("inline: rejects dataset-only attributes", () => {

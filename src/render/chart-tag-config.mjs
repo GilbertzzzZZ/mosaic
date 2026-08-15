@@ -34,9 +34,17 @@ const CHART_TYPES = new Set([
 const CHART_NUMBER_FORMAT = new Intl.NumberFormat("en-US", {
 	maximumFractionDigits: 2,
 });
-const LINE_POINT = { size: 3, shape: "circle", style: { lineWidth: 0 } };
+// 折线数据点：实心圆、半径 3、无描边。半径走 style.r——mark 上的 size 不是
+// G2 v5 的配置项；shapeField 选实心圆，point mark 的默认形状是空心的。
+const LINE_POINT = { shapeField: "circle", style: { r: 3, lineWidth: 0 } };
 // 图例标记统一为方块（默认时折线是短线、柱状是方块，混图不统一）。
-const LEGEND = { marker: { symbol: "square" } };
+const LEGEND = { color: { itemMarker: "square" } };
+// 数值标签防碰撞：先把越界标签平移回绘图区（首尾数据点贴着边缘，缺这步会被
+// 下一步整个隐藏），再隐藏仍然重叠的。
+const LABEL_TRANSFORM = [
+	{ type: "exceedAdjust", bounds: "main" },
+	{ type: "overlapHide" },
+];
 
 export function formatChartNumber(value) {
 	if (value == null || !Number.isFinite(value)) return "";
@@ -82,6 +90,36 @@ function headroomMax(values) {
 	if (finite.length === 0) return undefined;
 	const max = Math.max(...finite);
 	return max > 0 ? max * Y_HEADROOM : undefined;
+}
+
+// 给了 domainMax 就必须关掉 nice：nice 会把域再往上取整到刻度边界，
+// 8% 头部空间会被撑成一段不确定的留白，刻度也跟着变。
+function yScale({ key, domainMin, domainMax }) {
+	const scale = {};
+	if (key !== undefined) {
+		scale.key = key;
+		// DualAxes 默认把每个 child 的 y 设成 independent，独立后 key 失效、
+		// 每个 mark 各自成一套 scale；显式关掉才能按 key 分组共用。
+		scale.independent = false;
+	}
+	if (domainMin !== undefined) scale.domainMin = domainMin;
+	if (domainMax !== undefined) {
+		scale.domainMax = domainMax;
+		scale.nice = false;
+	}
+	return scale;
+}
+
+// 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
+// 共用一个对象时后一个 mark 会沿用前一个的字段。
+function valueLabel(field, formatter) {
+	return { text: field, formatter, transform: LABEL_TRANSFORM };
+}
+
+// v5 的 scale 没有 formatter：轴刻度走 axis.labelFormatter，数值标签走
+// label.formatter，tooltip 走 items 回调。回调不返回 name 时沿用系列名。
+function valueTooltip(field, formatter) {
+	return { items: [(datum) => ({ value: formatter(datum[field]) })] };
 }
 
 function splitList(value) {
@@ -173,7 +211,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		: seriesKeys.length > 1
 			? "line"
 			: "bar";
-	const label = labelsEnabled(attrs) ? {} : undefined;
+	const showLabels = labelsEnabled(attrs);
 
 	if (type === "combo" || type === "combo-dual-axis") {
 		let barKeys = bars,
@@ -191,59 +229,74 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		const dual = type === "combo-dual-axis";
 		const leftUnit = String(attrs.leftUnit ?? attrs.unit ?? "");
 		const rightUnit = String(attrs.rightUnit ?? "");
-		const comboMeta = dual
-			? {
-					barValue: { formatter: valueFormatterFor(leftUnit) },
-					lineValue: { formatter: valueFormatterFor(rightUnit) },
-				}
-			: {
-					barValue: { formatter: valueFormatterFor(attrs.unit) },
-					lineValue: { formatter: valueFormatterFor(attrs.unit) },
-				};
-		let yAxis;
+		const barFormatter = valueFormatterFor(dual ? leftUnit : attrs.unit);
+		const lineFormatter = valueFormatterFor(dual ? rightUnit : attrs.unit);
+		let barY, lineY;
 		if (dual) {
-			yAxis = {
-				barValue: {
-					max: headroomMax(barLong.map((d) => d.barValue)),
-					...(leftUnit ? { title: { text: leftUnit } } : {}),
-				},
-				lineValue: {
-					max: headroomMax(lineLong.map((d) => d.lineValue)),
-					...(rightUnit ? { title: { text: rightUnit } } : {}),
-				},
-			};
+			barY = yScale({
+				key: "barY",
+				domainMax: headroomMax(barLong.map((d) => d.barValue)),
+			});
+			lineY = yScale({
+				key: "lineY",
+				domainMax: headroomMax(lineLong.map((d) => d.lineValue)),
+			});
 		} else {
-			const max = headroomMax([
+			// combo 两侧共用同一段值域，左右轴刻度因此互为镜像。
+			const domainMax = headroomMax([
 				...barLong.map((d) => d.barValue),
 				...lineLong.map((d) => d.lineValue),
 			]);
-			yAxis = { barValue: { min: 0, max }, lineValue: { min: 0, max } };
+			barY = yScale({ key: "barY", domainMin: 0, domainMax });
+			lineY = yScale({ key: "lineY", domainMin: 0, domainMax });
 		}
-		// DualAxes 的 adaptor 不带任何默认 label layout（Line/Column 单图有），
-		// 显式补上防碰撞，对齐单图语义：先把越界标签平移回图内（默认 action
-		// 是 translate，首尾数据点贴着绘图区边缘，缺这步会被下面的 hide 整个
-		// 隐藏），再去重叠，最后 hide 兜底。
-		const comboLabel = label
-			? {
-					...label,
-					layout: [
-						{ type: "limit-in-plot" },
-						{ type: "hide-overlap" },
-						{ type: "limit-in-plot", cfg: { action: "hide" } },
-					],
-				}
-			: undefined;
-		const barGeometry = {
-			geometry: "column",
-			isGroup: barKeys.length > 1,
-			seriesField: "series",
-			label: comboLabel,
+		const barAxis = {
+			y: {
+				labelFormatter: barFormatter,
+				...(dual && leftUnit ? { title: leftUnit } : {}),
+			},
 		};
-		const lineGeometry = {
-			geometry: "line",
-			seriesField: "series",
-			point: LINE_POINT,
-			label: comboLabel,
+		const lineAxis = {
+			y: {
+				position: "right",
+				labelFormatter: lineFormatter,
+				...(dual && rightUnit ? { title: rightUnit } : {}),
+			},
+		};
+		const barChild = {
+			type: "interval",
+			data: barLong,
+			yField: "barValue",
+			colorField: "series",
+			group: barKeys.length > 1,
+			scale: { y: barY },
+			axis: barAxis,
+			label: showLabels ? valueLabel("barValue", barFormatter) : undefined,
+			tooltip: valueTooltip("barValue", barFormatter),
+		};
+		const lineChild = {
+			type: "line",
+			data: lineLong,
+			yField: "lineValue",
+			colorField: "series",
+			scale: { y: lineY },
+			axis: lineAxis,
+			label: showLabels ? valueLabel("lineValue", lineFormatter) : undefined,
+			tooltip: valueTooltip("lineValue", lineFormatter),
+		};
+		// 数据点写成折线的兄弟 mark，而不是折线的 point 简写：简写生成的 mark
+		// 不继承 data / scale，且总被追加到 children 末尾（会盖在柱子上）。
+		// 它和折线共用同一段 y scale，因此必须给出同一份 axis——G2 按 scale 分组
+		// 合并 guide，两份不一致时后写的会覆盖先写的。
+		const pointChild = {
+			...LINE_POINT,
+			type: "point",
+			data: lineLong,
+			yField: "lineValue",
+			colorField: "series",
+			scale: { y: lineY },
+			axis: lineAxis,
+			tooltip: false,
 		};
 		// combo（单轴）图例顺序跟随标签书写顺序；combo-dual-axis 固定 bars=左轴。
 		const attrKeys = Object.keys(attributes);
@@ -256,42 +309,28 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 				const barIdx = attrKeys.findIndex((k) => k === "bars" || k === "bar");
 				return lineIdx !== -1 && barIdx !== -1 && lineIdx < barIdx;
 			})();
-		if (linesFirst) {
-			lineGeometry.color = colorsFor(attrs, lineKeys);
-			barGeometry.color = colorsFor(attrs, barKeys, lineKeys.length);
-			return {
-				...common,
-				chartType: "DualAxes",
-				config: {
-					data: [lineLong, barLong],
-					xField: "period",
-					yField: ["lineValue", "barValue"],
-					yAxis,
-					meta: comboMeta,
-					legend: LEGEND,
-					geometryOptions: [lineGeometry, barGeometry],
-				},
-			};
-		}
-		barGeometry.color = colorsFor(attrs, barKeys);
-		lineGeometry.color = colorsFor(attrs, lineKeys, barKeys.length);
+		// 一张图只有一套 color scale，两个 mark 各给一份 range 会互相覆盖：
+		// 配色按 children 的绘制顺序拼成一份，挂在顶层下发给全部 children。
+		const range = linesFirst
+			? [...colorsFor(attrs, lineKeys), ...colorsFor(attrs, barKeys, lineKeys.length)]
+			: [...colorsFor(attrs, barKeys), ...colorsFor(attrs, lineKeys, barKeys.length)];
 		return {
 			...common,
 			chartType: "DualAxes",
 			config: {
-				data: [barLong, lineLong],
 				xField: "period",
-				yField: ["barValue", "lineValue"],
-				yAxis,
-				meta: comboMeta,
+				scale: { color: { range } },
 				legend: LEGEND,
-				geometryOptions: [barGeometry, lineGeometry],
+				children: linesFirst
+					? [lineChild, pointChild, barChild]
+					: [barChild, lineChild, pointChild],
 			},
 		};
 	}
 
 	const data = toLong(rows, xKey, seriesKeys, attrs);
 	const unit = String(attrs.unit ?? "");
+	const formatter = valueFormatterFor(unit);
 	// stacked-bar 的视觉上限是每期堆叠和，其余按单值最大。
 	const yMax =
 		type === "stacked-bar"
@@ -311,11 +350,13 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		data,
 		xField: "period",
 		yField: "value",
-		seriesField: "series",
-		color: colorsFor(attrs, seriesKeys),
-		label,
-		yAxis: { max: yMax, ...(unit ? { title: { text: unit } } : {}) },
-		meta: { value: { formatter: valueFormatterFor(unit) } },
+		// colorField 而非 seriesField：v5 的 seriesField 只拆分系列不着色，也不出
+		// 图例；分组 / 堆叠取不到 series 通道时会回落到 color 通道，够用。
+		colorField: "series",
+		scale: { color: { range: colorsFor(attrs, seriesKeys) }, y: yScale({ domainMax: yMax }) },
+		label: showLabels ? valueLabel("value", formatter) : undefined,
+		axis: { y: { labelFormatter: formatter, ...(unit ? { title: unit } : {}) } },
+		tooltip: valueTooltip("value", formatter),
 		legend: LEGEND,
 	};
 	if (type === "line")
@@ -328,13 +369,13 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		return {
 			...common,
 			chartType: "Column",
-			config: { ...config, isGroup: true },
+			config: { ...config, group: true },
 		};
 	if (type === "stacked-bar")
 		return {
 			...common,
 			chartType: "Column",
-			config: { ...config, isStack: true },
+			config: { ...config, stack: true },
 		};
 	return { ...common, chartType: "Column", config }; // "bar"
 }

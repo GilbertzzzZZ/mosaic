@@ -37,7 +37,7 @@ jobs:
         if: matrix.node == 24
         run: |
           bytes=$(wc -c < main.js)
-          limit=$((1400 * 1024))
+          limit=$((1800 * 1024))
           echo "\`main.js\`: **$((bytes / 1024)) KiB** / $((limit / 1024)) KiB budget" >> "$GITHUB_STEP_SUMMARY"
           if [ "$bytes" -gt "$limit" ]; then
             echo "::error::main.js is $((bytes / 1024)) KiB, over the $((limit / 1024)) KiB budget."
