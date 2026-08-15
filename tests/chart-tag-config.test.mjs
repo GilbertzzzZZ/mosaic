@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import {
 	parseDatasetManifest,
 	parseDatasetData,
-} from "../src/dataset/dataset-loader.mjs";
+} from "../src/parse/dataset-loader.mjs";
 import {
 	buildChartFromTag,
 	buildChartFromInline,
 	parseGranularityOptions,
 	formatChartNumber,
-} from "../src/dataset/chart-tag-config.mjs";
+} from "../src/render/chart-tag-config.mjs";
 
 const manifest = parseDatasetManifest(
 	JSON.stringify({

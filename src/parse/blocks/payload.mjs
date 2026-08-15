@@ -7,7 +7,7 @@
 // structured data instead of building HTML strings (no escapeHtml — that is
 // the host/view layer's job).
 
-import { parseDelimitedRecords } from "../dataset/delimited-data.mjs";
+import { parseDelimitedRecords } from "../delimited-data.mjs";
 
 /**
  * Detects a single fenced code block spanning the entire content (allowing

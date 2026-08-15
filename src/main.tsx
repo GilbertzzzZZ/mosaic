@@ -1,7 +1,7 @@
 import { MarkdownView, Plugin, WorkspaceLeaf } from 'obsidian';
 import { MosaicPluginSettings, MosaicSettingTab, DEFAULT_SETTINGS } from './settings';
-import { createChartTagProcessor } from './dataset/chart-tag-processor';
-import { createChartBlockProcessor } from './dataset/chart-block-processor';
+import { createChartTagProcessor } from './entry/chart-tag-processor';
+import { createChartBlockProcessor } from './entry/chart-block-processor';
 
 export default class MosaicPlugin extends Plugin {
 	settings: MosaicPluginSettings;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { datasetQueryFromContent } from "../src/blocks/dataset-table.mjs";
+import { datasetQueryFromContent } from "../src/parse/blocks/dataset-table.mjs";
 
 test("datasetQueryFromContent returns {} for an empty body", () => {
   assert.deepEqual(datasetQueryFromContent(""), {});

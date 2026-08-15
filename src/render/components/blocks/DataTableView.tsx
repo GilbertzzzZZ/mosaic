@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { extractRows, listAttribute, uniqueStrings } from "../../blocks/payload.mjs";
-import { tableComplexityAttributes } from "../../blocks/table-complexity.mjs";
-import { tableLayout } from "../../blocks/table-layout.mjs";
+import { extractRows, listAttribute, uniqueStrings } from "../../../parse/blocks/payload.mjs";
+import { tableComplexityAttributes } from "../../../parse/blocks/table-complexity.mjs";
+import { tableLayout } from "../../../parse/blocks/table-layout.mjs";
 
 export interface DataTableViewProps {
 	attributes: Record<string, string>;

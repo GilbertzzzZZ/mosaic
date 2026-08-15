@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tableComplexityAttributes } from "../src/blocks/table-complexity.mjs";
-import { tableLayout } from "../src/blocks/table-layout.mjs";
+import { tableComplexityAttributes } from "../src/parse/blocks/table-complexity.mjs";
+import { tableLayout } from "../src/parse/blocks/table-layout.mjs";
 
 function rowsOf(count, columns) {
 	return Array.from({ length: count }, (_, index) =>

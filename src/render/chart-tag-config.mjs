@@ -1,9 +1,9 @@
-import { queryDataset } from "./dataset-query.mjs";
+import { queryDataset } from "../parse/dataset-query.mjs";
 import {
 	DATASET_GRANULARITIES,
 	isDatasetGranularity,
-} from "./dataset-granularity.mjs";
-import { parseDelimitedRecords } from "./delimited-data.mjs";
+} from "../parse/dataset-granularity.mjs";
+import { parseDelimitedRecords } from "../parse/delimited-data.mjs";
 
 const CHART_COLORS = [
 	"#2563eb",
@@ -137,7 +137,7 @@ function toLong(rows, xKey, keys, attributes, valueField = "value") {
 	return out;
 }
 
-function buildFootnote(meta) {
+export function buildFootnote(meta) {
 	return (
 		`${meta.datasetTitle} · ${meta.from} → ${meta.to} · ${meta.granularity}` +
 		` · ${meta.sourceRows}/${meta.totalRows} source rows · data through ${meta.dataThrough}`

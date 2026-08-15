@@ -5,7 +5,7 @@ import {
   datasetGranularitiesForSource,
   datasetPeriodStartsBetween,
   isDatasetPeriodStart,
-} from "../src/dataset/dataset-granularity.mjs";
+} from "../src/parse/dataset-granularity.mjs";
 
 test("source granularity exposes only mathematically reliable time views", () => {
   assert.deepEqual(

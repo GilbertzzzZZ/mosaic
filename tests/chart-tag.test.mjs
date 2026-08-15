@@ -6,7 +6,7 @@ import {
 	findComponentTags,
 	isOnlyComponentTags,
 	COMPONENT_NAMES,
-} from "../src/dataset/chart-tag.mjs";
+} from "../src/parse/chart-tag.mjs";
 
 const realTag = `<Chart
   title="一起零售活跃付费率趋势"

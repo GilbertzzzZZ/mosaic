@@ -16,7 +16,7 @@ import {
 	timelineItem,
 	metricItem,
 	decisionItems,
-} from "../src/blocks/payload.mjs";
+} from "../src/parse/blocks/payload.mjs";
 
 // --- extractDataBlock -------------------------------------------------
 

@@ -3,8 +3,8 @@
 import ReactDOM from "react-dom";
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
 import MosaicPlugin from "../main";
-import { parseChartBlock } from "./chart-block.mjs";
-import { renderChartInto } from "./render-chart";
+import { parseChartBlock } from "../parse/chart-block.mjs";
+import { renderChartInto } from "../render/render-chart";
 
 export function createChartBlockProcessor(plugin: MosaicPlugin) {
 	return async (

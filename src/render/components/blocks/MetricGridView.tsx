@@ -1,6 +1,6 @@
 import React from "react";
 import { BlockShell, BlockTitle } from "./BlockShell";
-import { extractRows, metricItem } from "../../blocks/payload.mjs";
+import { extractRows, metricItem } from "../../../parse/blocks/payload.mjs";
 
 export interface MetricGridViewProps {
 	attributes: Record<string, string>;

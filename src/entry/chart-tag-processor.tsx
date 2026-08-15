@@ -2,8 +2,9 @@
 import ReactDOM from "react-dom";
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
 import MosaicPlugin from "../main";
-import { findComponentTags, findChartTags, isOnlyComponentTags } from "./chart-tag.mjs";
-import { renderChartInto, renderComponentInto } from "./render-chart";
+import { findComponentTags, findChartTags, isOnlyComponentTags } from "../parse/chart-tag.mjs";
+import { renderChartInto } from "../render/render-chart";
+import { renderComponentInto } from "../render/render-component";
 
 const RUN_KEY = "__mosaicTagRun";
 

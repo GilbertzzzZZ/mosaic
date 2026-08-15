@@ -7,7 +7,7 @@ import {
 	layoutFlowDiagram,
 	normalizeFlowDiagram,
 	wrapFlowText,
-} from "../src/blocks/flow.mjs";
+} from "../src/parse/blocks/flow.mjs";
 
 test("extractFlowDiagram parses graph JSON form (nodes + edges)", () => {
 	const content = JSON.stringify({

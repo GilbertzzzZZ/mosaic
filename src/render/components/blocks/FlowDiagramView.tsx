@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { extractFlowDiagram, layoutFlowDiagram } from "../../blocks/flow.mjs";
+import { extractFlowDiagram, layoutFlowDiagram } from "../../../parse/blocks/flow.mjs";
 
 export interface FlowDiagramViewProps {
 	attributes: Record<string, string>;

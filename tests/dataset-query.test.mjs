@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { queryDataset } from "../src/dataset/dataset-query.mjs";
+import { queryDataset } from "../src/parse/dataset-query.mjs";
 
 const manifest = {
   id: "company_daily",

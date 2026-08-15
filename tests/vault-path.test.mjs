@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveVaultPath } from "../src/dataset/vault-path.mjs";
+import { resolveVaultPath } from "../src/parse/vault-path.mjs";
 
 test("resolves relative reference against base dir", () => {
 	assert.equal(

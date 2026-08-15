@@ -1,6 +1,6 @@
 import React from "react";
 import { BlockShell, BlockTitle } from "./BlockShell";
-import { extractRows, timelineItem } from "../../blocks/payload.mjs";
+import { extractRows, timelineItem } from "../../../parse/blocks/payload.mjs";
 
 export interface TimelineViewProps {
 	attributes: Record<string, string>;

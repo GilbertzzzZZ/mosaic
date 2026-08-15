@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseChartBlock } from "../src/dataset/chart-block.mjs";
+import { parseChartBlock } from "../src/parse/chart-block.mjs";
 
 test("parses frontmatter-only block", () => {
 	const { attributes, csv } = parseChartBlock(

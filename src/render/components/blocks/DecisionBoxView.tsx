@@ -6,7 +6,7 @@ import {
 	normalizeDecisionStatus,
 	parseRichBlocks,
 	parseInlineText,
-} from "../../blocks/payload.mjs";
+} from "../../../parse/blocks/payload.mjs";
 
 export interface DecisionBoxViewProps {
 	attributes: Record<string, string>;

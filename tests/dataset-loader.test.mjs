@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
 	parseDatasetManifest,
 	parseDatasetData,
-} from "../src/dataset/dataset-loader.mjs";
+} from "../src/parse/dataset-loader.mjs";
 
 const manifestText = JSON.stringify({
 	schemaVersion: 1,
