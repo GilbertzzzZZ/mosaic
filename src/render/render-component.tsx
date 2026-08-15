@@ -3,7 +3,6 @@
 // 与 Chart 不同：这五类是纯 DOM/React，无 AntV/主题/宽度重建基建；渲染失败（含
 // dataset 查询失败）就地捕获，落地统一的 mosaic-error DOM，不向调用方抛出。
 import React from "react";
-import ReactDOM from "react-dom";
 import MosaicPlugin from "../main";
 import { loadDatasetForNote } from "../parse/obsidian-dataset";
 import { queryDataset } from "../parse/dataset-query.mjs";
@@ -11,6 +10,7 @@ import { DATASET_GRANULARITIES, isDatasetGranularity } from "../parse/dataset-gr
 import { datasetQueryFromContent } from "../parse/blocks/dataset-table.mjs";
 import { uniqueStrings } from "../parse/blocks/payload.mjs";
 import { whenHostReady } from "./host-ready";
+import { renderInto, unmountRoot } from "./react-root";
 import { DataTableFigure, DataTableQueryResult } from "./components/DataTableFigure";
 import { DataTableView } from "./components/blocks/DataTableView";
 import { TimelineView } from "./components/blocks/TimelineView";
@@ -35,8 +35,11 @@ const PLAIN_VIEWS: Record<
 	FlowDiagram: FlowDiagramView,
 };
 
+// 错误框的正确性依赖 unmount 的同步语义：unmountRoot 返回时 host 内的树已
+// 拆完、hook cleanup 已跑完，随后的 empty() 才不会与卸载竞态，错误框也才是
+// host 里唯一的内容。
 function renderComponentError(host: HTMLElement, e: unknown): void {
-	ReactDOM.unmountComponentAtNode(host);
+	unmountRoot(host);
 	host.empty();
 	host.createDiv({
 		cls: "mosaic-error",
@@ -107,7 +110,8 @@ async function renderDataTableDataset(
 		initial.meta.availableGranularities.includes(g),
 	);
 	if (stale()) return;
-	ReactDOM.render(
+	renderInto(
+		host,
 		<DataTableFigure
 			attributes={attributes}
 			body={body}
@@ -115,7 +119,6 @@ async function renderDataTableDataset(
 			initial={initial}
 			build={build}
 		/>,
-		host,
 	);
 }
 
@@ -141,7 +144,7 @@ export async function renderComponentInto(
 			throw new Error(`Unsupported component: ${name}.`);
 		}
 		if (stale()) return;
-		ReactDOM.render(<View attributes={attributes} body={bodyText} />, host);
+		renderInto(host, <View attributes={attributes} body={bodyText} />);
 	} catch (e) {
 		if (stale()) return;
 		renderComponentError(host, e);

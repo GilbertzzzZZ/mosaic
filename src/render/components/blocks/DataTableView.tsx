@@ -26,8 +26,11 @@ interface TableComplexity {
 	toolbar: boolean;
 }
 
+// tableLayout() 无条件产出这四个字段，required 才能让 tsc 在 .mjs 侧改字段名时
+// 报 TS2322。mode 写成 string 而非 "fit"|"wrap"|"scroll"：字面量联合只能靠断言
+// 或 .mjs 侧 @returns 声明取得，两者都会截断类型流，反而让改名不再报错。
 interface TableLayout {
-	mode: "fit" | "wrap" | "scroll";
+	mode: string;
 	preferredWidth: number;
 	minWidth: number;
 	columnWidths: string[];
@@ -81,7 +84,7 @@ export const DataTableView = ({
 		[rows, columns, attributes]
 	);
 	const layout: TableLayout = useMemo(
-		() => tableLayout(rows, columns) as TableLayout,
+		() => tableLayout(rows, columns),
 		[rows, columns]
 	);
 
@@ -140,7 +143,7 @@ export const DataTableView = ({
 									aria-label="Filter this table"
 									placeholder="Filter…"
 									value={search}
-									onChange={(event) => setSearch(event.target.value)}
+									onChange={(event) => setSearch(event.currentTarget.value)}
 								/>
 							</label>
 						)}
@@ -149,7 +152,7 @@ export const DataTableView = ({
 								<input
 									type="checkbox"
 									checked={frozen}
-									onChange={(event) => setFrozen(event.target.checked)}
+									onChange={(event) => setFrozen(event.currentTarget.checked)}
 								/>
 								Freeze first column
 							</label>

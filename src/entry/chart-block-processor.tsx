@@ -1,9 +1,9 @@
 // src/dataset/chart-block-processor.tsx
 // chartview 代码块入口：frontmatter 属性 + 可选内联 CSV，语义与 <Chart /> 标签一致。
-import ReactDOM from "react-dom";
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
 import MosaicPlugin from "../main";
 import { parseChartBlock } from "../parse/chart-block.mjs";
+import { unmountRoot } from "../render/react-root";
 import { renderChartInto } from "../render/render-chart";
 
 export function createChartBlockProcessor(plugin: MosaicPlugin) {
@@ -17,7 +17,7 @@ export function createChartBlockProcessor(plugin: MosaicPlugin) {
 		let unloaded = false;
 		child.onunload = () => {
 			unloaded = true;
-			ReactDOM.unmountComponentAtNode(host);
+			unmountRoot(host);
 		};
 		ctx.addChild(child);
 		try {
@@ -25,7 +25,7 @@ export function createChartBlockProcessor(plugin: MosaicPlugin) {
 			await renderChartInto(plugin, host, ctx.sourcePath, { attributes: parsed.attributes as Record<string, string>, csv: parsed.csv }, () => unloaded);
 		} catch (e) {
 			if (unloaded) return;
-			ReactDOM.unmountComponentAtNode(host);
+			unmountRoot(host);
 			host.empty();
 			host.createDiv({
 				cls: "mosaic-error",

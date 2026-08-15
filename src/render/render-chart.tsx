@@ -2,7 +2,6 @@
 // 三入口共享的 Chart 渲染层：{attributes, csv} → ChartFigure。csv 非空走内联
 // 模式，否则走 dataset 模式。抛错由各入口调用方就地渲染错误框。
 import React from "react";
-import ReactDOM from "react-dom";
 import MosaicPlugin from "../main";
 import { loadDatasetForNote } from "../parse/obsidian-dataset";
 import {
@@ -12,6 +11,7 @@ import {
 } from "./chart-tag-config.mjs";
 import { ChartFigure } from "./components/ChartFigure";
 import { whenHostReady } from "./host-ready";
+import { renderInto } from "./react-root";
 import { withTheme } from "./chart-theme";
 
 export interface ChartSource {
@@ -34,7 +34,8 @@ export async function renderChartInto(
 		const build = () => withTheme(buildChartFromInline({ attributes, csv }));
 		const initial = build();
 		if (stale()) return;
-		ReactDOM.render(
+		renderInto(
+			host,
 			<ChartFigure
 				title={attributes.title}
 				note={attributes.note}
@@ -43,7 +44,6 @@ export async function renderChartInto(
 				build={build}
 				showExportBtn={plugin.settings.showExportBtn}
 			/>,
-			host,
 		);
 		return;
 	}
@@ -62,7 +62,8 @@ export async function renderChartInto(
 	const options = parseGranularityOptions(attributes).filter((g) =>
 		initial.availableGranularities.includes(g),
 	);
-	ReactDOM.render(
+	renderInto(
+		host,
 		<ChartFigure
 			title={attributes.title}
 			note={attributes.note}
@@ -71,6 +72,5 @@ export async function renderChartInto(
 			build={build}
 			showExportBtn={plugin.settings.showExportBtn}
 		/>,
-		host,
 	);
 }
