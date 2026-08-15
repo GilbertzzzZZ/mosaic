@@ -39,31 +39,18 @@
 }
 .mosaic-granularity-group {
 	display: inline-flex;
-	gap: 2px;
+	gap: var(--size-2-1);
 }
+/* Everything else about these buttons is Obsidian's own: the host button
+   rules already centre the label, size it and give it the theme's colours,
+   hover feedback and focus ring. Do not set line-height here — the host
+   leaves it at the UA default so the flex centring lands on the glyph box;
+   pinning it makes the label sit high, by an amount that varies with the
+   reader's font. Granularity names arrive lowercase from the dataset
+   manifest, so capitalising is a presentation rule the parsed value never
+   sees, and it is the one thing the native button cannot provide. */
 .mosaic-granularity-btn {
-	/* Flex centring plus an explicit line-height: without them the label sits
-	   off-centre, since the height comes from the host button styles rather
-	   than from this padding. */
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	line-height: 1;
-	font-size: 0.8em;
-	/* Granularity names arrive lowercase from the dataset manifest; presenting
-	   them capitalised keeps the UI in sentence case without touching data. */
 	text-transform: capitalize;
-	padding: 3px 8px;
-	border: 1px solid var(--background-modifier-border);
-	background: transparent;
-	color: var(--text-muted);
-	border-radius: 4px;
-	cursor: pointer;
-}
-.mosaic-granularity-btn.is-active {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-color: var(--interactive-accent);
 }
 .mosaic-figure-note {
 	font-size: 0.85em;
@@ -324,7 +311,9 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
+	/* Same 8px it always was, taken from the host's spacing scale so it tracks
+	   the reader's own density setting. */
+	gap: var(--size-4-2);
 	padding: 8px 10px;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
@@ -343,25 +332,9 @@
 	font-size: 12px;
 	color: var(--text-muted);
 }
-.mosaic-data-table .table-toolbar button {
-	/* Same centring as the granularity buttons, so every control in the plugin
-	   sits its label the same way. */
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	line-height: 1;
-	font-size: 12px;
-	padding: 4px 10px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	background: transparent;
-	color: var(--text-muted);
-	cursor: pointer;
-}
-.mosaic-data-table .table-toolbar button:hover {
-	color: var(--text-normal);
-	border-color: var(--text-muted);
-}
+/* The toolbar buttons carry no rules of their own: Obsidian's native button
+   already supplies the size, colours, hover background, shadow and focus
+   ring — more than the hand-written set did. */
 .mosaic-data-table .table-scroll {
 	overflow-x: auto;
 }

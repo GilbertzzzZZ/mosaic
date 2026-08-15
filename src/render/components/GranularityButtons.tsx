@@ -15,8 +15,11 @@ export const GranularityButtons = ({ options, active, onSelect }: GranularityBut
 				<button
 					key={option}
 					type="button"
+					aria-pressed={option === active}
+					// mod-cta is Obsidian's own selected-button class, the one
+					// ButtonComponent.setCta() applies.
 					className={
-						"mosaic-granularity-btn" + (option === active ? " is-active" : "")
+						"mosaic-granularity-btn" + (option === active ? " mod-cta" : "")
 					}
 					onClick={() => onSelect?.(option)}
 				>
