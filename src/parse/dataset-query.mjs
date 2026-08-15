@@ -205,7 +205,7 @@ export function queryDataset({
         timeField,
       });
     }
-    if (component === "Chart" && !Object.hasOwn(result, xKey)) {
+    if (component === "Chart" && !(xKey in result)) {
       result[xKey] = periodLabel(period, selectedGranularity);
     }
     return result;
@@ -226,7 +226,7 @@ export function queryDataset({
     for (const name of outputFields) {
       const label = fieldMap.get(name)?.label;
       const labelAttribute = `${name}Label`;
-      if (label && !Object.hasOwn(renderAttributes, labelAttribute)) {
+      if (label && !(labelAttribute in renderAttributes)) {
         renderAttributes[labelAttribute] = label;
       }
     }

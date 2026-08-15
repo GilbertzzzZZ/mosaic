@@ -379,8 +379,8 @@ test("timelineItem: missing fields default to empty string, status defaults", ()
 // --- metricItem (§5.3 alias chain) ---------------------------------------
 
 test("metricItem: primary field names", () => {
-	const item = metricItem({ label: "MAU", value: "1.2万", delta: "+5%", note: "同比增长", status: "good" });
-	assert.deepEqual(item, { label: "MAU", value: "1.2万", delta: "+5%", note: "同比增长", status: "good" });
+	const item = metricItem({ label: "MAU", value: "1.2M", delta: "+5%", note: "YoY growth", status: "good" });
+	assert.deepEqual(item, { label: "MAU", value: "1.2M", delta: "+5%", note: "YoY growth", status: "good" });
 });
 
 test("metricItem: alias chain fallbacks (metric/name/title, current/amount/count, change/mom/yoy, description/source/body)", () => {
@@ -402,11 +402,11 @@ test("metricItem: missing fields default to empty string / neutral status", () =
 // --- decisionItems (§4.3 path A alias chain + filter) --------------------
 
 test("decisionItems: primary field names", () => {
-	assert.deepEqual(decisionItems([{ label: "决策", value: "采用方案 A" }]), [{ label: "决策", value: "采用方案 A" }]);
+	assert.deepEqual(decisionItems([{ label: "Decision", value: "Adopt plan A" }]), [{ label: "Decision", value: "Adopt plan A" }]);
 });
 
 test("decisionItems: alias chain fallbacks (key/name/item, text/body/description/summary)", () => {
-	assert.deepEqual(decisionItems([{ name: "代价", text: "迁移成本约两周" }]), [{ label: "代价", value: "迁移成本约两周" }]);
+	assert.deepEqual(decisionItems([{ name: "Cost", text: "Migration takes about two weeks" }]), [{ label: "Cost", value: "Migration takes about two weeks" }]);
 });
 
 test("decisionItems: rows where both label and value are empty are filtered out", () => {

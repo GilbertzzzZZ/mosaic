@@ -66,7 +66,7 @@ export const ChartFigure = ({
 		try {
 			return { built: build(granularity), error: undefined as string | undefined };
 		} catch (e) {
-			return { built: initial, error: String((e as Error)?.message ?? e) };
+			return { built: initial, error: `Mosaic: ${String((e as Error)?.message ?? e)}` };
 		}
 	}, [granularity, rebuildEpoch]);
 

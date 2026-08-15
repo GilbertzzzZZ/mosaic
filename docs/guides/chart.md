@@ -122,7 +122,7 @@
 **写法**：属性写在开标签且**开标签必须写在同一行**，CSV 用围栏块内嵌于标签体，语言标注 `csv` 可省略：
 
 ````text
-<Chart title="示例" type="line" x="month" series="指标A,指标B" unit="件">
+<Chart title="示例" type="combo" x="month" bars="指标A" lines="指标B" labels="all">
 ```csv
 month,指标A,指标B
 2025-01,120,140

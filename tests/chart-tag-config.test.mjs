@@ -15,7 +15,7 @@ const manifest = parseDatasetManifest(
 	JSON.stringify({
 		schemaVersion: 1,
 		id: "t-monthly",
-		title: "测试月度数据",
+		title: "Monthly test data",
 		data: "./t.csv",
 		grain: ["AnchorDate"],
 		primaryKey: ["AnchorDate"],
@@ -23,19 +23,19 @@ const manifest = parseDatasetManifest(
 		fields: [
 			{ name: "AnchorDate", type: "date", required: true },
 			{
-				name: "总量",
-				label: "总量指标",
+				name: "Total",
+				label: "Total metric",
 				type: "integer",
 				required: true,
 				rollup: "avg",
 			},
-			{ name: "拆分", type: "integer", required: true, rollup: "sum" },
+			{ name: "Split", type: "integer", required: true, rollup: "sum" },
 		],
 	}),
 );
 const rows = parseDatasetData(
 	manifest,
-	"AnchorDate,总量,拆分\n2026-03-01,30,3\n2026-02-01,20,2\n2026-01-01,10,1\n",
+	"AnchorDate,Total,Split\n2026-03-01,30,3\n2026-02-01,20,2\n2026-01-01,10,1\n",
 );
 
 const base = { x: "period", from: "2026-01-01", to: "2026-03-01" };
@@ -47,16 +47,16 @@ test("line: long-format data, labels from manifest, footnote from meta", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量,拆分",
+			series: "Total,Split",
 			granularity: "month",
 		},
 	});
 	assert.equal(r.chartType, "Line");
-	assert.equal(r.config.data.length, 6); // 3 期 × 2 系列
+	assert.equal(r.config.data.length, 6); // 3 periods × 2 series
 	assert.equal(r.config.xField, "period");
 	assert.equal(r.config.seriesField, "series");
-	assert.equal(r.config.data[0].series, "总量指标"); // manifest label 生效
-	assert.match(r.footnote, /测试月度数据/);
+	assert.equal(r.config.data[0].series, "Total metric"); // manifest label applies
+	assert.match(r.footnote, /Monthly test data/);
 	assert.match(r.footnote, /3\/3 source rows/);
 	assert.match(r.footnote, /data through 2026-03-01/);
 	assert.equal(r.granularity, "month");
@@ -70,13 +70,13 @@ test("quarter rollup honours per-field rollup (avg vs sum)", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量,拆分",
+			series: "Total,Split",
 			granularity: "quarter",
 		},
 	});
 	const byLabel = new Map(r.config.data.map((d) => [d.series, d.value]));
-	assert.equal(byLabel.get("总量指标"), 20); // avg(10,20,30)
-	assert.equal(byLabel.get("拆分"), 6); // sum(1,2,3)
+	assert.equal(byLabel.get("Total metric"), 20); // avg(10,20,30)
+	assert.equal(byLabel.get("Split"), 6); // sum(1,2,3)
 });
 
 test("grouped-bar maps to Column with isGroup", () => {
@@ -86,7 +86,7 @@ test("grouped-bar maps to Column with isGroup", () => {
 		attributes: {
 			...base,
 			type: "grouped-bar",
-			series: "总量,拆分",
+			series: "Total,Split",
 			granularity: "month",
 		},
 	});
@@ -101,8 +101,8 @@ test("combo pins both implicit axes to one scale", () => {
 		attributes: {
 			...base,
 			type: "combo",
-			bars: "拆分",
-			lines: "总量",
+			bars: "Split",
+			lines: "Total",
 			granularity: "month",
 		},
 	});
@@ -120,16 +120,16 @@ test("combo-dual-axis keeps axes independent with unit titles", () => {
 		attributes: {
 			...base,
 			type: "combo-dual-axis",
-			lines: "总量",
-			bars: "拆分",
-			leftUnit: "人",
+			lines: "Total",
+			bars: "Split",
+			leftUnit: "people",
 			rightUnit: "%",
 			granularity: "month",
 		},
 	});
-	assert.equal(r.config.yAxis.barValue.max, 3 * 1.08); // 拆分 max=3 + 头部空间
-	assert.equal(r.config.yAxis.lineValue.max, 30 * 1.08); // 总量 max=30 + 头部空间
-	assert.equal(r.config.yAxis.barValue.title.text, "人");
+	assert.equal(r.config.yAxis.barValue.max, 3 * 1.08); // Split max=3 + headroom
+	assert.equal(r.config.yAxis.lineValue.max, 30 * 1.08); // Total max=30 + headroom
+	assert.equal(r.config.yAxis.barValue.title.text, "people");
 	assert.equal(r.config.yAxis.lineValue.title.text, "%");
 });
 
@@ -140,12 +140,12 @@ test("color overrides and defaults", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量,拆分",
-			总量Color: "#112233",
+			series: "Total,Split",
+			TotalColor: "#112233",
 			granularity: "month",
 		},
 	});
-	assert.deepEqual(r.config.color, ["#112233", "#dc2626"]); // 覆盖第 1 个，第 2 个取默认色板第 2 色
+	assert.deepEqual(r.config.color, ["#112233", "#dc2626"]); // overrides the 1st; the 2nd falls back to the default palette's 2nd color
 });
 
 test("combo default palette does not collide between bars and lines", () => {
@@ -155,8 +155,8 @@ test("combo default palette does not collide between bars and lines", () => {
 		attributes: {
 			...base,
 			type: "combo",
-			bars: "拆分",
-			lines: "总量",
+			bars: "Split",
+			lines: "Total",
 			granularity: "month",
 		},
 	});
@@ -171,7 +171,7 @@ test("labels attribute toggles value labels", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
+			series: "Total",
 			labels: "all",
 			granularity: "month",
 		},
@@ -182,7 +182,7 @@ test("labels attribute toggles value labels", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
+			series: "Total",
 			labels: "off",
 			granularity: "month",
 		},
@@ -195,12 +195,12 @@ test("type defaults: multi-series line, single-series bar", () => {
 	const multi = buildChartFromTag({
 		manifest,
 		rows,
-		attributes: { ...base, series: "总量,拆分", granularity: "month" },
+		attributes: { ...base, series: "Total,Split", granularity: "month" },
 	});
 	const single = buildChartFromTag({
 		manifest,
 		rows,
-		attributes: { ...base, series: "总量", granularity: "month" },
+		attributes: { ...base, series: "Total", granularity: "month" },
 	});
 	assert.equal(multi.chartType, "Line");
 	assert.equal(single.chartType, "Column");
@@ -213,7 +213,7 @@ test("granularity matching is case-insensitive", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
+			series: "Total",
 			granularity: "Month",
 			granularityOptions: "Month,Quarter",
 		},
@@ -256,7 +256,7 @@ test("configs carry meta value formatters", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
+			series: "Total",
 			granularity: "month",
 		},
 	});
@@ -267,8 +267,8 @@ test("configs carry meta value formatters", () => {
 		attributes: {
 			...base,
 			type: "combo",
-			bars: "拆分",
-			lines: "总量",
+			bars: "Split",
+			lines: "Total",
 			granularity: "month",
 		},
 	});
@@ -283,7 +283,7 @@ test("line charts render points", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
+			series: "Total",
 			granularity: "month",
 		},
 	});
@@ -301,8 +301,8 @@ test("combo respects tag writing order (lines first)", () => {
 		attributes: {
 			...base,
 			type: "combo",
-			lines: "总量",
-			bars: "拆分",
+			lines: "Total",
+			bars: "Split",
 			granularity: "month",
 		},
 	});
@@ -322,13 +322,13 @@ test("legend markers are squares", () => {
 	const line = buildChartFromTag({
 		manifest,
 		rows,
-		attributes: { ...base, type: "line", series: "总量", granularity: "month" },
+		attributes: { ...base, type: "line", series: "Total", granularity: "month" },
 	});
 	assert.deepEqual(line.config.legend, { marker: { symbol: "square" } });
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
-		attributes: { ...base, type: "combo", bars: "拆分", lines: "总量", granularity: "month" },
+		attributes: { ...base, type: "combo", bars: "Split", lines: "Total", granularity: "month" },
 	});
 	assert.deepEqual(combo.config.legend, { marker: { symbol: "square" } });
 });
@@ -340,7 +340,7 @@ test("percent unit suffixes formatted values", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
+			series: "Total",
 			unit: "%",
 			granularity: "month",
 		},
@@ -353,8 +353,8 @@ test("percent unit suffixes formatted values", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
-			unit: "人",
+			series: "Total",
+			unit: "people",
 			granularity: "month",
 		},
 	});
@@ -368,8 +368,8 @@ test("currency units prefix formatted values", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
-			unit: "元",
+			series: "Total",
+			unit: "cny",
 			granularity: "month",
 		},
 	});
@@ -381,8 +381,8 @@ test("currency units prefix formatted values", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量",
-			unit: "美金",
+			series: "Total",
+			unit: "usd",
 			granularity: "month",
 		},
 	});
@@ -396,8 +396,8 @@ test("combo labels get anti-overlap layout", () => {
 		attributes: {
 			...base,
 			type: "combo",
-			bars: "拆分",
-			lines: "总量",
+			bars: "Split",
+			lines: "Total",
 			labels: "all",
 			granularity: "month",
 		},
@@ -418,7 +418,7 @@ test("y axis gets headroom above the max value", () => {
 		attributes: {
 			...base,
 			type: "line",
-			series: "总量,拆分",
+			series: "Total,Split",
 			granularity: "month",
 		},
 	});
@@ -429,8 +429,8 @@ test("y axis gets headroom above the max value", () => {
 		attributes: {
 			...base,
 			type: "combo",
-			bars: "拆分",
-			lines: "总量",
+			bars: "Split",
+			lines: "Total",
 			granularity: "month",
 		},
 	});
@@ -442,11 +442,11 @@ test("y axis gets headroom above the max value", () => {
 		attributes: {
 			...base,
 			type: "stacked-bar",
-			series: "总量,拆分",
+			series: "Total,Split",
 			granularity: "month",
 		},
 	});
-	assert.equal(stacked.config.yAxis.max, 33 * 1.08); // 每期堆叠和的最大值 33
+	assert.equal(stacked.config.yAxis.max, 33 * 1.08); // max of the per-period stacked sum is 33
 });
 
 test("dual-axis percent suffix applies per side", () => {
@@ -456,9 +456,9 @@ test("dual-axis percent suffix applies per side", () => {
 		attributes: {
 			...base,
 			type: "combo-dual-axis",
-			bars: "拆分",
-			lines: "总量",
-			leftUnit: "人",
+			bars: "Split",
+			lines: "Total",
+			leftUnit: "people",
 			rightUnit: "%",
 			granularity: "month",
 		},
@@ -474,12 +474,12 @@ test("inline: builds a line chart from csv with defaults", () => {
 		attributes: { title: "t", x: "month", series: "a,b" },
 		csv: INLINE_CSV,
 	});
-	assert.equal(built.chartType, "Line"); // 多系列缺省 line
+	assert.equal(built.chartType, "Line"); // multi-series defaults to line
 	assert.equal(built.footnote, undefined);
 	assert.equal(built.granularity, "source");
 	assert.deepEqual(built.availableGranularities, []);
 	assert.equal(built.config.xField, "period");
-	// 空单元格 → null 断点
+	// empty cell → null breakpoint
 	const feb = built.config.data.find(
 		(d) => d.period === "2025-02" && d.series === "b",
 	);

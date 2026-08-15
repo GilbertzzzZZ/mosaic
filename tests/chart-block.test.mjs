@@ -4,9 +4,9 @@ import { parseChartBlock } from "../src/parse/chart-block.mjs";
 
 test("parses frontmatter-only block", () => {
 	const { attributes, csv } = parseChartBlock(
-		'---\ntitle: 示例趋势\ndataset: data/schema/example.dataset.json\ntype: combo\n---\n',
+		'---\ntitle: Sample trend\ndataset: data/schema/example.dataset.json\ntype: combo\n---\n',
 	);
-	assert.equal(attributes.title, "示例趋势");
+	assert.equal(attributes.title, "Sample trend");
 	assert.equal(attributes.dataset, "data/schema/example.dataset.json");
 	assert.equal(attributes.type, "combo");
 	assert.equal(csv, null);
@@ -21,8 +21,8 @@ test("parses frontmatter plus csv body", () => {
 });
 
 test("strips matching surrounding quotes and keeps inner commas", () => {
-	const { attributes } = parseChartBlock('---\nnote: "口径, 说明"\nunit: \'%\'\n---');
-	assert.equal(attributes.note, "口径, 说明");
+	const { attributes } = parseChartBlock('---\nnote: "Scope, notes"\nunit: \'%\'\n---');
+	assert.equal(attributes.note, "Scope, notes");
 	assert.equal(attributes.unit, "%");
 });
 
@@ -32,8 +32,8 @@ test("ignores blank lines and # comments in frontmatter", () => {
 });
 
 test("preserves attribute key case", () => {
-	const { attributes } = parseChartBlock("---\n钢琴Color: #2563eb\ngranularityOptions: month,quarter\n---");
-	assert.equal(attributes["钢琴Color"], "#2563eb");
+	const { attributes } = parseChartBlock("---\n示例Color: #2563eb\ngranularityOptions: month,quarter\n---");
+	assert.equal(attributes["示例Color"], "#2563eb");
 	assert.equal(attributes.granularityOptions, "month,quarter");
 });
 

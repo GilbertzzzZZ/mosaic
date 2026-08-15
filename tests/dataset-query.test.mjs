@@ -352,9 +352,9 @@ test("dataset field labels become chart legends and table headers", () => {
     fields: manifest.fields.map((field) => ({
       ...field,
       label: field.name === "date"
-        ? "日期"
+        ? "Date"
         : field.name === "users"
-          ? "平均活跃用户"
+          ? "Average active users"
           : "",
     })),
   };
@@ -374,10 +374,10 @@ test("dataset field labels become chart legends and table headers", () => {
     granularity: "day",
   });
 
-  assert.equal(chart.attributes.usersLabel, "平均活跃用户");
+  assert.equal(chart.attributes.usersLabel, "Average active users");
   assert.deepEqual(table.attributes.columnLabels, {
-    date: "日期",
-    users: "平均活跃用户",
+    date: "Date",
+    users: "Average active users",
   });
 });
 

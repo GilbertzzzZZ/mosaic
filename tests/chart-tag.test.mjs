@@ -7,34 +7,34 @@ import {
 	COMPONENT_NAMES,
 } from "../src/parse/chart-tag.mjs";
 
-const realTag = `<Chart
-  title="一起零售活跃付费率趋势"
-  dataset="../../../data/data/sample/schema/monthly-active-paid-rate.dataset.json"
+const sampleTag = `<Chart
+  title="Monthly signups"
+  dataset="data/metrics/monthly-signups.dataset.json"
   type="line"
   x="period"
-  series="活跃付费率,钢琴,小提琴"
+  series="Trials,Signups"
   unit="%"
   labels="all"
   from="2024-07-01"
   to="2026-07-01"
   granularity="month"
   granularityOptions="month,quarter"
-  note="活跃付费率 = 付费用户 / 活跃用户；季度视图为三个月比率的算术平均。"
+  note="Signup rate = Signups / Trials; the quarterly view is the arithmetic mean of three monthly ratios."
 />`;
 
 test("parses a real multi-line tag with case preserved", () => {
-	const tags = findChartTags(realTag);
+	const tags = findChartTags(sampleTag);
 	assert.equal(tags.length, 1);
 	const a = tags[0].attributes;
-	assert.equal(a.granularityOptions, "month,quarter"); // 大小写保留
-	assert.equal(a.series, "活跃付费率,钢琴,小提琴");
-	assert.equal(a.note.includes("付费用户 / 活跃用户"), true); // 值内斜杠不截断
+	assert.equal(a.granularityOptions, "month,quarter"); // case preserved
+	assert.equal(a.series, "Trials,Signups");
+	assert.equal(a.note.includes("Signups / Trials"), true); // slash inside value not truncated
 	assert.equal(tags[0].start, 0);
-	assert.equal(tags[0].end, realTag.length);
+	assert.equal(tags[0].end, sampleTag.length);
 });
 
 test("finds multiple tags and records spans", () => {
-	const text = `${realTag}\n\n<Chart title="b" dataset="s/b.dataset.json" type="bar" x="period" series="v" />`;
+	const text = `${sampleTag}\n\n<Chart title="b" dataset="s/b.dataset.json" type="bar" x="period" series="v" />`;
 	const tags = findChartTags(text);
 	assert.equal(tags.length, 2);
 	assert.equal(tags[1].attributes.title, "b");
@@ -51,9 +51,9 @@ test("does not match ChartFoo or lowercase chart", () => {
 });
 
 test("isOnlyComponentTags accepts tags plus whitespace only", () => {
-	const solo = findChartTags(realTag);
-	assert.equal(isOnlyComponentTags(realTag, solo), true);
-	const mixed = `before\n${realTag}`;
+	const solo = findChartTags(sampleTag);
+	assert.equal(isOnlyComponentTags(sampleTag, solo), true);
+	const mixed = `before\n${sampleTag}`;
 	assert.equal(isOnlyComponentTags(mixed, findChartTags(mixed)), false);
 });
 
@@ -62,7 +62,7 @@ test("does not swallow prose into an unterminated tag with a stray closer", () =
 	assert.equal(findChartTags(text).length, 0);
 });
 
-const PAIRED = `<Chart title="示例" type="line" x="month" series="a,b">
+const PAIRED = `<Chart title="Sample" type="line" x="month" series="a,b">
 \`\`\`csv
 month,a,b
 2025-01,120,80
@@ -72,7 +72,7 @@ month,a,b
 test("finds a paired tag with csv payload", () => {
 	const tags = findChartTags(PAIRED);
 	assert.equal(tags.length, 1);
-	assert.equal(tags[0].attributes.title, "示例");
+	assert.equal(tags[0].attributes.title, "Sample");
 	assert.equal(tags[0].csv, "month,a,b\n2025-01,120,80");
 	assert.equal(tags[0].start, 0);
 	assert.equal(tags[0].end, PAIRED.length);
@@ -115,22 +115,22 @@ test("open tag with non-attribute inner content is rejected", () => {
 // 书写（换行会被围栏切碎成多个 section，见 docs/chart.md 成对标签边界）。
 test("parser-level: paired open tag tolerates attributes across lines", () => {
 	const multiline = `<Chart
-	title="成对标签"
+	title="Multi-line tag"
 	type="combo"
 	x="month"
-	bars="指标A"
-	lines="指标B"
+	bars="MetricA"
+	lines="MetricB"
 >
 \`\`\`csv
-month,指标A,指标B
+month,MetricA,MetricB
 2025-01,120,80
 \`\`\`
 </Chart>`;
 	const tags = findChartTags(multiline);
 	assert.equal(tags.length, 1);
-	assert.equal(tags[0].attributes.title, "成对标签");
-	assert.equal(tags[0].attributes.bars, "指标A");
-	assert.equal(tags[0].csv, "month,指标A,指标B\n2025-01,120,80");
+	assert.equal(tags[0].attributes.title, "Multi-line tag");
+	assert.equal(tags[0].attributes.bars, "MetricA");
+	assert.equal(tags[0].csv, "month,MetricA,MetricB\n2025-01,120,80");
 });
 
 // --- 识别层泛化（findComponentTags）追加测试 ---
@@ -162,9 +162,9 @@ test("recognizes a paired tag for each allow-listed component name", () => {
 });
 
 test("accepts single-quoted attribute values", () => {
-	const tags = findComponentTags(`<DataTable title='示例' columns='a,b' />`);
+	const tags = findComponentTags(`<DataTable title='Sample' columns='a,b' />`);
 	assert.equal(tags.length, 1);
-	assert.equal(tags[0].attributes.title, "示例");
+	assert.equal(tags[0].attributes.title, "Sample");
 	assert.equal(tags[0].attributes.columns, "a,b");
 });
 

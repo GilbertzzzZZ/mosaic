@@ -33,7 +33,7 @@ export function DataTableFigure({ attributes, body, options, initial, build }: D
 			setResult(next);
 			setError(undefined);
 		} catch (e) {
-			setError(String((e as Error)?.message ?? e));
+			setError(`Mosaic: ${String((e as Error)?.message ?? e)}`);
 		}
 	};
 	return (

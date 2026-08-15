@@ -14,9 +14,9 @@ const manifestText = JSON.stringify({
 	time: { field: "AnchorDate", sourceGranularity: "month" },
 	fields: [
 		{ name: "AnchorDate", type: "date", required: true },
-		{ name: "总量", type: "integer", required: true, rollup: "avg" },
+		{ name: "Total", type: "integer", required: true, rollup: "avg" },
 		{
-			name: "拆分",
+			name: "Split",
 			type: "integer",
 			required: true,
 			rollup: "avg",
@@ -40,16 +40,16 @@ test("parseDatasetData types rows and honours comma-grouped", () => {
 	const manifest = parseDatasetManifest(manifestText);
 	const rows = parseDatasetData(
 		manifest,
-		'AnchorDate,总量,拆分\n2026-02-01,20,"1,234"\n2026-01-01,10,4\n',
+		'AnchorDate,Total,Split\n2026-02-01,20,"1,234"\n2026-01-01,10,4\n',
 	);
 	assert.equal(rows.length, 2);
-	assert.equal(rows[0]["拆分"], 1234);
+	assert.equal(rows[0]["Split"], 1234);
 });
 
 test("parseDatasetData rejects misaligned period start", () => {
 	const manifest = parseDatasetManifest(manifestText);
 	assert.throws(
-		() => parseDatasetData(manifest, "AnchorDate,总量,拆分\n2026-01-15,10,4\n"),
+		() => parseDatasetData(manifest, "AnchorDate,Total,Split\n2026-01-15,10,4\n"),
 		/first day of a month/i,
 	);
 });

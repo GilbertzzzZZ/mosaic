@@ -63,7 +63,7 @@ npm run install:vault  # build + 拷三件套到测试 vault
 
 ## 测试 vault（真机验证）
 
-- 位置 `测试 vault`（仓库外独立目录，不进 git；不要用 真实笔记库 做测试）。
+- 位置 `测试 vault`（仓库外独立目录，不进 git；不要用其他生产 vault 做测试）。
 - 测试文档在其 `charts/` 与 `blocks/`；晨检清单 `verify.md`；README/文档截图的英文 demo 页与假数据集也在这里。
 - obsidian CLI（obsidian-cli 桥）：`obsidian vault=mosaic-test-vault eval code='...'`；restricted mode 用 `app.plugins.setEnable(true)` 解除。
 - 插件增删一律 `disablePluginAndSave`/`enablePluginAndSave`（纯 disablePlugin 会被 Obsidian 内存态写回复活）。

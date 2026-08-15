@@ -5,6 +5,7 @@ import { createChartBlockProcessor } from './entry/chart-block-processor';
 
 export default class MosaicPlugin extends Plugin {
 	declare settings: MosaicPluginSettings;
+	private cssChangeTimer: number | undefined;
 
 	rerenderOpenPreviews() {
 		// rebuildView（未进 d.ts 的私有 API，故可选调用）而非 rerender(true)：
@@ -31,11 +32,10 @@ export default class MosaicPlugin extends Plugin {
 		// virtualization and leaves vanilla sections). Broadcast instead; every
 		// mounted ChartFigure rebuilds itself with the current theme. Debounced
 		// because one switch fires css-change several times.
-		let cssChangeTimer: number | undefined;
 		this.registerEvent(
 			this.app.workspace.on("css-change", () => {
-				window.clearTimeout(cssChangeTimer);
-				cssChangeTimer = window.setTimeout(() => {
+				window.clearTimeout(this.cssChangeTimer);
+				this.cssChangeTimer = window.setTimeout(() => {
 					window.dispatchEvent(new CustomEvent("mosaic:theme-change"));
 				}, 150);
 			})
@@ -46,6 +46,10 @@ export default class MosaicPlugin extends Plugin {
 		} catch (error) {
 			// .mdx 已被其他插件注册时的预期冲突：静默降级，本插件其余功能不受影响。
 		}
+	}
+
+	onunload() {
+		window.clearTimeout(this.cssChangeTimer);
 	}
 
 	async loadSettings() {

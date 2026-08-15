@@ -13,12 +13,15 @@ Declarative content blocks for your notes: write a plain-text declaration, get r
 Paste this into a note and switch to reading view (Live Preview is not yet supported):
 
 ````text
-<Chart title="Monthly signups" type="line" x="month" series="Piano,Violin" unit="users">
+<Chart title="Monthly signups" type="combo" x="month" bars="Trials" lines="Signups" labels="all">
 ```csv
-month,Piano,Violin
-2025-01,120,140
-2025-02,140,150
-2025-03,160,155
+month,Trials,Signups
+2025-01,420,120
+2025-02,480,140
+2025-03,560,160
+2025-04,530,150
+2025-05,620,180
+2025-06,700,200
 ```
 </Chart>
 ````

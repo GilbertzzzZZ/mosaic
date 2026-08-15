@@ -47,7 +47,7 @@ c,结束,end,
 
 | 属性 | 说明 |
 | --- | --- |
-| `title` | 渲染为图注（`<figcaption>`），同时作为 SVG 的 `aria-label`；未设置时 `aria-label` 用固定文案「流程图」 |
+| `title` | 渲染为图注（`<figcaption>`），同时作为 SVG 的 `aria-label`；未设置时 `aria-label` 缺省为英文 `Flow diagram` |
 | `note` | 图下方附注文字 |
 
 FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。
