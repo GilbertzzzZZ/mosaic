@@ -179,7 +179,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		let barKeys = bars,
 			lineKeys = lines;
 		if (barKeys.length === 0 && lineKeys.length === 0) {
-			[barKeys, lineKeys] = [seriesKeys.slice(0, 1), seriesKeys.slice(1)]; // 上游默认：首个为 bar，其余为 line
+			[barKeys, lineKeys] = [seriesKeys.slice(0, 1), seriesKeys.slice(1)]; // 早期内部实现 默认：首个为 bar，其余为 line
 		}
 		if (barKeys.length === 0 || lineKeys.length === 0) {
 			throw new Error(

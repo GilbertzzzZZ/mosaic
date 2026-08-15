@@ -23,7 +23,7 @@ Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/mos
 解析（src/parse/）    纯函数，零 Obsidian 依赖（obsidian-dataset.ts 除外，
                       是 vault IO 适配）。blocks/ 子目录是 早期内部实现 逐字
                       移植件（Apache-2.0，见 NOTICE）——只报真 bug，
-                      不做风格重构，保持与上游可 diff。
+                      不做风格重构，保持与 早期内部实现 原文可 diff。
 渲染（src/render/）   自己的壳（figure/工具栏/脚注/错误框）+ 按需调库
                       （AntV 出图）。render-chart（Chart 分发）、
                       render-component（五类分发）、components/ 视图。
