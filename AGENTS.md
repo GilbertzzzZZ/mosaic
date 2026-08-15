@@ -43,7 +43,8 @@ mosaic/
 │   ├── _assets/          # 文档截图（模拟英文假数据，dark 主题实拍）
 │   ├── design/           # 每个区块的设计文档（why 与机制，无代码）
 │   ├── guides/           # 明细指导：各区块用法/dataset 契约 + Obsidian 官方规范归档
-│   ├── plans/ research/  # 空置结构（.gitkeep 占位），不存历史演进档案
+│   ├── plans/            # 实施计划，随仓库分发
+│   ├── research/         # 调研档案（当前为空，.gitkeep 占位）
 │   └── *.md              # 介绍类：mosaic-intro（en 为准）与 zh 镜像
 ├── styles.css            # 插件样式（发布三件套之一）
 ├── manifest.json         # 插件清单（发布三件套之一）
