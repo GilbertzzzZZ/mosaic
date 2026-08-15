@@ -220,11 +220,14 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			yAxis = { barValue: { min: 0, max }, lineValue: { min: 0, max } };
 		}
 		// DualAxes 的 adaptor 不带任何默认 label layout（Line/Column 单图有），
-		// 显式补上防碰撞：放得下就显示，放不下就隐藏，与单图语义一致。
+		// 显式补上防碰撞，对齐单图语义：先把越界标签平移回图内（默认 action
+		// 是 translate，首尾数据点贴着绘图区边缘，缺这步会被下面的 hide 整个
+		// 隐藏），再去重叠，最后 hide 兜底。
 		const comboLabel = label
 			? {
 					...label,
 					layout: [
+						{ type: "limit-in-plot" },
 						{ type: "hide-overlap" },
 						{ type: "limit-in-plot", cfg: { action: "hide" } },
 					],

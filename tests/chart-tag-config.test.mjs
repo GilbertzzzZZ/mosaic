@@ -404,6 +404,7 @@ test("combo labels get anti-overlap layout", () => {
 	});
 	for (const geo of r.config.geometryOptions) {
 		assert.deepEqual(geo.label.layout, [
+			{ type: "limit-in-plot" },
 			{ type: "hide-overlap" },
 			{ type: "limit-in-plot", cfg: { action: "hide" } },
 		]);
