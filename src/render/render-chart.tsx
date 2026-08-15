@@ -4,6 +4,7 @@
 import React from "react";
 import MosaicPlugin from "../main";
 import { loadDatasetForNote } from "../parse/obsidian-dataset";
+import { applyFieldNotice } from "../parse/chart-tag.mjs";
 import {
 	buildChartFromTag,
 	buildChartFromInline,
@@ -31,7 +32,11 @@ export async function renderChartInto(
 	}
 	if (!(await whenHostReady(host, stale))) return;
 	if (csv != null) {
-		const build = () => withTheme(buildChartFromInline({ attributes, csv }));
+		const build = () => {
+			const built = withTheme(buildChartFromInline({ attributes, csv }));
+			applyFieldNotice(built, attributes);
+			return built;
+		};
 		const initial = build();
 		if (stale()) return;
 		renderInto(
@@ -56,8 +61,15 @@ export async function renderChartInto(
 		attributes.dataset,
 	);
 	if (stale()) return;
-	const build = (granularity?: string) =>
-		withTheme(buildChartFromTag({ manifest, rows, attributes, granularity }));
+	// 没认出来的字段照旧走 built.warning 那条局部提示通道，所以每次重建（切粒度、
+	// 换主题、宽度安定）都要重挂一次——build 是纯计算，每次返回一个新的 built。
+	const build = (granularity?: string) => {
+		const built = withTheme(
+			buildChartFromTag({ manifest, rows, attributes, granularity }),
+		);
+		applyFieldNotice(built, attributes);
+		return built;
+	};
 	const initial = build(undefined);
 	const options = parseGranularityOptions(attributes).filter((g) =>
 		initial.availableGranularities.includes(g),
