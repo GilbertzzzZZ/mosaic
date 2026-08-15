@@ -64,13 +64,11 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 ```text
 标签体为空或没有可解析的行
-→ Mosaic: Timeline requires CSV or JSON rows.
+→ Mosaic: Timeline requires CSV, JSON, or a Markdown table.
 
 标签上出现 dataset 属性（Timeline 不支持外部数据集）
 → Mosaic: External datasets support Chart and DataTable.
 ```
-
-注意：错误文案只提「CSV or JSON」，但裸 Markdown 表格路径实际上也被接受（继承自通用的行提取规则）——这是文案与实际能力的一处已知偏差。
 
 按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
 
