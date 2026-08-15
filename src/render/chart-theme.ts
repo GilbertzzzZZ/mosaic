@@ -1,4 +1,4 @@
-import { applyLabelStyle, labelHaloStyle } from "./chart-tag-config.mjs";
+import { applyLabelStyle, labelTextStyle } from "./chart-tag-config.mjs";
 
 // 跟随 Obsidian 明暗主题选择 G2 内置主题。classic 与 classicDark 的
 // colorBackground 都是 transparent，页面底色直接透上来，无需再覆盖背景——
@@ -7,15 +7,6 @@ import { applyLabelStyle, labelHaloStyle } from "./chart-tag-config.mjs";
 
 function isDarkTheme(): boolean {
 	return document.body.classList.contains("theme-dark");
-}
-
-// 数值标签常压在彩色图元上，纯色文字对比不足。按主题给标签配一对色值：字色 +
-// 光晕色（光晕取近背景色，在字外托出一圈，数字压在任何颜色上都可读）。光晕怎么
-// 画由 chart-tag-config 的 labelHaloStyle 决定，这里只挑颜色。
-function labelHalo(dark: boolean): Record<string, unknown> {
-	return dark
-		? labelHaloStyle("#E6E6E6", "#1F1F1F")
-		: labelHaloStyle("#595959", "#FFFFFF");
 }
 
 // 网格线颜色：主题默认拿前景色加低透明度画，暗色下偏亮，压过了数据本身。
@@ -42,7 +33,7 @@ function withGridStroke(config: Record<string, any>, dark: boolean): void {
 export function withTheme<T extends { config: Record<string, unknown> }>(built: T): T {
 	const dark = isDarkTheme();
 	built.config.theme = { type: dark ? "classicDark" : "classic" };
-	applyLabelStyle(built.config, labelHalo(dark));
+	applyLabelStyle(built.config, labelTextStyle(dark));
 	withGridStroke(built.config as Record<string, any>, dark);
 	return built;
 }

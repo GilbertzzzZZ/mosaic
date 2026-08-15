@@ -169,14 +169,22 @@ function valueLabel(field, formatter) {
 	return { text: field, formatter, transform: LABEL_TRANSFORM, ...LABEL_ABOVE };
 }
 
-// 数值标签的 halo（字外一圈近背景色的光晕，让数字压在彩色图元上也能读）。
-// 光晕不能画成描边：v1 的渲染器对文本先描边再填充，描边落在字形背后；v5 的渲染器
-// 反过来先填充再描边，2px 描边会盖掉 12px 字形约 1.3px 宽的笔画，字被描边色吃掉
-// ——浅色主题下深灰字压在蓝色柱体上就整个变成了白字。阴影跟着 fill 一起画在字形
-// 背后，不碰字形本身，因此走 shadowColor / shadowBlur。
-// 两套色值由 chart-theme 按明暗主题给，这里只定画法。
-export function labelHaloStyle(fill, halo) {
-	return { fill, fillOpacity: 1, shadowColor: halo, shadowBlur: 2 };
+// 数值标签常压在饱和色的柱体上，要在那里也读得清。字色取两端的纯色——浅色主题
+// 纯黑、深色主题纯白——并加粗；不加描边，也不垫背景块，字就是干净的一层纯色。
+// 加粗是这里的关键：12px 字形的笔画只有约 1.3px 宽，细笔画压在彩色上很容易被
+// 周围颜色吃掉；bold 把笔画撑到约 2px，纯色才立得住。
+// fontWeight 取关键字 "bold"：G 的 fontWeight 只认 normal / bold / bolder /
+// lighter 这几个关键字，数字字重还要看用户主题的字体有没有对应字面，"bold" 有
+// CSS 合成加粗兜底，换字体也稳定。
+// 不能改回描边：v5 的渲染器先填充再描边（v1 相反，描边落在字形背后），描边会盖
+// 在字身上，把笔画换成描边色。
+// fillOpacity 必须显式给满：主题的 label 默认 0.65，只改 fill 会被冲淡三成。
+export function labelTextStyle(dark) {
+	return {
+		fill: dark ? "#FFFFFF" : "#000000",
+		fillOpacity: 1,
+		fontWeight: "bold",
+	};
 }
 
 // 带数值标签的 mark：单视图挂在 config 上，DualAxes 逐 child 各带一份（柱一份、

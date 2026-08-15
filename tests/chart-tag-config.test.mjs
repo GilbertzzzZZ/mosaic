@@ -10,7 +10,7 @@ import {
 	parseGranularityOptions,
 	formatChartNumber,
 	applyLabelStyle,
-	labelHaloStyle,
+	labelTextStyle,
 } from "../src/render/chart-tag-config.mjs";
 
 const manifest = parseDatasetManifest(
@@ -512,16 +512,28 @@ test("every mark that carries a value label receives the theme label style", () 
 	}
 });
 
-test("the label halo is painted behind the glyph, never as a stroke over it", () => {
-	// v5 fills text before stroking it, so a stroke halo eats the glyph it should
-	// be framing; the halo has to ride along with the fill instead
-	const halo = labelHaloStyle("#595959", "#FFFFFF");
-	assert.equal(halo.fill, "#595959");
-	assert.equal(halo.fillOpacity, 1); // the engine default of 0.65 washes the text out
-	assert.equal(halo.shadowColor, "#FFFFFF");
-	assert.ok(halo.shadowBlur > 0); // a blur of 0 draws no shadow at all
-	assert.equal(halo.stroke, undefined);
-	assert.equal(halo.lineWidth, undefined);
+function isBold(weight) {
+	if (typeof weight === "number") return weight >= 600;
+	return weight === "bold" || weight === "bolder";
+}
+
+test("value labels are pure black or white, bold, and carry nothing over the glyph", () => {
+	// Labels land on saturated bars, so the text has to stand on its own: the extreme
+	// fill for the theme, thickened, with no halo or plate to soften it
+	assert.equal(labelTextStyle(false).fill, "#000000"); // light theme
+	assert.equal(labelTextStyle(true).fill, "#FFFFFF"); // dark theme
+	for (const dark of [false, true]) {
+		const style = labelTextStyle(dark);
+		const name = dark ? "dark" : "light";
+		assert.equal(style.fillOpacity, 1, name); // the engine default of 0.65 washes it out
+		assert.ok(isBold(style.fontWeight), `${name}: ${style.fontWeight} is not bold`);
+		// v5 fills text before stroking it, so anything layered on top eats the glyph,
+		// and a backdrop plate reads as a box sitting on the bar
+		assert.equal(style.stroke, undefined, name);
+		assert.equal(style.lineWidth, undefined, name);
+		assert.equal(style.shadowColor, undefined, name);
+		assert.equal(style.background, undefined, name);
+	}
 });
 
 test("value labels sit above the mark instead of inside it", () => {
