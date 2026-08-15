@@ -42,7 +42,8 @@ mosaic/
 │   ├── _archive/         # 暂存区（默认空，.gitkeep 占位）
 │   ├── _assets/          # 文档截图（模拟英文假数据，dark 主题实拍）
 │   ├── design/           # 每个区块的设计文档（why 与机制，无代码）
-│   ├── guides/           # 明细指导：各区块用法/dataset 契约 + Obsidian 官方规范归档
+│   ├── guides/           # 明细指导：各区块用法 / dataset 契约
+│   ├── policies/         # 发版须遵守的 Obsidian 官方规范原文归档（带 source url）
 │   ├── plans/            # 实施计划，随仓库分发
 │   ├── research/         # 调研档案（当前为空，.gitkeep 占位）
 │   └── *.md              # 介绍类：mosaic-intro（en 为准）与 zh 镜像
