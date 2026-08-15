@@ -47,13 +47,13 @@ Chart also supports a self-closing form driven by external dataset manifests (`.
 Detailed docs are currently in Chinese; English overview: [mosaic-intro.md](docs/mosaic-intro.md).
 
 - [Mosaic intro](docs/mosaic-intro.md) ([中文](docs/mosaic-intro-zh.md)) — positioning, architecture and roadmap
-- [Chart](docs/chart.md) — all three syntaxes, full attribute table, error examples
-- [DataTable](docs/data-table.md) — inline tables or external datasets, shares the dataset query layer with Chart
-- [MetricGrid](docs/metric-grid.md) — status-colored metric cards
-- [Timeline](docs/timeline.md) — status-colored vertical timeline
-- [DecisionBox](docs/decision-box.md) — structured label/value list, or free-text fallback
-- [FlowDiagram](docs/flow-diagram.md) — auto-layout flow diagram, graph JSON or row form
-- [Dataset guide](docs/dataset-guide.md) — dataset manifest contract, query semantics, troubleshooting
+- [Chart](docs/guides/chart.md) — all three syntaxes, full attribute table, error examples
+- [DataTable](docs/guides/data-table.md) — inline tables or external datasets, shares the dataset query layer with Chart
+- [MetricGrid](docs/guides/metric-grid.md) — status-colored metric cards
+- [Timeline](docs/guides/timeline.md) — status-colored vertical timeline
+- [DecisionBox](docs/guides/decision-box.md) — structured label/value list, or free-text fallback
+- [FlowDiagram](docs/guides/flow-diagram.md) — auto-layout flow diagram, graph JSON or row form
+- [Dataset guide](docs/guides/dataset-guide.md) — dataset manifest contract, query semantics, troubleshooting
 
 ## Development
 

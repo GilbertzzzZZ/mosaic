@@ -102,10 +102,10 @@ label,value,delta,note,status
 
 自适应网格 + good / risk / watch / neutral 四色状态顶边：
 
-![MetricGrid status cards](_assets/metric-grid.png)
+![MetricGrid status cards](../_assets/metric-grid.png)
 
 ## 相关文档
 
 - [timeline.md](timeline.md)——同样使用通用行提取规则，字段别名归一化思路一致
 - [decision-box.md](decision-box.md)
-- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap
+- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap

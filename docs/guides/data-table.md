@@ -120,10 +120,10 @@ dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where
 
 上：内联 CSV + 工具栏（搜索 / 冻结首列 / 复制 CSV，属性强制开启）；下：dataset 模式（month/quarter 粒度按钮组，表头显示 manifest label）：
 
-![DataTable inline and dataset modes](_assets/data-table.png)
+![DataTable inline and dataset modes](../_assets/data-table.png)
 
 ## 相关文档
 
 - [dataset-guide.md](dataset-guide.md)——dataset 模式共用的 manifest 契约、查询语义、排错清单
 - [chart.md](chart.md)——Chart 内容块，dataset 模式的姊妹实现
-- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap
+- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap

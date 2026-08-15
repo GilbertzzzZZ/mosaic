@@ -39,11 +39,12 @@ mosaic/
 ├── src/                  # 三层源码（见上）
 ├── tests/                # node --test，只测 parse/render 的纯函数 .mjs
 ├── docs/
+│   ├── _archive/         # 暂存区（默认空，.gitkeep 占位）
 │   ├── _assets/          # 文档截图（模拟英文假数据，dark 主题实拍）
-│   ├── guides/           # Obsidian 官方规范原文归档（frontmatter 带 source url）
-│   ├── plans/            # 实施计划归档
-│   ├── research/         # 工程研究档案（早期内部实现 契约研究等）
-│   └── *.md              # 面向用户的类型文档（中文）+ mosaic-intro（en/zh）
+│   ├── design/           # 每个区块的设计文档（why 与机制，无代码）
+│   ├── guides/           # 明细指导：各区块用法/dataset 契约 + Obsidian 官方规范归档
+│   ├── plans/ research/  # 空置结构（.gitkeep 占位），不存历史演进档案
+│   └── *.md              # 介绍类：mosaic-intro（en 为准）与 zh 镜像
 ├── styles.css            # 插件样式（发布三件套之一）
 ├── manifest.json         # 插件清单（发布三件套之一）
 ├── esbuild.config.mjs    # 构建：tsc typecheck + esbuild bundle → main.js

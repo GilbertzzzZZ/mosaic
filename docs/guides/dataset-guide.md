@@ -1,6 +1,6 @@
 # 外部数据集渲染指导
 
-> Mosaic 的 Chart 标签如何读取外部数据集出图：manifest 契约、查询语义与排错清单。整体架构与数据流见 [mosaic-intro.md](mosaic-intro.md)。
+> Mosaic 的 Chart 标签如何读取外部数据集出图：manifest 契约、查询语义与排错清单。整体架构与数据流见 [mosaic-intro.md](../mosaic-intro.md)。
 > DataTable 的 dataset 模式复用同一套 manifest 契约与查询语义（`from`/`to`/`granularity`/`granularityOptions`、粒度切换按钮、溯源脚注均一致），本文的 manifest 契约与排错清单同样适用于 DataTable，见 [data-table.md](data-table.md)。
 
 ## Chart 标签写法
@@ -104,4 +104,4 @@
 
 ## 参考
 
-- 契约参照实现：早期内部实现（数据层移植来源，Apache-2.0，见 [NOTICE](../NOTICE)）。
+- 契约参照实现：早期内部实现（数据层移植来源，Apache-2.0，见 [NOTICE](../../NOTICE)）。

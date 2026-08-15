@@ -55,7 +55,7 @@ month,Metric A,Metric B
 ```
 ````
 
-Full reference: [chart.md](chart.md).
+Full reference: [chart.md](guides/chart.md).
 
 **Self-closing tag** (one attribute per line)
 
@@ -100,7 +100,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 
 - Line, bar, grouped-bar, stacked-bar, combo and combo-dual-axis, driven by one declarative attribute contract shared across all three entries.
 - Data comes from an external dataset manifest, or inline CSV written directly in the declaration.
-- Full attribute contract: [chart.md](chart.md); dataset manifest contract: [dataset-guide.md](dataset-guide.md).
+- Full attribute contract: [chart.md](guides/chart.md); dataset manifest contract: [dataset-guide.md](guides/dataset-guide.md).
 
 **DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram** (tag entries only)
 
@@ -108,7 +108,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - `DataTable` reads inline tables (CSV/JSON/Markdown) or an external dataset manifest, sharing the same query layer as Chart.
 - `MetricGrid`, `Timeline`, `DecisionBox`, `FlowDiagram` take inline payloads only; each has its own field-alias and status-vocabulary contract.
 - `DecisionBox` is the one type that never errors on an empty or unstructured body — it falls back to a short rich-text render instead (misusing `dataset` or malformed JSON still errors).
-- Full contracts: [data-table.md](data-table.md), [metric-grid.md](metric-grid.md), [timeline.md](timeline.md), [decision-box.md](decision-box.md), [flow-diagram.md](flow-diagram.md).
+- Full contracts: [data-table.md](guides/data-table.md), [metric-grid.md](guides/metric-grid.md), [timeline.md](guides/timeline.md), [decision-box.md](guides/decision-box.md), [flow-diagram.md](guides/flow-diagram.md).
 
 **More types** (planned)
 
@@ -130,7 +130,7 @@ Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
 - Place a `.dataset.json` sidecar manifest next to the data file to declare metric semantics and roll-up rules.
 - The tag declares the time range and display granularity; the plugin applies range filtering and granularity roll-up per the manifest.
 - Metric semantics (label, note, provenance footnote) stay visible alongside the chart.
-- Design details: [dataset-guide.md](dataset-guide.md).
+- Design details: [dataset-guide.md](guides/dataset-guide.md).
 
 ---
 

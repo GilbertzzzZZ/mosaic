@@ -136,9 +136,9 @@ c,节点C,action,a
 
 分层 DAG 布局、六类节点配色、边标签与箭头：
 
-![FlowDiagram layout](_assets/flow-diagram.png)
+![FlowDiagram layout](../_assets/flow-diagram.png)
 
 ## 相关文档
 
 - [data-table.md](data-table.md)
-- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap
+- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap

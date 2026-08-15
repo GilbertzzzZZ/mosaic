@@ -107,10 +107,10 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 纵向时间线，竖线连接、末项截断；done / active / default 状态圆点（`active` 跟随 Obsidian 主题强调色）：
 
-![Timeline milestones](_assets/timeline.png)
+![Timeline milestones](../_assets/timeline.png)
 
 ## 相关文档
 
 - [metric-grid.md](metric-grid.md)——同样使用通用行提取规则，字段别名归一化思路一致
 - [decision-box.md](decision-box.md)
-- [mosaic-intro.md](mosaic-intro.md)——整体定位与 Roadmap
+- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap
