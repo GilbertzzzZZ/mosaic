@@ -1,4 +1,9 @@
-import { applyLabelStyle, labelTextStyle } from "./chart-tag-config.mjs";
+import {
+	applyHoverBandStyle,
+	applyLabelStyle,
+	hoverBandStyle,
+	labelTextStyle,
+} from "./chart-tag-config.mjs";
 
 // 跟随 Obsidian 明暗主题选择 G2 内置主题。classic 与 classicDark 的
 // colorBackground 都是 transparent，页面底色直接透上来，无需再覆盖背景——
@@ -34,6 +39,7 @@ export function withTheme<T extends { config: Record<string, unknown> }>(built: 
 	const dark = isDarkTheme();
 	built.config.theme = { type: dark ? "classicDark" : "classic" };
 	applyLabelStyle(built.config, labelTextStyle(dark));
+	applyHoverBandStyle(built.config, hoverBandStyle(dark));
 	withGridStroke(built.config as Record<string, any>, dark);
 	return built;
 }

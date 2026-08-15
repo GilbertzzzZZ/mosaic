@@ -59,6 +59,12 @@ const LABEL_ABOVE = { textAlign: "center", textBaseline: "bottom", dy: -4 };
 // 配套的 paddingOuter 0.25 让首尾两槽与中间等宽、柱子仍居槽中央。折线图的 x
 // 是 point 比例尺（bandWidth 恒为 0），不走这套。
 const BAR_X_SCALE = { paddingInner: 0.5, paddingOuter: 0.25 };
+// 悬停蒙层的配色挂在 mark 的 state.active 上——elementHighlight 从那里取 background
+// 前缀的键喂给它的 renderBackground()。这里只留空壳，明暗色值由 chart-theme 在
+// withTheme() 里注入，和网格线颜色走同一条路。
+// 壳不能省：mergeState 生成的是按 mark key 分派的函数，mark 自己不带这组键时直接
+// 回退到引擎默认值，注入无处可落。
+const HOVER_BAND_STATE = { active: {} };
 
 // plots 和 G2 会就地改写传进去的配置：label 被搬进 labels 数组、legend 上提、
 // 顶层 scale 下发进每个 child、转换过的键随后被删掉。上面这些模块级常量只是模板，
@@ -235,6 +241,34 @@ export function applyLabelStyle(config, styles) {
 		mark.label = layers.map((style) => ({ ...fresh(base), style: fresh(style) }));
 	}
 	return labelled;
+}
+
+// 悬停蒙层的明暗配色。引擎默认硬编码 fill '#CCD6EC' @0.3，既不读主题 token 也不分
+// 明暗：浅色底上叠出带冷蓝的 #F0F3F9，深色底上叠出比底色亮 52 的 #52555C——正好对上
+// 「深色太白、浅色太灰」。改用纯黑 / 纯白消掉蓝味，透明度压到 0.05：深色下叠出的明度
+// 差（+11）与网格线（+8）同量级，读作一层薄底而不是一块板；浅色下（−13）明显弱于
+// 网格线（−38），符合「再淡一点」。可调区间浅色 0.04–0.07、深色 0.04–0.06，低于 0.03
+// 在低对比度屏上会整个消失。
+// 不用 Obsidian 的 --background-modifier-hover：G2 画在 canvas 上，取值得走
+// getComputedStyle，网格线那一处已经为此放弃过这条路；而且那个 token 是为 30px 的
+// 列表行调的，同样的 alpha 铺满整个绘图区高度会明显更重，取值还由三方主题作者决定。
+export function hoverBandStyle(dark) {
+	return { backgroundFill: dark ? "#FFFFFF" : "#000000", backgroundFillOpacity: 0.05 };
+}
+
+// 把蒙层配色填进上面留下的 state.active 空壳。单视图图表的壳在 config 自己身上，
+// DualAxes 的壳挂在顶层、由 plots 深合并下发给每个 child。返回改到的 mark，调用方
+// 可以核对覆盖面。
+export function applyHoverBandStyle(config, style) {
+	const marks = [config, ...(Array.isArray(config.children) ? config.children : [])];
+	const banded = marks.filter((mark) => mark?.state?.active);
+	for (const mark of banded) {
+		mark.state = {
+			...mark.state,
+			active: { ...mark.state.active, ...fresh(style) },
+		};
+	}
+	return banded;
 }
 
 // v5 的 scale 没有 formatter：轴刻度走 axis.labelFormatter，数值标签走
@@ -448,6 +482,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 				xField: "period",
 				scale: { color: { range }, x: fresh(BAR_X_SCALE) },
 				legend: fresh(LEGEND),
+				state: fresh(HOVER_BAND_STATE),
 				children: linesFirst
 					? [lineChild, pointChild, barChild]
 					: [barChild, lineChild, pointChild],
@@ -492,10 +527,11 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			chartType: "Line",
 			config: { ...config, point: fresh(LINE_POINT), style: fresh(LINE_STROKE) },
 		};
-	// 柱宽只对 interval mark 有意义，折线图不加。
+	// 柱宽只对 interval mark 有意义，折线图不加；悬停蒙层同理。
 	const barConfig = {
 		...config,
 		scale: { ...config.scale, x: fresh(BAR_X_SCALE) },
+		state: fresh(HOVER_BAND_STATE),
 	};
 	if (type === "grouped-bar")
 		return {

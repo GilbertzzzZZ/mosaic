@@ -11,6 +11,8 @@ import {
 	formatChartNumber,
 	applyLabelStyle,
 	labelTextStyle,
+	applyHoverBandStyle,
+	hoverBandStyle,
 } from "../src/render/chart-tag-config.mjs";
 
 const manifest = parseDatasetManifest(
@@ -841,6 +843,44 @@ test("dual-axis percent suffix applies per side", () => {
 	assert.equal(barChild.label.formatter(1000), "1,000");
 	assert.equal(lineChild.axis.y.labelFormatter(2.6), "2.6%");
 	assert.equal(lineChild.label.formatter(2.6), "2.6%");
+});
+
+test("every chart with bars carries a hover band shell the theme can paint", () => {
+	// the engine's own band is a hardcoded #CCD6EC @0.3 that reads blue-grey on light
+	// and far too bright on dark; ours has to be reachable from withTheme()
+	const banded = ["bar", "grouped-bar", "stacked-bar", "combo", "combo-dual-axis"];
+	for (const [name, attrs] of CHART_SHAPES) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		if (!banded.includes(name)) {
+			assert.equal(built.config.state, undefined, `${name}: no bars, no band`);
+			continue;
+		}
+		const painted = applyHoverBandStyle(built.config, hoverBandStyle(false));
+		assert.equal(painted.length, 1, `${name}: the shell sits on the view`);
+		const { active } = built.config.state;
+		assert.equal(active.backgroundFill, "#000000", name);
+		assert.equal(active.backgroundFillOpacity, 0.05, name);
+	}
+});
+
+test("the hover band picks a different colour per theme", () => {
+	const light = hoverBandStyle(false);
+	const dark = hoverBandStyle(true);
+	assert.equal(light.backgroundFill, "#000000");
+	assert.equal(dark.backgroundFill, "#FFFFFF");
+	assert.notEqual(light.backgroundFill, dark.backgroundFill);
+	for (const style of [light, dark]) {
+		// a pure black or white keeps the engine default's blue cast out of it
+		assert.match(style.backgroundFill, /^#(000000|FFFFFF)$/);
+		// below 0.03 the band disappears on low-contrast panels; above 0.07 it reads
+		// as a plate rather than a wash
+		assert.ok(style.backgroundFillOpacity >= 0.03, `${style.backgroundFillOpacity} vanishes`);
+		assert.ok(style.backgroundFillOpacity <= 0.07, `${style.backgroundFillOpacity} is a plate`);
+	}
 });
 
 const INLINE_CSV = "month,a,b\n2025-01,120,80\n2025-02,140,\n2025-03,160,95";
