@@ -150,5 +150,4 @@
 
 ## 参考
 
-- 契约参照实现：`~/projects/git-leaf`（数据层移植来源，Apache-2.0，见 NOTICE）。
-- 生产样本：`~/projects/mango-os/growth/mango-da/data/*/schema/` 的 manifest 与同目录 CSV；`growth/reports/` 下的月报是 Chart 标签的成规模用例。
+- 契约参照实现：git-leaf（数据层移植来源，Apache-2.0，见 [NOTICE](../NOTICE)）。
