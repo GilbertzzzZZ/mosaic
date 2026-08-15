@@ -9,6 +9,17 @@ const RUN_KEY = "__mosaicTagRun";
 
 type ChartTagRun = { hosts: HTMLElement[] };
 
+// 两个解析器（findChartTags / findComponentTags）产出的标签统一形态：
+// Chart 带 csv（fence 已剥出），其余五类只带 body 原文。
+type RenderableTag = {
+	name: string;
+	start: number;
+	end: number;
+	attributes: Record<string, string>;
+	body: string | null;
+	csv: string | null;
+};
+
 const FAST_PATH = /<(DataTable|Timeline|Chart|DecisionBox|MetricGrid|FlowDiagram)/;
 
 export function createChartTagProcessor(plugin: MosaicPlugin) {
@@ -23,15 +34,17 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 		// Chart 候选沿用 findChartTags 的既有 csv-fence 校验语义（不匹配的候选被弃，
 		// 现状不变：既有 Chart 渲染行为零改变）；其余五类的 body 原文校验交给各自视图。
 		// 两组标签按 start 合并排序，isOnlyComponentTags 才能正确判定"整段仅由已识别标签构成"。
-		const chartTags = findChartTags(section).map((t) => ({
-			name: "Chart" as const,
+		const chartTags: RenderableTag[] = findChartTags(section).map((t: { start: number; end: number; attributes: Record<string, string>; csv: string | null }) => ({
+			name: "Chart",
 			start: t.start,
 			end: t.end,
 			attributes: t.attributes,
-			body: null as string | null,
+			body: null,
 			csv: t.csv,
 		}));
-		const otherTags = findComponentTags(section).filter((t) => t.name !== "Chart");
+		const otherTags: RenderableTag[] = (findComponentTags(section) as Omit<RenderableTag, "csv">[])
+			.filter((t) => t.name !== "Chart")
+			.map((t) => ({ ...t, csv: null }));
 		const tags = [...chartTags, ...otherTags].sort((a, b) => a.start - b.start);
 		if (tags.length === 0 || !isOnlyComponentTags(section, tags)) return;
 
@@ -47,10 +60,14 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 		}
 		const run: ChartTagRun = { hosts: [] };
 		(el as any)[RUN_KEY] = run;
-		const stale = () => (el as any)[RUN_KEY] !== run;
+		// unloaded 必须并入 stale()：section 被丢弃时只有 onunload 会触发，
+		// 若仅比对代际 token，whenHostReady 的轮询会对 detached 节点永远等下去。
+		let unloaded = false;
+		const stale = () => unloaded || (el as any)[RUN_KEY] !== run;
 
 		const child = new MarkdownRenderChild(el);
 		child.onunload = () => {
+			unloaded = true;
 			for (const host of run.hosts) {
 				ReactDOM.unmountComponentAtNode(host);
 			}
@@ -68,7 +85,7 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 						plugin,
 						host,
 						ctx.sourcePath,
-						{ attributes: tag.attributes as Record<string, string>, csv: tag.csv ?? null },
+						{ attributes: tag.attributes, csv: tag.csv },
 						stale,
 					);
 				} else {
@@ -79,7 +96,7 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 						ctx.sourcePath,
 						{
 							name: tag.name,
-							attributes: tag.attributes as Record<string, string>,
+							attributes: tag.attributes,
 							body: tag.body,
 						},
 						stale,
