@@ -4,11 +4,9 @@ Declarative content blocks for your notes: write a plain-text declaration, get r
 
 ## What it looks like
 
-<!-- TODO: screenshot pending -->
-![Chart light/dark](docs/assets/readme-chart.png)
+![Inline combo chart rendered in reading view](docs/assets/readme-chart.png)
 
-<!-- TODO: screenshot pending -->
-![Content blocks](docs/assets/readme-blocks.png)
+![MetricGrid and Timeline blocks](docs/assets/readme-blocks.png)
 
 ## Quick example
 

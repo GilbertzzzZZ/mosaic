@@ -230,16 +230,19 @@ frontmatter 有 dataset 同时又带 CSV 数据区
 
 ## 渲染效果
 
-> 示例截图一律使用明显的假数据。三种写法效果一致，不分开截图。
+> 示例截图一律使用模拟假数据（dark 主题实拍）。三种写法效果一致，不分开截图。
 
-<!-- TODO: screenshot pending -->
+**内联 CSV · combo 图**（成对标签写法，数值标签含首尾）：
 
-- 折线 / 柱状 / 堆叠 / 组合图（截图待补）
-- 粒度切换按钮组（仅外部数据集模式）（截图待补）
-- 单位与格式化（`%` 后缀、货币前缀、千分位）（截图待补）
-- 明暗主题跟随（截图待补）
-- 溯源脚注与不完整周期警告（仅外部数据集模式）（截图待补）
-- 错误框呈现（截图待补）
+![Inline combo chart](assets/readme-chart.png)
+
+**外部数据集 · combo-dual-axis**（粒度切换按钮组、`$`/`%` 单位格式化、千分位、note 与溯源脚注）：
+
+![Dataset dual-axis chart](assets/chart-dataset.png)
+
+**错误框呈现**（manifest 路径不存在时就地报错，不影响同页其他内容）：
+
+![Chart error box](assets/chart-error.png)
 
 ---
 

@@ -114,14 +114,11 @@ fenced json 围栏内是不合法 JSON
 
 ## 渲染效果
 
-> 示例截图一律使用明显的假数据。
+> 示例截图一律使用模拟假数据（dark 主题实拍）。
 
-<!-- TODO: screenshot pending -->
+结构化 label/value 两列布局 + status / owner / source 徽标（accepted 与 proposed 两种状态）：
 
-- 结构化 label/value 两列布局（截图待补）
-- 富文本回退（单段 / 无序列表）（截图待补）
-- status / owner / source 徽标（截图待补）
-- 明暗主题跟随（截图待补）
+![DecisionBox records](assets/decision-box.png)
 
 ## 相关文档
 

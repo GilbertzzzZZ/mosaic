@@ -103,14 +103,11 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 ## 渲染效果
 
-> 示例截图一律使用明显的假数据。
+> 示例截图一律使用模拟假数据（dark 主题实拍）。
 
-<!-- TODO: screenshot pending -->
+纵向时间线，竖线连接、末项截断；done / active / default 状态圆点（`active` 跟随 Obsidian 主题强调色）：
 
-- 纵向时间线，竖线连接、末项截断（截图待补）
-- done / active / blocked / default 四色状态圆点（`active` 跟随 Obsidian 主题强调色）（截图待补）
-- 明暗主题跟随（截图待补）
-- 错误框呈现（截图待补）
+![Timeline milestones](assets/timeline.png)
 
 ## 相关文档
 

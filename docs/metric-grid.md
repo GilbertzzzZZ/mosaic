@@ -98,14 +98,11 @@ label,value,delta,note,status
 
 ## 渲染效果
 
-> 示例截图一律使用明显的假数据。
+> 示例截图一律使用模拟假数据（dark 主题实拍）。
 
-<!-- TODO: screenshot pending -->
+自适应网格 + good / risk / watch / neutral 四色状态顶边：
 
-- 自适应网格布局（卡片数量越多列数越多，最小宽 150px）（截图待补）
-- good / risk / watch / neutral 四色状态边框（截图待补）
-- 明暗主题跟随（截图待补）
-- 错误框呈现（截图待补）
+![MetricGrid status cards](assets/metric-grid.png)
 
 ## 相关文档
 

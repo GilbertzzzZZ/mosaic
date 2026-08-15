@@ -116,16 +116,11 @@ dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where
 
 ## 渲染效果
 
-> 示例截图一律使用明显的假数据。
+> 示例截图一律使用模拟假数据（dark 主题实拍）。三种内联 payload（CSV / JSON / Markdown 表格）渲染效果一致，不分开截图。
 
-<!-- TODO: screenshot pending -->
+上：内联 CSV + 工具栏（搜索 / 冻结首列 / 复制 CSV，属性强制开启）；下：dataset 模式（month/quarter 粒度按钮组，表头显示 manifest label）：
 
-- 内联 CSV / JSON / Markdown 表格三种 payload 渲染一致（截图待补）
-- 简单表格 vs 复杂表格（自动列宽、工具栏显隐）（截图待补）
-- 搜索 / 冻结首列 / 复制 CSV / 表头吸顶（截图待补）
-- dataset 模式：粒度按钮组与溯源脚注（截图待补）
-- 明暗主题跟随（截图待补）
-- 错误框呈现（截图待补）
+![DataTable inline and dataset modes](assets/data-table.png)
 
 ## 相关文档
 

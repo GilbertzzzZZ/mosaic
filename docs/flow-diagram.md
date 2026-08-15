@@ -132,16 +132,11 @@ c,节点C,action,a
 
 ## 渲染效果
 
-> 示例截图一律使用明显的假数据。
+> 示例截图一律使用模拟假数据（dark 主题实拍）。形态 A（graph JSON）与形态 B（表格式行）布局效果一致，不分开截图。
 
-<!-- TODO: screenshot pending -->
+分层 DAG 布局、六类节点配色、边标签与箭头：
 
-- 形态 A（显式 graph JSON）分层布局（截图待补）
-- 形态 B（表格式行，`next` 隐式生成边）分层布局（截图待补）
-- 环退化布局（环节点拉直为纵向链）（截图待补）
-- start/end/decision/gate/risk/action 六色节点（截图待补）
-- 明暗主题跟随（截图待补）
-- 错误框呈现（截图待补）
+![FlowDiagram layout](assets/flow-diagram.png)
 
 ## 相关文档
 
