@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { extractRows, listAttribute, uniqueStrings } from "../../../parse/blocks/payload.mjs";
 import { tableComplexityAttributes } from "../../../parse/blocks/table-complexity.mjs";
 import { tableLayout } from "../../../parse/blocks/table-layout.mjs";
+import { GranularityButtons } from "../GranularityButtons";
 
 export interface DataTableViewProps {
 	attributes: Record<string, string>;
@@ -75,12 +76,6 @@ export const DataTableView = ({
 	);
 	const columns: string[] = useMemo(() => columnsForRows(rows, attributes), [rows, attributes]);
 
-	if (rows.length === 0 || columns.length === 0) {
-		throw new Error("DataTable requires CSV, JSON, or a Markdown table.");
-	}
-
-	const displayColumn = (col: string) => columnLabels?.[col] ?? col;
-
 	const complexity: TableComplexity = useMemo(
 		() => tableComplexityAttributes(rows, columns, attributes),
 		[rows, columns, attributes]
@@ -92,6 +87,14 @@ export const DataTableView = ({
 
 	const [search, setSearch] = useState("");
 	const [frozen, setFrozen] = useState(false);
+
+	// throw 必须位于全部 hooks 之后（rules-of-hooks）：上面的纯函数对空输入
+	// 均安全返回，这里再拒绝空表。
+	if (rows.length === 0 || columns.length === 0) {
+		throw new Error("DataTable requires CSV, JSON, or a Markdown table.");
+	}
+
+	const displayColumn = (col: string) => columnLabels?.[col] ?? col;
 
 	const needle = search.trim().toLowerCase();
 	const rowVisible = rows.map((row) => {
@@ -108,13 +111,13 @@ export const DataTableView = ({
 
 	const cardClass = [
 		"table-card",
-		complexity.complexity === "complex" ? "is-complex-table" : "is-simple-table",
 		complexity.stickyHeader ? "is-sticky-header" : "",
 		frozen ? "is-first-column-frozen" : "",
 	]
 		.filter(Boolean)
 		.join(" ");
 
+	// 变量挂在卡片上，供 scroll 模式的 table 宽度规则（styles.css）消费。
 	const cardStyle: React.CSSProperties & Record<string, string> = {
 		"--table-preferred-width": `${layout.preferredWidth}px`,
 		"--table-min-width": `${layout.minWidth}px`,
@@ -122,25 +125,9 @@ export const DataTableView = ({
 
 	return (
 		<div className="mosaic-block mosaic-data-table" data-mosaic-block="data-table">
-			{options.length > 1 && (
-				<div className="mosaic-granularity-group">
-					{options.map((option) => (
-						<button
-							key={option}
-							type="button"
-							className={
-								"mosaic-granularity-btn" + (option === granularity ? " is-active" : "")
-							}
-							onClick={() => onGranularity?.(option)}
-						>
-							{option}
-						</button>
-					))}
-				</div>
-			)}
+			<GranularityButtons options={options} active={granularity} onSelect={onGranularity} />
 			<div
 				className={cardClass}
-				data-table-complexity={complexity.complexity}
 				data-table-layout={layout.mode}
 				style={cardStyle}
 			>
@@ -174,7 +161,7 @@ export const DataTableView = ({
 						)}
 					</div>
 				)}
-				<div className="table-scroll" data-table-layout={layout.mode} style={cardStyle}>
+				<div className="table-scroll" data-table-layout={layout.mode}>
 					<table>
 						<colgroup>
 							{columns.map((col, index) => (

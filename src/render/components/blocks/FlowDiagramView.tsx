@@ -38,18 +38,22 @@ const LINE_HEIGHT = 15;
 
 export const FlowDiagramView = ({ attributes, body }: FlowDiagramViewProps) => {
 	const model = useMemo(() => extractFlowDiagram(body), [body]);
-
-	if (!model || !Array.isArray(model.nodes) || model.nodes.length === 0) {
-		throw new Error("FlowDiagram requires nodes.");
-	}
-
-	const layout: FlowLayout = useMemo(() => layoutFlowDiagram(model), [model]);
+	const valid = Boolean(model && Array.isArray(model.nodes) && model.nodes.length > 0);
+	const layout: FlowLayout | null = useMemo(
+		() => (valid ? layoutFlowDiagram(model) : null),
+		[valid, model],
+	);
 	// 静态 marker id 在同页多图时会重复（早期内部实现 现状同样如此，见渲染报告 §5.2）；
 	// 这里按实例随机化以避免箭头样式跨图串扰，不影响单图视觉输出。
 	const markerId = useMemo(
 		() => `mosaic-flow-arrow-${Math.random().toString(36).slice(2)}`,
 		[]
 	);
+
+	// throw 位于全部 hooks 之后（rules-of-hooks）。
+	if (!valid || !layout) {
+		throw new Error("FlowDiagram requires nodes.");
+	}
 
 	return (
 		<figure className="mosaic-block mosaic-flow-diagram" data-mosaic-block="flow-diagram">

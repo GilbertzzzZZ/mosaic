@@ -1,4 +1,6 @@
-// src/dataset/chart-tag.mjs
+// src/parse/chart-tag.mjs
+// COMPONENT_NAMES 是六类内容块标签名的唯一权威清单：OPEN_TAG 与入口的
+// FAST_PATH 均由它构造，新增内容块只改这里（渲染映射见 render-component）。
 export const COMPONENT_NAMES = [
 	"DataTable",
 	"Timeline",
@@ -8,8 +10,7 @@ export const COMPONENT_NAMES = [
 	"FlowDiagram",
 ];
 
-const OPEN_TAG =
-	/<(DataTable|Timeline|Chart|DecisionBox|MetricGrid|FlowDiagram)(?=[\s/>])/g;
+const OPEN_TAG = new RegExp(`<(${COMPONENT_NAMES.join("|")})(?=[\\s/>])`, "g");
 const ATTR = /([A-Za-z_][A-Za-z0-9_-]*)=(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+))/g;
 const PAIRED_BODY = /^\s*```(?:csv)?[ \t]*\n([\s\S]*?)\n```[ \t]*\s*$/;
 
@@ -104,8 +105,6 @@ export function isOnlyComponentTags(text, tags) {
 	return rest.trim().length === 0;
 }
 
-// 兼容旧名。
-export const isOnlyChartTags = isOnlyComponentTags;
 
 // 兼容导出：Chart-only 过滤 + 现有 PAIRED_BODY csv-fence 校验，语义与改造前逐字一致
 // （非 csv fence 的成对候选照旧被丢弃，保证 Chart 渲染行为零变化）。

@@ -2,7 +2,7 @@
 import ReactDOM from "react-dom";
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
 import MosaicPlugin from "../main";
-import { findComponentTags, findChartTags, isOnlyComponentTags } from "../parse/chart-tag.mjs";
+import { findComponentTags, findChartTags, isOnlyComponentTags, COMPONENT_NAMES } from "../parse/chart-tag.mjs";
 import { renderChartInto } from "../render/render-chart";
 import { renderComponentInto } from "../render/render-component";
 
@@ -21,7 +21,8 @@ type RenderableTag = {
 	csv: string | null;
 };
 
-const FAST_PATH = /<(DataTable|Timeline|Chart|DecisionBox|MetricGrid|FlowDiagram)/;
+// 廉价预筛：section 里连候选开标签都没有就直接返回，避免逐段跑完整解析。
+const FAST_PATH = new RegExp(`<(${(COMPONENT_NAMES as string[]).join("|")})`);
 
 export function createChartTagProcessor(plugin: MosaicPlugin) {
 	return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {

@@ -26,7 +26,7 @@ export async function renderChartInto(
 	{ attributes, csv }: ChartSource,
 	stale: () => boolean = () => false,
 ): Promise<void> {
-	if (csv != null && attributes.dataset) {
+	if (csv != null && Object.hasOwn(attributes, "dataset")) {
 		throw new Error("Provide either dataset= or an inline CSV body, not both.");
 	}
 	if (!(await whenHostReady(host, stale))) return;
@@ -47,7 +47,7 @@ export async function renderChartInto(
 		);
 		return;
 	}
-	if (!attributes.dataset) {
+	if (!Object.hasOwn(attributes, "dataset")) {
 		throw new Error("Chart needs dataset= or an inline CSV body.");
 	}
 	const { manifest, rows } = await loadDatasetForNote(

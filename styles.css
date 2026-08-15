@@ -3,6 +3,7 @@
   position: relative;
   width: fit-content;
   display: flex;
+  border: none;
   opacity: 0;
   transition: opacity 500ms;
   background-color: var(--interactive-accent);
@@ -11,7 +12,11 @@
   cursor: pointer;
 }
 
-.block-language-chartview:hover .mosaic-export-button {
+/* 两个宿主：代码块入口（.block-language-chartview）与标签/代码块共用的
+   .mosaic-tag-host；键盘聚焦时也要可见。 */
+.block-language-chartview:hover .mosaic-export-button,
+.mosaic-tag-host:hover .mosaic-export-button,
+.mosaic-export-button:focus-visible {
   opacity: 1;
 }
 
@@ -348,6 +353,13 @@
 .mosaic-data-table .table-card[data-table-layout="fit"] table,
 .mosaic-data-table .table-card[data-table-layout="wrap"] table {
 	table-layout: fixed;
+}
+/* scroll 模式：表格按布局算法给出的宽度伸展，宿主 .table-scroll 横向滚动
+   （对齐 早期内部实现 语义；宽表不再被压进容器宽度）。 */
+.mosaic-data-table .table-scroll[data-table-layout="scroll"] table {
+	width: var(--table-preferred-width);
+	min-width: var(--table-min-width);
+	max-width: none;
 }
 .mosaic-data-table caption {
 	caption-side: top;

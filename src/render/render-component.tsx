@@ -125,7 +125,7 @@ export async function renderComponentInto(
 	if (!(await whenHostReady(host, stale))) return;
 	const bodyText = body ?? "";
 	try {
-		if (attributes.dataset) {
+		if (Object.hasOwn(attributes, "dataset")) {
 			if (name !== "DataTable") {
 				throw new Error("External datasets support Chart and DataTable.");
 			}

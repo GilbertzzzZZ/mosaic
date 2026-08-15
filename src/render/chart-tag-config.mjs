@@ -35,7 +35,7 @@ const CHART_NUMBER_FORMAT = new Intl.NumberFormat("en-US", {
 	maximumFractionDigits: 2,
 });
 const LINE_POINT = { size: 3, shape: "circle", style: { lineWidth: 0 } };
-// 图例标记统一为圆点（默认时折线是短线、柱状是方块，混图不统一）。
+// 图例标记统一为方块（默认时折线是短线、柱状是方块，混图不统一）。
 const LEGEND = { marker: { symbol: "square" } };
 
 export function formatChartNumber(value) {

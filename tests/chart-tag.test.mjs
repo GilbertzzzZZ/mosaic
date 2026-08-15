@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
 	findChartTags,
-	isOnlyChartTags,
 	findComponentTags,
 	isOnlyComponentTags,
 	COMPONENT_NAMES,
@@ -51,11 +50,11 @@ test("does not match ChartFoo or lowercase chart", () => {
 	assert.equal(findChartTags('<chart x="1" />').length, 0);
 });
 
-test("isOnlyChartTags accepts tags plus whitespace only", () => {
+test("isOnlyComponentTags accepts tags plus whitespace only", () => {
 	const solo = findChartTags(realTag);
-	assert.equal(isOnlyChartTags(realTag, solo), true);
+	assert.equal(isOnlyComponentTags(realTag, solo), true);
 	const mixed = `before\n${realTag}`;
-	assert.equal(isOnlyChartTags(mixed, findChartTags(mixed)), false);
+	assert.equal(isOnlyComponentTags(mixed, findChartTags(mixed)), false);
 });
 
 test("does not swallow prose into an unterminated tag with a stray closer", () => {
@@ -99,13 +98,13 @@ test("unclosed paired tag is rejected", () => {
 	assert.deepEqual(findChartTags('<Chart title="t">\n```csv\nm,a\n```\n'), []);
 });
 
-test("mixed section finds both forms and isOnlyChartTags accepts it", () => {
+test("mixed section finds both forms and isOnlyComponentTags accepts it", () => {
 	const text = `<Chart dataset="a.dataset.json" />\n\n${PAIRED}`;
 	const tags = findChartTags(text);
 	assert.equal(tags.length, 2);
 	assert.equal(tags[0].csv, null);
 	assert.ok(tags[1].csv.includes("month,a,b"));
-	assert.ok(isOnlyChartTags(text, tags));
+	assert.ok(isOnlyComponentTags(text, tags));
 });
 
 test("open tag with non-attribute inner content is rejected", () => {
@@ -212,12 +211,3 @@ test("mixed paragraph is not swallowed by a generalized component tag", () => {
 	assert.equal(findComponentTags(text).length, 0);
 });
 
-test("isOnlyComponentTags mirrors isOnlyChartTags and accepts mixed component names plus whitespace", () => {
-	const text = `<MetricGrid title="a" />\n\n<Timeline title="b">\nrow\n</Timeline>`;
-	const tags = findComponentTags(text);
-	assert.equal(tags.length, 2);
-	assert.equal(isOnlyComponentTags(text, tags), true);
-	assert.equal(isOnlyChartTags, isOnlyComponentTags);
-	const mixed = `before\n${text}`;
-	assert.equal(isOnlyComponentTags(mixed, findComponentTags(mixed)), false);
-});

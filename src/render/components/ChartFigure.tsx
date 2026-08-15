@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Chart, ConfigProps } from "./Chart";
+import { GranularityButtons } from "./GranularityButtons";
 
 export interface BuiltChart {
 	chartType: string;
@@ -76,23 +77,11 @@ export const ChartFigure = ({
 					{title && (
 						<figcaption className="mosaic-figure-title">{title}</figcaption>
 					)}
-					{options.length > 1 && (
-						<div className="mosaic-granularity-group">
-							{options.map((g) => (
-								<button
-									key={g}
-									type="button"
-									className={
-										"mosaic-granularity-btn" +
-										(g === granularity ? " is-active" : "")
-									}
-									onClick={() => setGranularity(g)}
-								>
-									{g}
-								</button>
-							))}
-						</div>
-					)}
+					<GranularityButtons
+						options={options}
+						active={granularity}
+						onSelect={setGranularity}
+					/>
 				</div>
 			)}
 			{error && <div className="mosaic-error">{error}</div>}

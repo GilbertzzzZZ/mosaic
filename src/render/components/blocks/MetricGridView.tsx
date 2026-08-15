@@ -26,7 +26,7 @@ export const MetricGridView = ({ attributes, body }: MetricGridViewProps) => {
 	// （对齐 早期内部实现 现状，见渲染报告 §2.4）。
 	const items: MetricItem[] = rows
 		.map((row) => metricItem(row) as MetricItem)
-		.filter((item) => item.label || (item.value !== undefined && item.value !== ""));
+		.filter((item) => item.label || item.value !== "");
 
 	return (
 		<BlockShell block="metric-grid">
@@ -38,7 +38,7 @@ export const MetricGridView = ({ attributes, body }: MetricGridViewProps) => {
 						className={`mosaic-metric-item is-${item.status ?? "neutral"}`}
 					>
 						{item.label && <span className="mosaic-metric-label">{item.label}</span>}
-						{item.value !== undefined && item.value !== "" && (
+						{item.value !== "" && (
 							<strong>{item.value}</strong>
 						)}
 						{item.delta !== undefined && item.delta !== "" && (
