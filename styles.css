@@ -42,8 +42,18 @@
 	gap: 2px;
 }
 .mosaic-granularity-btn {
+	/* Flex centring plus an explicit line-height: without them the label sits
+	   off-centre, since the height comes from the host button styles rather
+	   than from this padding. */
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
 	font-size: 0.8em;
-	padding: 2px 8px;
+	/* Granularity names arrive lowercase from the dataset manifest; presenting
+	   them capitalised keeps the UI in sentence case without touching data. */
+	text-transform: capitalize;
+	padding: 3px 8px;
 	border: 1px solid var(--background-modifier-border);
 	background: transparent;
 	color: var(--text-muted);
@@ -334,8 +344,14 @@
 	color: var(--text-muted);
 }
 .mosaic-data-table .table-toolbar button {
+	/* Same centring as the granularity buttons, so every control in the plugin
+	   sits its label the same way. */
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
 	font-size: 12px;
-	padding: 3px 10px;
+	padding: 4px 10px;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 4px;
 	background: transparent;
