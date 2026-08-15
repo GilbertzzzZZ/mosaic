@@ -221,7 +221,7 @@ test("combo drops the right axis, combo-dual-axis keeps it", () => {
 	}
 });
 
-test("combo-dual-axis keeps axes independent with unit titles", () => {
+test("combo-dual-axis keeps axes independent, each side reading its own unit", () => {
 	const r = buildChartFromTag({
 		manifest,
 		rows,
@@ -230,7 +230,7 @@ test("combo-dual-axis keeps axes independent with unit titles", () => {
 			type: "combo-dual-axis",
 			lines: "Total",
 			bars: "Split",
-			leftUnit: "people",
+			leftUnit: "cny",
 			rightUnit: "%",
 			granularity: "month",
 		},
@@ -238,10 +238,92 @@ test("combo-dual-axis keeps axes independent with unit titles", () => {
 	const [barChild, lineChild] = r.config.children;
 	assert.equal(barChild.scale.y.domainMax, 3 * 1.08); // Split max=3 + headroom
 	assert.equal(lineChild.scale.y.domainMax, 30 * 1.08); // Total max=30 + headroom
-	assert.equal(barChild.axis.y.title, "people");
-	assert.equal(lineChild.axis.y.title, "%");
+	// the unit no longer prints as an axis title, but it still has to reach the right
+	// side's tick labels: left formats as money, right as a percentage
+	assert.equal(barChild.axis.y.labelFormatter(12), "¥ 12");
+	assert.equal(lineChild.axis.y.labelFormatter(12), "12%");
 	assert.equal(lineChild.axis.y.position, "right"); // the second axis has to be moved off the left edge
 	assert.notEqual(barChild.scale.y.key, lineChild.scale.y.key); // separate scale groups keep the two axes apart
+});
+
+// Task 8: the unit used to be the y axis title, drawn outside the left axis. A y axis
+// title costs a flat 28px of horizontal room — rotated 90°, so what the layout charges
+// is the text's height and it never varies with the unit's length — and a dual axis pays
+// it twice. The unit now travels on the built chart and is drawn in the figure header.
+const UNIT_CASES = [
+	["line", { type: "line", series: "Total,Split", unit: "cny" }],
+	["bar", { type: "bar", series: "Total", unit: "cny" }],
+	["grouped-bar", { type: "grouped-bar", series: "Total,Split", unit: "cny" }],
+	["stacked-bar", { type: "stacked-bar", series: "Total,Split", unit: "cny" }],
+	["combo", { type: "combo", bars: "Split", lines: "Total", unit: "cny" }],
+	[
+		"combo-dual-axis",
+		{ type: "combo-dual-axis", bars: "Split", lines: "Total", leftUnit: "cny", rightUnit: "%" },
+	],
+];
+const withUnits = (attrs) =>
+	buildChartFromTag({ manifest, rows, attributes: { ...base, ...attrs, granularity: "month" } });
+
+test("no chart type leaves a y axis title behind for the unit", () => {
+	// deleting the key is enough: Line, Column and DualAxes all default to
+	// axis.y.title === false, so the engine ends up with an explicit false rather than
+	// an absent key. Asserting on the merged spec is the point — a config that simply
+	// never wrote `title` would prove nothing about what the layout is charged for.
+	for (const [name, attrs] of UNIT_CASES) {
+		const spec = asEngineSees(withUnits(attrs));
+		assert.ok(!spec.axis?.y?.title, `${name}: a view-level y axis title survived`);
+		for (const mark of marksOf(spec)) {
+			const y = mark.axis?.y;
+			// y === false is the axis switched off wholesale (combo's right-hand side);
+			// undefined is a mark that carries no axis at all (the line's points).
+			assert.ok(
+				y === false || y === undefined || y.title === false,
+				`${name}/${mark.type}: axis.y.title is ${JSON.stringify(y && y.title)}`,
+			);
+		}
+	}
+});
+
+test("the unit rides on the built chart, one field per axis", () => {
+	// the contract the figure header reads: a single-axis chart fills `unit` only, a dual
+	// axis fills `leftUnit`/`rightUnit` only. Never both, never an empty string — an
+	// absent unit has to be undefined so the header can test the field itself.
+	for (const [name, attrs] of UNIT_CASES) {
+		const built = withUnits(attrs);
+		if (name === "combo-dual-axis") {
+			assert.equal(built.unit, undefined, name);
+			assert.equal(built.leftUnit, "cny", name);
+			assert.equal(built.rightUnit, "%", name);
+		} else {
+			assert.equal(built.unit, "cny", name);
+			assert.equal(built.leftUnit, undefined, name);
+			assert.equal(built.rightUnit, undefined, name);
+		}
+		// no unit= at all: every field stays undefined rather than becoming ""
+		const bare = withUnits({ ...attrs, unit: undefined, leftUnit: undefined, rightUnit: undefined });
+		assert.deepEqual(
+			[bare.unit, bare.leftUnit, bare.rightUnit],
+			[undefined, undefined, undefined],
+			name,
+		);
+	}
+	// a dual axis given only unit= keeps the existing fallback: it is the left side's
+	// unit, the same value its left tick labels are formatted with
+	const fallback = withUnits({
+		type: "combo-dual-axis",
+		bars: "Split",
+		lines: "Total",
+		unit: "cny",
+	});
+	assert.equal(fallback.leftUnit, "cny");
+	assert.equal(fallback.unit, undefined);
+	assert.equal(fallback.rightUnit, undefined);
+	// inline data goes through the same builder, so it carries the unit too
+	const inline = buildChartFromInline({
+		attributes: { x: "month", type: "bar", series: "a", unit: " cny " },
+		csv: INLINE_CSV,
+	});
+	assert.equal(inline.unit, "cny"); // trimmed: the header prints it verbatim
 });
 
 test("color overrides and defaults", () => {

@@ -277,7 +277,14 @@ const CURRENCY_PREFIXES = new Map([
 	["美金", "$"],
 ]);
 
-// unit="%" 时数值带后缀，货币单位带前缀符号；其余单位仍只画在轴标题上。
+// unit 透出给渲染层（图表顶部左侧），不再画成 y 轴标题。空白收敛成 undefined，
+// 让渲染层按「有没有这个字段」判断要不要画，而不是去分辨空串。
+function unitText(value) {
+	const u = String(value ?? "").trim();
+	return u === "" ? undefined : u;
+}
+
+// unit="%" 时数值带后缀，货币单位带前缀符号；其余单位只在图表顶部出现一次。
 function valueFormatterFor(unit) {
 	const u = String(unit ?? "").trim();
 	if (u === "%") {
@@ -721,9 +728,23 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		rawType === "" || CHART_TYPES.has(rawType)
 			? undefined
 			: `Unknown chart type "${rawType}" — drawn as "${type}". Supported: ${[...CHART_TYPES].join(", ")}.`;
-	const common = typeNotice
-		? { ...baseCommon, warning: [baseCommon.warning, typeNotice].filter(Boolean).join("; ") }
-		: baseCommon;
+	// unit 不再画成 y 轴标题：轴标题恒定吃掉 28px 横向宽度（旋转 90° 后计入的是文字
+	// 的高，与单位长短无关），双轴图两侧各吃一份。改为随 BuiltChart 透出，由渲染层
+	// 放到图表顶部左侧。单轴图只有一个量纲，出 unit；双轴图两根轴各有量纲，出
+	// leftUnit / rightUnit，不出 unit。
+	const dual = type === "combo-dual-axis";
+	const unit = dual ? undefined : unitText(attrs.unit);
+	const leftUnit = dual ? unitText(attrs.leftUnit ?? attrs.unit) : undefined;
+	const rightUnit = dual ? unitText(attrs.rightUnit) : undefined;
+	const common = {
+		...baseCommon,
+		...(typeNotice
+			? { warning: [baseCommon.warning, typeNotice].filter(Boolean).join("; ") }
+			: {}),
+		...(unit ? { unit } : {}),
+		...(leftUnit ? { leftUnit } : {}),
+		...(rightUnit ? { rightUnit } : {}),
+	};
 	const showLabels = labelsEnabled(attrs);
 	// 只认数据里真有的周期，并且去重。加粗对写错的名字本来就是空转，色带不是：色带的
 	// x 通道和数据 mark 共用同一条 x scale，一个不存在的周期名会给 band scale 凭空多出
@@ -747,11 +768,8 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		}
 		const barLong = toLong(rows, xKey, barKeys, attrs, "barValue");
 		const lineLong = toLong(rows, xKey, lineKeys, attrs, "lineValue");
-		const dual = type === "combo-dual-axis";
-		const leftUnit = String(attrs.leftUnit ?? attrs.unit ?? "");
-		const rightUnit = String(attrs.rightUnit ?? "");
-		const barFormatter = valueFormatterFor(dual ? leftUnit : attrs.unit);
-		const lineFormatter = valueFormatterFor(dual ? rightUnit : attrs.unit);
+		const barFormatter = valueFormatterFor(dual ? leftUnit : unit);
+		const lineFormatter = valueFormatterFor(dual ? rightUnit : unit);
 		let barY, lineY;
 		if (dual) {
 			barY = yScale({
@@ -783,7 +801,6 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			y: {
 				...fresh(Y_AXIS),
 				labelFormatter: barFormatter,
-				...(dual && leftUnit ? { title: leftUnit } : {}),
 			},
 		};
 		// 只有 combo-dual-axis 才画右轴。combo 的设计是「柱和线共用同一段值域」，
@@ -801,7 +818,6 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 						// 两层网格叠出来是两倍密度的横线；网格只留给左轴。
 						grid: false,
 						labelFormatter: lineFormatter,
-						...(rightUnit ? { title: rightUnit } : {}),
 					},
 				}
 			: { ...xAxis(), y: false };
@@ -882,7 +898,6 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 	}
 
 	const data = toLong(rows, xKey, seriesKeys, attrs);
-	const unit = String(attrs.unit ?? "");
 	const formatter = valueFormatterFor(unit);
 	// stacked-bar 的视觉上限是每期堆叠和，其余按单值最大。
 	const yMax =
@@ -914,7 +929,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			: undefined,
 		axis: {
 			...(highlightX ? { x: highlightX } : {}),
-			y: { ...fresh(Y_AXIS), labelFormatter: formatter, ...(unit ? { title: unit } : {}) },
+			y: { ...fresh(Y_AXIS), labelFormatter: formatter },
 		},
 		tooltip: valueTooltip("value", formatter),
 		// 折线图的每个系列都是折线，图例全给横杠；柱图全给方块。
