@@ -517,22 +517,79 @@ function isBold(weight) {
 	return weight === "bold" || weight === "bolder";
 }
 
-test("value labels are pure black or white, bold, and carry nothing over the glyph", () => {
-	// Labels land on saturated bars, so the text has to stand on its own: the extreme
-	// fill for the theme, thickened, with no halo or plate to soften it
+test("value labels are bold pure black or white inside a thin halo stroke", () => {
 	assert.equal(labelTextStyle(false).fill, "#000000"); // light theme
 	assert.equal(labelTextStyle(true).fill, "#FFFFFF"); // dark theme
+	assert.equal(labelTextStyle(false).stroke, "#FFFFFF");
+	assert.equal(labelTextStyle(true).stroke, "#1F1F1F");
 	for (const dark of [false, true]) {
 		const style = labelTextStyle(dark);
 		const name = dark ? "dark" : "light";
 		assert.equal(style.fillOpacity, 1, name); // the engine default of 0.65 washes it out
 		assert.ok(isBold(style.fontWeight), `${name}: ${style.fontWeight} is not bold`);
-		// v5 fills text before stroking it, so anything layered on top eats the glyph,
-		// and a backdrop plate reads as a box sitting on the bar
-		assert.equal(style.stroke, undefined, name);
-		assert.equal(style.lineWidth, undefined, name);
-		assert.equal(style.shadowColor, undefined, name);
-		assert.equal(style.background, undefined, name);
+		// v5 strokes text after filling it, so the stroke bites w/2 into each side of a
+		// stem. A bold 12px stem is only ~1.5-2px wide, so anything past 1 leaves no
+		// glyph behind — which is exactly how the upgrade washed these labels out.
+		assert.ok(style.lineWidth > 0, `${name}: no halo at all`);
+		assert.ok(style.lineWidth <= 1, `${name}: ${style.lineWidth} eats the glyph`);
+		assert.equal(style.background, undefined, name); // a plate reads as a box on the bar
+	}
+});
+
+test("every value label is configured identically apart from the field it reads", () => {
+	// combo splits the bars and the line into separate marks, and a single-view chart
+	// keeps its label on the root; all three have to look like one component. Only the
+	// field and its formatter may differ — a dual axis carries a unit per side.
+	const shapeOf = ({ text, formatter, ...rest }) => rest;
+	const seen = [];
+	for (const [name, attrs] of [
+		["line", { type: "line", series: "Total,Split" }],
+		["bar", { type: "bar", series: "Total" }],
+		["grouped-bar", { type: "grouped-bar", series: "Total,Split" }],
+		["stacked-bar", { type: "stacked-bar", series: "Total,Split" }],
+		["combo", { type: "combo", bars: "Split", lines: "Total" }],
+		["combo-dual-axis", { type: "combo-dual-axis", bars: "Split", lines: "Total" }],
+	]) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
+		});
+		for (const mark of applyLabelStyle(built.config, labelTextStyle(false))) {
+			seen.push([`${name}/${mark.type ?? "view"}`, shapeOf(mark.label)]);
+		}
+	}
+	assert.ok(seen.length >= 8, `only ${seen.length} labelled marks found`);
+	const [[firstName, first], ...rest] = seen;
+	for (const [name, shape] of rest) {
+		assert.deepEqual(shape, first, `${name} drifted from ${firstName}`);
+	}
+});
+
+test("lines are drawn at the pre-upgrade width across every chart that has one", () => {
+	// the v5 theme halves the v4 default of 2, which left the line a hairline
+	const cases = [
+		["line", { type: "line", series: "Total" }],
+		["combo", { type: "combo", bars: "Split", lines: "Total" }],
+		["combo-dual-axis", { type: "combo-dual-axis", bars: "Split", lines: "Total" }],
+	];
+	for (const [name, attrs] of cases) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		const line = built.config.children
+			? built.config.children.find((child) => child.type === "line")
+			: built.config;
+		assert.equal(line.style.lineWidth, 2, name);
+		// the dots keep the radius they had before the upgrade; the style that thickens
+		// the line must not leak into them
+		const point = built.config.children
+			? built.config.children.find((child) => child.type === "point")
+			: built.config.point;
+		assert.equal(point.style.r, 3, `${name}: point radius`);
+		assert.equal(point.style.lineWidth, 0, `${name}: point outline`);
 	}
 });
 

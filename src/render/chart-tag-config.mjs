@@ -37,6 +37,10 @@ const CHART_NUMBER_FORMAT = new Intl.NumberFormat("en-US", {
 // 折线数据点：实心圆、半径 3、无描边。半径走 style.r——mark 上的 size 不是
 // G2 v5 的配置项；shapeField 选实心圆，point mark 的默认形状是空心的。
 const LINE_POINT = { shapeField: "circle", style: { r: 3, lineWidth: 0 } };
+// 折线线宽：v5 的主题默认给 1，比升级前细了一半（v4 主题给 2），折线在图里退成
+// 了一根发丝。显式设回 2。style 不在 plots 的 EXTENDED_PROPERTIES 里，不会渗进
+// point 简写生成的子 mark，数据点半径不受影响。
+const LINE_STROKE = { lineWidth: 2 };
 // 图例标记统一为方块（默认时折线是短线、柱状是方块，混图不统一）。
 const LEGEND = { color: { itemMarker: "square" } };
 // 数值标签防碰撞：先把越界标签平移回绘图区（首尾数据点贴着边缘，缺这步会被
@@ -169,21 +173,29 @@ function valueLabel(field, formatter) {
 	return { text: field, formatter, transform: LABEL_TRANSFORM, ...LABEL_ABOVE };
 }
 
-// 数值标签常压在饱和色的柱体上，要在那里也读得清。字色取两端的纯色——浅色主题
-// 纯黑、深色主题纯白——并加粗；不加描边，也不垫背景块，字就是干净的一层纯色。
-// 加粗是这里的关键：12px 字形的笔画只有约 1.3px 宽，细笔画压在彩色上很容易被
-// 周围颜色吃掉；bold 把笔画撑到约 2px，纯色才立得住。
+// 数值标签：纯色字 + 一圈描边光晕，压在饱和色的柱体上也要读得清。
+// 描边宽度不能照抄升级前的 2。升级前的渲染器对文本先描边再填充，描边整个落在字
+// 形背后，2px 描边只有向外的 1px 露在外面，字身分毫无损；v5 反过来先填充再描边，
+// 描边居中于轮廓，lineWidth w 会从笔画两侧各吃掉 w/2，剩下的字芯只有「笔画宽度
+// 减 w」。量过 12px 常规字重的竖笔画约 1.0–1.3px，bold 撑到约 1.5–2.0px：
+//   w=2   字芯 ≤0    —— 字被描边色整个换掉，就是升级后糊成一片的原因
+//   w=1.5 字芯 0–0.5 —— 保守估计下仍然吃光
+//   w=1   字芯 0.5–1.0（笔画的三到五成保持纯色），向外露 0.5px 光晕
+// 取 1：在保守的笔画估计下仍能让字保持自己的颜色，同时把光晕留到最大。代价是外
+// 圈只有升级前的一半宽，这是 v5 的绘制顺序换来的，改不回去。
+// 字色取两端的纯色而不是升级前的灰：描边不管吃掉多少，剩下的字芯都是最深/最浅
+// 的那一档，加粗后立得住。
 // fontWeight 取关键字 "bold"：G 的 fontWeight 只认 normal / bold / bolder /
 // lighter 这几个关键字，数字字重还要看用户主题的字体有没有对应字面，"bold" 有
 // CSS 合成加粗兜底，换字体也稳定。
-// 不能改回描边：v5 的渲染器先填充再描边（v1 相反，描边落在字形背后），描边会盖
-// 在字身上，把笔画换成描边色。
 // fillOpacity 必须显式给满：主题的 label 默认 0.65，只改 fill 会被冲淡三成。
 export function labelTextStyle(dark) {
 	return {
 		fill: dark ? "#FFFFFF" : "#000000",
 		fillOpacity: 1,
 		fontWeight: "bold",
+		stroke: dark ? "#1F1F1F" : "#FFFFFF",
+		lineWidth: 1,
 	};
 }
 
@@ -368,6 +380,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			colorField: "series",
 			scale: { y: lineY },
 			axis: lineAxis,
+			style: LINE_STROKE,
 			label: showLabels ? valueLabel("lineValue", lineFormatter) : undefined,
 			tooltip: valueTooltip("lineValue", lineFormatter),
 		};
@@ -450,7 +463,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		return {
 			...common,
 			chartType: "Line",
-			config: { ...config, point: LINE_POINT },
+			config: { ...config, point: LINE_POINT, style: LINE_STROKE },
 		};
 	// 柱宽只对 interval mark 有意义，折线图不加。
 	const barConfig = {
