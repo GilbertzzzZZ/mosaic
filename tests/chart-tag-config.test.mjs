@@ -927,6 +927,24 @@ test("every chart with bars carries a hover band shell the theme can paint", () 
 	}
 });
 
+test("the combo turns the crosshair off and switches its hover band on", () => {
+	// DualAxes ships no interaction field at all, so the combo never had a band;
+	// and a single line mark flips the whole view into seriesTooltip, because the
+	// check is a .some() — which is why the band read as a bare vertical rule
+	for (const name of ["combo", "combo-dual-axis"]) {
+		const [, attrs] = CHART_SHAPES.find(([shape]) => shape === name);
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		const { interaction } = built.config;
+		assert.equal(interaction.tooltip.crosshairs, false, name);
+		assert.equal(interaction.tooltip.shared, true, name);
+		assert.deepEqual(interaction.elementHighlight, { background: true, region: true }, name);
+	}
+});
+
 test("the hover band picks a different colour per theme", () => {
 	const light = hoverBandStyle(false);
 	const dark = hoverBandStyle(true);

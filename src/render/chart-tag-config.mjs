@@ -80,6 +80,22 @@ const HOVER_BAND_STATE = { active: {} };
 // pointerEvents 是预防性的：crosshair 的 Line 没有像 marker 那样声明 pointerEvents,
 // 加粗后它就是一个更宽的命中目标。line 现在只有 seriesTooltip（按鼠标坐标算，不看
 // target）所以无影响，但将来给 line 加 elementHighlight 时粗线会挡住命中。
+// 悬停蒙层的开关。region 决定触发范围：false（引擎默认）要鼠标压在柱体本身上，
+// true 则按 x 就近查找，蒙层跟着鼠标在整个绘图区里走——这才是升级前 active-region
+// 的语义（v5 没有同名交互，能力并进了 elementHighlight）。
+// background 对 Column 是重复声明（plots 的默认选项里已有），对 DualAxes 不是：
+// 那边的默认选项里根本没有 interaction 字段，组合图从来就没有过蒙层。
+const HOVER_BAND_INTERACTION = { background: true, region: true };
+// 组合图额外要关掉悬停竖线：line mark 自带 crosshairs: true，而 tooltip 的判定是
+// .some()——视图里只要有一个 line mark，整个视图就切进 seriesTooltip 并画出竖线。
+// 所以「蒙层变成一条线」不是配置被谁覆盖，是短路语义加上蒙层压根没开。
+// 已否决的另一条路：interaction.tooltip.series = false。findSingleElement 只在全部
+// mark 都是 interval 时才做 x 就近查找，混合 mark 会退回按 target 找，tooltip 变成
+// 必须精确悬停在图元上才出，明显退步。
+const COMBO_INTERACTION = {
+	tooltip: { shared: true, crosshairs: false },
+	elementHighlight: { ...HOVER_BAND_INTERACTION },
+};
 const CROSSHAIR_INTERACTION = {
 	tooltip: {
 		crosshairsLineWidth: 2,
@@ -515,6 +531,11 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 				legend: fresh(LEGEND),
 				labelTransform: fresh(VIEW_LABEL_TRANSFORM),
 				state: fresh(HOVER_BAND_STATE),
+				// 写在顶层是唯一正确的路径：plots 的 transformOptions 把 interaction
+				// 收进 rest、深合并进每个 child mark，G2 的 bubbleOptions() 再把 mark
+				// 上的 interaction 合并回 view。两个键都不在 TRANSFORM_OPTION_KEY 里，
+				// 转换过后不会被清掉。
+				interaction: fresh(COMBO_INTERACTION),
 				children: linesFirst
 					? [lineChild, pointChild, barChild]
 					: [barChild, lineChild, pointChild],
