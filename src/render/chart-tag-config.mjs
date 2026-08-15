@@ -80,6 +80,16 @@ const GROUP_DODGE = { padding: 1 / 33 };
 // 壳不能省：mergeState 生成的是按 mark key 分派的函数，mark 自己不带这组键时直接
 // 回退到引擎默认值，注入无处可落。
 const HOVER_BAND_STATE = { active: {} };
+// 读数用的字号：数值标签与 tooltip 共用一档。图里其余文字（轴刻度、轴标题、图例）
+// 都不设，仍走引擎主题的 12px——读数是图表要传达的那个东西，只把它抬起来。
+// 标签光晕的宽度不跟着这个数走：两层画法里光晕是下层字形的描边，外扩量由 lineWidth
+// 单独决定，与字号无关。只有单层描边才需要按笔画粗细算比例。
+const VALUE_FONT_SIZE = 14;
+// tooltip 不画在 canvas 上，是一个真的 DOM 元素，字号来自组件的默认样式表（12px）。
+// 那张表是用 element.style.cssText += 写成**内联样式**的，styles.css 里的选择器不加
+// !important 压不过它。interaction.tooltip.css 是引擎留的正规入口，会被 deepMix 进
+// 同一张表，改出来仍是内联样式，优先级一致，也就不必动 !important。
+const TOOLTIP_CSS = { ".g2-tooltip": { "font-size": `${VALUE_FONT_SIZE}px` } };
 // 折线悬停时跟着鼠标走的那条竖线。引擎默认硬编码 1px、#1b1e23、0.5 不透明度，同样
 // 不读主题：深色底上那个色叠出来几乎不可分辨。线宽对齐 LINE_STROKE 的 2，stroke 由
 // chart-theme 注入。
@@ -102,7 +112,12 @@ const HOVER_BAND_INTERACTION = { background: true, region: true };
 // mark 都是 interval 时才做 x 就近查找，混合 mark 会退回按 target 找，tooltip 变成
 // 必须精确悬停在图元上才出，明显退步。
 const COMBO_INTERACTION = {
-	tooltip: { shared: true, crosshairs: false },
+	tooltip: { shared: true, crosshairs: false, css: TOOLTIP_CSS },
+	elementHighlight: { ...HOVER_BAND_INTERACTION },
+};
+// 柱图：蒙层的触发范围 + tooltip 字号。
+const BAR_INTERACTION = {
+	tooltip: { css: TOOLTIP_CSS },
 	elementHighlight: { ...HOVER_BAND_INTERACTION },
 };
 const CROSSHAIR_INTERACTION = {
@@ -110,6 +125,7 @@ const CROSSHAIR_INTERACTION = {
 		crosshairsLineWidth: 2,
 		crosshairsStrokeOpacity: 0.25,
 		crosshairsPointerEvents: "none",
+		css: TOOLTIP_CSS,
 	},
 };
 
@@ -226,12 +242,6 @@ function valueLabel(field, formatter) {
 // 又还贴着字形的外廓走；再往上光晕会盖过字号本身的粗细，读起来像一块白底。
 const LABEL_HALO_WIDTH = 2;
 
-// 数值标签的字号。图里其余文字（轴刻度、轴标题、图例）都不设，仍走引擎主题的 12px
-// ——数值是图表要传达的那个东西，只把它抬起来。
-// 光晕宽度不跟着字号走：两层画法里光晕是下层字形的描边，外扩量由 lineWidth 单独决定，
-// 与字号无关。只有单层描边才需要按笔画粗细算比例。
-const LABEL_FONT_SIZE = 14;
-
 // 数值标签画成两层：先画一层「光晕」——同一段文字，用光晕色同时描边和填充，得到
 // 一个沿字形轮廓外扩 lineWidth/2 的纯色底；再把真正的字叠在上面。
 // 非这样不可：v5 的渲染器对文本先填充后描边，描边居中于轮廓，会从笔画两侧各吃掉
@@ -256,9 +266,10 @@ export function labelTextStyle(dark) {
 	const shared = {
 		fillOpacity: 1,
 		fontWeight: "bold",
-		fontSize: LABEL_FONT_SIZE,
+		fontSize: VALUE_FONT_SIZE,
 		lineWidth: LABEL_HALO_WIDTH * 2,
 	};
+
 	return [
 		{ ...shared, fill: halo, stroke: halo },
 		{ ...shared, fill: text, stroke: "transparent" },
@@ -604,7 +615,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		state: fresh(HOVER_BAND_STATE),
 		// plots 的 Column 默认已开 background，这里补的是 region——让蒙层与组合图
 		// 一样「进列就出」，而不是必须压在柱体上。
-		interaction: { elementHighlight: fresh(HOVER_BAND_INTERACTION) },
+		interaction: fresh(BAR_INTERACTION),
 	};
 	if (type === "grouped-bar")
 		return {

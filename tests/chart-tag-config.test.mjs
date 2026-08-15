@@ -895,6 +895,21 @@ test("value labels are set 2px above the rest of the chart's type", () => {
 	}
 });
 
+test("the tooltip reads at the same size as the value labels", () => {
+	// the tooltip is a DOM element, and its 12px default is written as an inline
+	// style, so a rule in styles.css could not win without !important — the engine's
+	// css option merges into that same inline sheet instead
+	for (const [name, attrs] of CHART_SHAPES) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		const css = built.config.interaction?.tooltip?.css;
+		assert.deepEqual(css, { ".g2-tooltip": { "font-size": "14px" } }, name);
+	}
+});
+
 test("labels also de-overlap across marks, not just within one", () => {
 	// the group-level transform buckets by label, so a bar's number and a line's
 	// number never see each other; on a dual axis they end up all but touching
