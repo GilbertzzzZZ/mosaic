@@ -39,10 +39,14 @@
 	color: var(--text-muted);
 	margin: 4px 0 0;
 }
+/* 局部提示：图画出来了，只是其中一处写错了。用一道左边线与整体报错的红框区分开
+   ——红框意味着图根本没出来，橙线意味着图能看，但有一处不是你写的那个意思。 */
 .mosaic-figure-warning {
 	font-size: 0.85em;
 	color: var(--text-warning, #d97706);
-	margin: 2px 0 0;
+	margin: 6px 0 0;
+	border-left: 2px solid currentColor;
+	padding-left: 8px;
 }
 .mosaic-figure-footnote {
 	font-size: 0.75em;

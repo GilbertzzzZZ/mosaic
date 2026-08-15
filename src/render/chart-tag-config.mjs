@@ -410,7 +410,7 @@ function buildWarning(meta) {
 	return parts.length ? parts.join("; ") : undefined;
 }
 
-function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
+function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon }) {
 	const bars = splitList(attrs.bars ?? attrs.bar);
 	const lines = splitList(attrs.lines ?? attrs.line);
 	const explicit = splitList(attrs.series ?? attrs.y);
@@ -426,6 +426,16 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		: seriesKeys.length > 1
 			? "line"
 			: "bar";
+	// 类型写错不让整块图消失：仍按缺省规则出图，另外挂一条局部提示说明哪个词没被
+	// 认出、实际画成了什么。整块失败留给「图根本画不出来」的情况——两者的区别是
+	// 「图在，但有一处写错了」对「图不在」，读者据此知道该不该相信眼前这张图。
+	const typeNotice =
+		rawType === "" || CHART_TYPES.has(rawType)
+			? undefined
+			: `Unknown chart type "${rawType}" — drawn as "${type}". Supported: ${[...CHART_TYPES].join(", ")}.`;
+	const common = typeNotice
+		? { ...baseCommon, warning: [baseCommon.warning, typeNotice].filter(Boolean).join("; ") }
+		: baseCommon;
 	const showLabels = labelsEnabled(attrs);
 
 	if (type === "combo" || type === "combo-dual-axis") {

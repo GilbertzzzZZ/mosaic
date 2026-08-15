@@ -865,6 +865,50 @@ test("value labels are set 2px above the rest of the chart's type", () => {
 	}
 });
 
+test("an unknown chart type still draws, and says so", () => {
+	// a typo must not cost the whole chart: it falls back to the default shape and
+	// reports what happened, so the reader knows the picture is not what was asked for
+	const r = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "grouped-bar-line", series: "Total,Split", granularity: "month" },
+	});
+	assert.equal(r.chartType, "Line"); // the multi-series default
+	assert.match(r.warning, /Unknown chart type "grouped-bar-line"/);
+	assert.match(r.warning, /drawn as "line"/);
+	// the message has to name the way out, not just the problem
+	for (const t of ["line", "bar", "grouped-bar", "stacked-bar", "combo", "combo-dual-axis"]) {
+		assert.ok(r.warning.includes(t), `${t} missing from the supported list`);
+	}
+});
+
+test("a good type, or none at all, produces no notice", () => {
+	for (const [name, attrs] of CHART_SHAPES) {
+		const r = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		assert.equal(r.warning, undefined, name);
+	}
+	// omitting type is the documented default, not a mistake
+	const bare = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, series: "Total,Split", granularity: "month" },
+	});
+	assert.equal(bare.warning, undefined);
+});
+
+test("a type notice does not swallow the dataset's own warning", () => {
+	const r = buildChartFromInline({
+		attributes: { x: "month", series: "a,b", type: "sunburst" },
+		csv: "month,a,b\n2025-01,1,2\n2025-02,3,4",
+	});
+	assert.match(r.warning, /Unknown chart type "sunburst"/);
+	assert.equal(r.chartType, "Line");
+});
+
 test("the tooltip reads at the same size as the value labels", () => {
 	// the tooltip is a DOM element, and its 12px default is written as an inline
 	// style, so a rule in styles.css could not win without !important — the engine's
