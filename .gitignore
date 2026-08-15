@@ -20,3 +20,8 @@ data.json
 
 # superpowers scratch workspaces (any level)
 .superpowers/
+
+# 内部规划与调研文档：只在本地留存，不进公开仓库
+# （目录结构由各自的 .gitkeep 保留，见 AGENTS.md 的 File structure 一节）
+docs/plans/*.md
+docs/research/*.md
