@@ -125,14 +125,17 @@
 	gap: 5px;
 	align-content: start;
 }
+/* Status accents use Obsidian's extended colour palette (--color-green /
+   --color-red / --color-orange), the same hues --text-success / --text-error /
+   --text-warning alias to, so the cards track the active theme. */
 .mosaic-metric-item.is-good {
-	border-top: 3px solid #16a34a;
+	border-top: 3px solid var(--color-green, #16a34a);
 }
 .mosaic-metric-item.is-risk {
-	border-top: 3px solid #dc2626;
+	border-top: 3px solid var(--color-red, #dc2626);
 }
 .mosaic-metric-item.is-watch {
-	border-top: 3px solid #d97706;
+	border-top: 3px solid var(--color-orange, #d97706);
 }
 .mosaic-metric-label {
 	color: var(--text-muted);
@@ -193,13 +196,13 @@
 	z-index: 1;
 }
 .mosaic-timeline-item.is-done .mosaic-timeline-marker {
-	border-color: #16a34a;
+	border-color: var(--color-green, #16a34a);
 }
 .mosaic-timeline-item.is-active .mosaic-timeline-marker {
 	border-color: var(--interactive-accent);
 }
 .mosaic-timeline-item.is-blocked .mosaic-timeline-marker {
-	border-color: #d97706;
+	border-color: var(--color-orange, #d97706);
 }
 .mosaic-timeline-content time {
 	display: block;
@@ -441,35 +444,54 @@
 	font-size: 13px;
 	font-weight: 720;
 }
+/* Typed node accents (start/end, decision, gate, risk; `action` keeps the
+   neutral base rules above). Each type gets the same three-part treatment:
+
+     rect fill   - the accent hue at 12%, composited over --background-primary.
+                   This is Obsidian's own idiom for a soft themed surface, e.g.
+                   `color-mix(in oklch, var(--callout-color) 10%, transparent)`
+                   in its callout styles, so the tint stays light on a light
+                   theme and dark on a dark one instead of being a fixed pale
+                   swatch that punches a hole in a dark canvas.
+     rect stroke - the accent hue at full strength.
+     text fill   - the accent mixed into --text-normal, which keeps the hue
+                   recognisable while letting the theme decide the lightness:
+                   near-black-green on light, pale-green on dark.
+
+   Every custom property carries the previous hard-coded value as a fallback,
+   so a host without the Obsidian palette renders the original light-theme
+   look. If color-mix() itself is unsupported the declaration is dropped and
+   the neutral .mosaic-flow-node rect/text rules above take over, which stay
+   readable either way. */
 .mosaic-flow-node.is-start rect,
 .mosaic-flow-node.is-end rect {
-	fill: #f0fdf4;
-	stroke: #16a34a;
+	fill: color-mix(in oklch, var(--color-green, #16a34a) 12%, transparent);
+	stroke: var(--color-green, #16a34a);
 }
 .mosaic-flow-node.is-start text,
 .mosaic-flow-node.is-end text {
-	fill: #14532d;
+	fill: color-mix(in oklch, var(--color-green, #16a34a) 35%, var(--text-normal, #14532d));
 }
 .mosaic-flow-node.is-decision rect {
-	fill: #fffbeb;
-	stroke: #d97706;
+	fill: color-mix(in oklch, var(--color-orange, #d97706) 12%, transparent);
+	stroke: var(--color-orange, #d97706);
 }
 .mosaic-flow-node.is-decision text {
-	fill: #92400e;
+	fill: color-mix(in oklch, var(--color-orange, #d97706) 35%, var(--text-normal, #92400e));
 }
 .mosaic-flow-node.is-gate rect {
-	fill: #eef4ff;
-	stroke: var(--interactive-accent);
+	fill: color-mix(in oklch, var(--interactive-accent, #2563eb) 12%, transparent);
+	stroke: var(--interactive-accent, #2563eb);
 }
 .mosaic-flow-node.is-gate text {
-	fill: #1e3a8a;
+	fill: color-mix(in oklch, var(--interactive-accent, #2563eb) 35%, var(--text-normal, #1e3a8a));
 }
 .mosaic-flow-node.is-risk rect {
-	fill: #fff1f2;
-	stroke: #dc2626;
+	fill: color-mix(in oklch, var(--color-red, #dc2626) 12%, transparent);
+	stroke: var(--color-red, #dc2626);
 }
 .mosaic-flow-node.is-risk text {
-	fill: #991b1b;
+	fill: color-mix(in oklch, var(--color-red, #dc2626) 35%, var(--text-normal, #991b1b));
 }
 .mosaic-flow-note {
 	margin: 8px 0 0;
