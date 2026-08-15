@@ -150,5 +150,4 @@
 
 ## 参考
 
-- 契约参照实现：`~/projects/早期内部实现`（数据层移植来源，Apache-2.0，见 NOTICE）。
-- 生产样本：`~/projects/真实笔记库/growth/data/data/*/schema/` 的 manifest 与同目录 CSV；`growth/reports/` 下的月报是 Chart 标签的成规模用例。
+- 契约参照实现：早期内部实现（数据层移植来源，Apache-2.0，见 [NOTICE](../NOTICE)）。
