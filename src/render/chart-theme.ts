@@ -1,6 +1,8 @@
 import {
+	applyCrosshairStyle,
 	applyHoverBandStyle,
 	applyLabelStyle,
+	crosshairStyle,
 	hoverBandStyle,
 	labelTextStyle,
 } from "./chart-tag-config.mjs";
@@ -40,6 +42,7 @@ export function withTheme<T extends { config: Record<string, unknown> }>(built: 
 	built.config.theme = { type: dark ? "classicDark" : "classic" };
 	applyLabelStyle(built.config, labelTextStyle(dark));
 	applyHoverBandStyle(built.config, hoverBandStyle(dark));
+	applyCrosshairStyle(built.config, crosshairStyle(dark));
 	withGridStroke(built.config as Record<string, any>, dark);
 	return built;
 }

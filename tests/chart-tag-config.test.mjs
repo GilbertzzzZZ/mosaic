@@ -13,6 +13,8 @@ import {
 	labelTextStyle,
 	applyHoverBandStyle,
 	hoverBandStyle,
+	applyCrosshairStyle,
+	crosshairStyle,
 } from "../src/render/chart-tag-config.mjs";
 
 const manifest = parseDatasetManifest(
@@ -881,6 +883,39 @@ test("the hover band picks a different colour per theme", () => {
 		assert.ok(style.backgroundFillOpacity >= 0.03, `${style.backgroundFillOpacity} vanishes`);
 		assert.ok(style.backgroundFillOpacity <= 0.07, `${style.backgroundFillOpacity} is a plate`);
 	}
+});
+
+test("only the line chart carries a crosshair, at the same weight as its line", () => {
+	for (const [name, attrs] of CHART_SHAPES) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		const tooltip = built.config.interaction?.tooltip;
+		if (name !== "line") {
+			// interval marks never declare crosshairs and combo turns them off, so a
+			// crosshair width there would be config that can never take effect
+			assert.equal(tooltip?.crosshairsLineWidth, undefined, `${name}: inert config`);
+			continue;
+		}
+		assert.equal(tooltip.crosshairsLineWidth, 2, name); // matches LINE_STROKE
+		// a thicker rule is a wider hit target, and unlike the marker the crosshair
+		// Line does not opt out of pointer events on its own
+		assert.equal(tooltip.crosshairsPointerEvents, "none", name);
+		// subObject(style, 'crosshairs') mangles crosshairsXxx into an xXxx key
+		for (const key of Object.keys(tooltip)) {
+			assert.doesNotMatch(key, /^crosshairs[XY]/, `${key} would be shredded`);
+		}
+		const painted = applyCrosshairStyle(built.config, crosshairStyle(true));
+		assert.equal(painted.crosshairsStroke, "#FFFFFF", name);
+	}
+});
+
+test("the crosshair picks a different colour per theme", () => {
+	// the engine default of #1b1e23 @0.5 is all but invisible over a dark page
+	assert.equal(crosshairStyle(false).crosshairsStroke, "#000000");
+	assert.equal(crosshairStyle(true).crosshairsStroke, "#FFFFFF");
 });
 
 const INLINE_CSV = "month,a,b\n2025-01,120,80\n2025-02,140,\n2025-03,160,95";

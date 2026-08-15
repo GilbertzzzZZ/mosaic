@@ -65,6 +65,22 @@ const BAR_X_SCALE = { paddingInner: 0.5, paddingOuter: 0.25 };
 // 壳不能省：mergeState 生成的是按 mark key 分派的函数，mark 自己不带这组键时直接
 // 回退到引擎默认值，注入无处可落。
 const HOVER_BAND_STATE = { active: {} };
+// 折线悬停时跟着鼠标走的那条竖线。引擎默认硬编码 1px、#1b1e23、0.5 不透明度，同样
+// 不读主题：深色底上那个色叠出来几乎不可分辨。线宽对齐 LINE_STROKE 的 2，stroke 由
+// chart-theme 注入。
+// 只写不带 X/Y 的 crosshairs 前缀：subObject(style, 'crosshairs') 会把 crosshairsXxx
+// 这种键剥成 xXxx 的垃圾键。真正画竖线的是 crosshairsY（updateRuleY），命名与直觉相反，
+// 这里两条都不点名，样式对两条轴都生效。
+// pointerEvents 是预防性的：crosshair 的 Line 没有像 marker 那样声明 pointerEvents,
+// 加粗后它就是一个更宽的命中目标。line 现在只有 seriesTooltip（按鼠标坐标算，不看
+// target）所以无影响，但将来给 line 加 elementHighlight 时粗线会挡住命中。
+const CROSSHAIR_INTERACTION = {
+	tooltip: {
+		crosshairsLineWidth: 2,
+		crosshairsStrokeOpacity: 0.25,
+		crosshairsPointerEvents: "none",
+	},
+};
 
 // plots 和 G2 会就地改写传进去的配置：label 被搬进 labels 数组、legend 上提、
 // 顶层 scale 下发进每个 child、转换过的键随后被删掉。上面这些模块级常量只是模板，
@@ -269,6 +285,24 @@ export function applyHoverBandStyle(config, style) {
 		};
 	}
 	return banded;
+}
+
+// 悬停竖线的明暗配色。默认的 #1b1e23 @0.5 叠在深色底上明度差不到 2，实际是看不见的；
+// 取两端纯色配 0.25，明暗两套叠加后与背景的明度差都约 60，观感对称。
+export function crosshairStyle(dark) {
+	return { crosshairsStroke: dark ? "#FFFFFF" : "#000000" };
+}
+
+// 按「配了线宽的那份才上色」定位：柱图的 interval mark 不声明 crosshairs，组合图更是
+// 显式关掉了竖线——给它们上色只会留下一份永远不生效的配置。
+export function applyCrosshairStyle(config, style) {
+	const tooltip = config.interaction?.tooltip;
+	if (tooltip?.crosshairsLineWidth === undefined) return undefined;
+	config.interaction = {
+		...config.interaction,
+		tooltip: { ...tooltip, ...fresh(style) },
+	};
+	return config.interaction.tooltip;
 }
 
 // v5 的 scale 没有 formatter：轴刻度走 axis.labelFormatter，数值标签走
@@ -525,7 +559,12 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		return {
 			...common,
 			chartType: "Line",
-			config: { ...config, point: fresh(LINE_POINT), style: fresh(LINE_STROKE) },
+			config: {
+				...config,
+				point: fresh(LINE_POINT),
+				style: fresh(LINE_STROKE),
+				interaction: fresh(CROSSHAIR_INTERACTION),
+			},
 		};
 	// 柱宽只对 interval mark 有意义，折线图不加；悬停蒙层同理。
 	const barConfig = {
