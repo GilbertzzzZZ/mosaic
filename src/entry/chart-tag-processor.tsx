@@ -1,4 +1,4 @@
-// src/dataset/chart-tag-processor.tsx
+// src/entry/chart-tag-processor.tsx
 import ReactDOM from "react-dom";
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
 import MosaicPlugin from "../main";
