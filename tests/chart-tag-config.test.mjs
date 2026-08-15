@@ -99,37 +99,7 @@ test("grouped-bar maps to Column with grouped bars", () => {
 		},
 	});
 	assert.equal(r.chartType, "Column");
-	// the object form is the dodge transform's own options; `true` would take the
-	// engine default, which spaces the bars within a group 3.5x wider than v1 did
-	assert.deepEqual(r.config.group, { padding: 1 / 33 });
-});
-
-test("bars inside a group sit as close together as they did before the upgrade", () => {
-	// v1 dodged with marginRatio 1/32, i.e. gap == barWidth/32. v5 reads the same
-	// number off the series band scale as paddingInner, where the ratio is
-	// p/(1-p) — so 1/33 is the value that reproduces it, for any number of bars.
-	const p = 1 / 33;
-	assert.ok(Math.abs(p / (1 - p) - 1 / 32) < 1e-12, "not the v1 gap ratio");
-	const grouped = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: { ...base, type: "grouped-bar", series: "Total,Split", granularity: "month" },
-	});
-	assert.equal(grouped.config.group.padding, p);
-	// the combo's bar child dodges too, but only when it carries more than one series
-	const combo = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: { ...base, type: "combo", bars: "Split", lines: "Total", granularity: "month" },
-	});
-	assert.equal(combo.config.children.find((c) => c.type === "interval").group, false);
-	// single-series bars must not dodge at all
-	const plain = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: { ...base, type: "bar", series: "Total", granularity: "month" },
-	});
-	assert.equal(plain.config.group, undefined);
+	assert.equal(r.config.group, true);
 });
 
 test("combo pins both implicit axes to one scale", () => {

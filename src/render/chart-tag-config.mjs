@@ -65,15 +65,6 @@ const LABEL_ABOVE = { textAlign: "center", textBaseline: "bottom", dy: -4 };
 // 配套的 paddingOuter 0.25 让首尾两槽与中间等宽、柱子仍居槽中央。折线图的 x
 // 是 point 比例尺（bandWidth 恒为 0），不走这套。
 const BAR_X_SCALE = { paddingInner: 0.5, paddingOuter: 0.25 };
-// 分组柱的组内间距。group: true 走 v5 的 DodgeX，它的 padding 没有默认值，最后吃到
-// 的是 series band scale 的 0.1，算出来「缝 / 柱宽 = 0.1/0.9 = 1/9」——是升级前
-// （dodge 的 marginRatio = 1/32）的 32/9 ≈ 3.56 倍，同一组里的柱子看着不像一组。
-// 1/33 是精确解：v5 的比值是 p/(1-p)，令它等于 1/32 即得，且「柱宽 / 子槽」的算式
-// 与升级前代数恒等，与组内柱数无关。
-// 顺带把组两端的外边距也带回 0：显式给了 paddingInner，G2 就不再注入 paddingOuter
-// 默认值，Band 比例尺回落到 0——升级前的 dodge 同样不留组端边距。
-// 只管组内。整组占槽宽的比例仍由 BAR_X_SCALE 决定，那是另一笔账。
-const GROUP_DODGE = { padding: 1 / 33 };
 // 悬停蒙层的配色挂在 mark 的 state.active 上——elementHighlight 从那里取 background
 // 前缀的键喂给它的 renderBackground()。这里只留空壳，明暗色值由 chart-theme 在
 // withTheme() 里注入，和网格线颜色走同一条路。
@@ -497,7 +488,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 			data: barLong,
 			yField: "barValue",
 			colorField: "series",
-			group: barKeys.length > 1 ? fresh(GROUP_DODGE) : false,
+			group: barKeys.length > 1,
 			scale: { y: barY },
 			axis: barAxis,
 			label: showLabels ? valueLabel("barValue", barFormatter) : undefined,
@@ -621,7 +612,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		return {
 			...common,
 			chartType: "Column",
-			config: { ...barConfig, group: fresh(GROUP_DODGE) },
+			config: { ...barConfig, group: true },
 		};
 	if (type === "stacked-bar")
 		return {
