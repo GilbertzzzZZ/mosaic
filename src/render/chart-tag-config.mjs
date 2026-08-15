@@ -1,3 +1,4 @@
+import { wilkinsonExtended } from "@antv/scale";
 import { queryDataset } from "../parse/dataset-query.mjs";
 import {
 	DATASET_GRANULARITIES,
@@ -141,8 +142,10 @@ function headroomMax(values) {
 	return max > 0 ? max * Y_HEADROOM : undefined;
 }
 
-// 给了 domainMax 就必须关掉 nice：nice 会把域再往上取整到刻度边界，
-// 8% 头部空间会被撑成一段不确定的留白，刻度也跟着变。
+// nice 把值域往上取整到一个整刻度，轴顶因此正好压在带标签的那一档上。单视图图表
+// 恢复它（升级时以「nice 会把 8% 留白圆掉」为由关过，方向反了——nice 只会往上取，
+// 留白只增不减）；DualAxes 的两个子图不取整，与升级前一致：那边两侧轴各自取整会
+// 把左右刻度错开，读数时对不上行。
 function yScale({ key, domainMin, domainMax }) {
 	const scale = {};
 	if (key !== undefined) {
@@ -152,51 +155,29 @@ function yScale({ key, domainMin, domainMax }) {
 		scale.independent = false;
 	}
 	if (domainMin !== undefined) scale.domainMin = domainMin;
-	if (domainMax !== undefined) {
-		scale.domainMax = domainMax;
-		scale.nice = false;
-	}
+	if (domainMax !== undefined) scale.domainMax = domainMax;
+	// 两条路径都显式写死：Column 与 DualAxes 的默认选项里都带着 nice: true，
+	// 不写就等于把这个决定交给引擎的默认值。
+	scale.nice = key === undefined;
 	return scale;
 }
 
-// 刻度步长：默认实现的步长只取 1、2、5 × 10^k，凑不到 count 档就一律退到更细
-// 的一档，档数接近翻倍（$69,660 的值域被切成 $10,000 一档共 7 档）。这里把 2.5
-// 也算进候选，并在 1/2/2.5/5 × 10^k 里挑档数最接近 count 的那个步长，档数打平
-// 时取更细的（同一值域给出 $20,000 一档共 4 档）。只返回落在值域内的刻度。
-const TICK_STEPS = [1, 2, 2.5, 5];
-
-function niceTicks(min, max, count = 5) {
-	if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return [min];
-	const target = Math.max(2, Math.round(count));
-	// 候选从「理想步长的十分之一」起往上铺四个数量级，足够把最优解框在里面。
-	const base = Math.floor(Math.log10((max - min) / target)) - 1;
-	let best;
-	for (let k = base; k <= base + 3; k += 1) {
-		for (const mantissa of TICK_STEPS) {
-			const step = mantissa * 10 ** k;
-			const first = Math.ceil(min / step);
-			const last = Math.floor(max / step);
-			if (last < first) continue;
-			const miss = Math.abs(last - first + 1 - target);
-			if (best === undefined || miss < best.miss) best = { step, first, last, miss };
-		}
-	}
-	if (best === undefined) return [min];
-	const ticks = [];
-	for (let i = best.first; i <= best.last; i += 1) {
-		const value = i * best.step;
-		// i * step 会带浮点尾巴（0.25 的 13 倍算成 3.2500000000000004），
-		// 尾巴会原样出现在轴文案里。
-		ticks.push(value === 0 ? 0 : Number(value.toPrecision(12)));
-	}
-	return ticks;
+// 刻度算法交回引擎自带的 wilkinsonExtended——升级时判断「v4 那套优化器在 v5 依赖树里
+// 够不到」，前提是错的：@antv/scale 一直导出着它，签名也正好是 axis.tickMethod 要的
+// (min, max, count) => number[]。实测 v1 的 scale@0.3.18 与现在的 0.5.2 在 27 个真实
+// 值域上 27/27 一致，而中间那套自写步长表与 v4 有 18 个不一致（它的候选只有
+// 1/2/2.5/5，缺了 v4 有的 3/30/300 一档）。
+// 外面只包一层「丢掉域外刻度」：nice 关掉时（双轴图）算法会给出高于 domainMax 的
+// 一档，v4 的 Continuous.calculateTicks() 在 nice=false 时同样只保留域内的。
+function domainTicks(min, max, count) {
+	return wilkinsonExtended(min, max, count).filter((t) => t >= min && t <= max);
 }
 
 // y 轴默认画 4px 刻度线，网格线是虚线（主题 axis.gridLineDash = [3, 4]）。这里
 // 关掉刻度线、把网格改回 1px 实线；网格颜色跟主题走，由 chart-theme 补上。
 const Y_AXIS = {
 	tick: false,
-	tickMethod: niceTicks,
+	tickMethod: domainTicks,
 	gridLineDash: [0, 0],
 	gridLineWidth: 1,
 	gridStrokeOpacity: 1,

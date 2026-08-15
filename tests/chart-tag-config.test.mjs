@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { wilkinsonExtended } from "@antv/scale";
 import {
 	parseDatasetManifest,
 	parseDatasetData,
@@ -764,9 +765,14 @@ test("y axes drop tick marks, draw solid grid lines and pick round ticks", () =>
 	assert.equal(axis.gridStrokeOpacity, 1);
 	// $0–$69,660 is the sales demo's left axis: 4 ticks $20,000 apart, not 7 at $10,000
 	assert.deepEqual(axis.tickMethod(0, 69660, 5), [0, 20000, 40000, 60000]);
-	// 3.2%–4.428% is its right axis: a 0.25 step, which a 1/2/5-only step set cannot reach
-	assert.deepEqual(axis.tickMethod(3.2, 4.428, 5), [3.25, 3.5, 3.75, 4, 4.25]);
 	assert.deepEqual(axis.tickMethod(5, 5, 5), [5]); // flat data still yields one tick
+	// the ticks come from the engine's own optimiser, not a hand-rolled step table:
+	// the only thing wrapped around it is dropping ticks outside the domain, which is
+	// what v4's Continuous.calculateTicks() did whenever nice was off
+	for (const [min, max] of [[0, 69660], [3.2, 4.428], [0, 108], [-40, 260], [0.5, 0.92]]) {
+		const engine = wilkinsonExtended(min, max, 5).filter((t) => t >= min && t <= max);
+		assert.deepEqual(axis.tickMethod(min, max, 5), engine, `${min}..${max}`);
+	}
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
@@ -798,7 +804,9 @@ test("y axis gets headroom above the max value", () => {
 		},
 	});
 	assert.equal(line.config.scale.y.domainMax, 30 * 1.08);
-	assert.equal(line.config.scale.y.nice, false); // nice would round the headroom away
+	// nice only rounds the domain up, so the headroom survives it and the axis top
+	// lands on a labelled tick instead of a bare edge
+	assert.equal(line.config.scale.y.nice, true);
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
@@ -845,6 +853,29 @@ test("dual-axis percent suffix applies per side", () => {
 	assert.equal(barChild.label.formatter(1000), "1,000");
 	assert.equal(lineChild.axis.y.labelFormatter(2.6), "2.6%");
 	assert.equal(lineChild.label.formatter(2.6), "2.6%");
+});
+
+test("single-view charts round the axis top, dual-axis children do not", () => {
+	// both Column and DualAxes ship nice: true in their own defaults, so every path
+	// has to state its choice rather than inherit one
+	const single = ["line", "bar", "grouped-bar", "stacked-bar"];
+	for (const [name, attrs] of CHART_SHAPES) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		if (single.includes(name)) {
+			assert.equal(built.config.scale.y.nice, true, name);
+			continue;
+		}
+		// rounding each side of a dual axis on its own pulls the two sets of ticks
+		// onto different heights, and the readings stop lining up
+		for (const child of built.config.children) {
+			if (!child.scale?.y) continue;
+			assert.equal(child.scale.y.nice, false, `${name}/${child.type}`);
+		}
+	}
 });
 
 test("every chart with bars carries a hover band shell the theme can paint", () => {
