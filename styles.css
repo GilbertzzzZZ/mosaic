@@ -152,9 +152,16 @@
 	display: grid;
 	grid-template-columns: 18px minmax(0, 1fr);
 	column-gap: 10px;
-	padding-bottom: 14px;
 }
-.mosaic-timeline-item:last-child {
+/* 条目间距必须从列表容器写起。Obsidian 自己的 `.markdown-preview-view ol > li`
+   （一个类名加两个元素）比单独一个 `.mosaic-timeline-item`（一个类名）更具体，
+   会把这里的间距整个盖掉，套用它给正文列表调的 --list-spacing——约 1px，几条记录
+   因此挤成一片。垫上列表容器凑够两个类名，间距才由这里说了算。 */
+.mosaic-timeline-list > .mosaic-timeline-item {
+	padding-top: 0;
+	padding-bottom: var(--size-4-4);
+}
+.mosaic-timeline-list > .mosaic-timeline-item:last-child {
 	padding-bottom: 0;
 }
 .mosaic-timeline-item::before {
