@@ -18,10 +18,9 @@ export class MosaicSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl('h2', { text: 'Mosaic Settings' });
 
 		new Setting(containerEl)
-			.setName("Show Export Button")
+			.setName("Show export button")
 			.setDesc("Show a PNG export button when hovering a chart.")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showExportBtn)

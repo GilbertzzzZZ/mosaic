@@ -1,9 +1,6 @@
 import React, { useMemo, useState } from "react";
-// @ts-ignore -- src/blocks/*.mjs 未类型化（declare module "*.mjs"），契约见 interfaces.md
 import { extractRows, listAttribute, uniqueStrings } from "../../blocks/payload.mjs";
-// @ts-ignore
 import { tableComplexityAttributes } from "../../blocks/table-complexity.mjs";
-// @ts-ignore
 import { tableLayout } from "../../blocks/table-layout.mjs";
 
 export interface DataTableViewProps {
@@ -153,8 +150,8 @@ export const DataTableView = ({
 							<label className="table-search">
 								<input
 									type="search"
-									aria-label="筛选当前表格"
-									placeholder="筛选…"
+									aria-label="Filter this table"
+									placeholder="Filter…"
 									value={search}
 									onChange={(event) => setSearch(event.target.value)}
 								/>
@@ -167,12 +164,12 @@ export const DataTableView = ({
 									checked={frozen}
 									onChange={(event) => setFrozen(event.target.checked)}
 								/>
-								冻结首列
+								Freeze first column
 							</label>
 						)}
 						{complexity.copyCsv && (
 							<button type="button" onClick={copyCsv}>
-								复制 CSV
+								Copy CSV
 							</button>
 						)}
 					</div>

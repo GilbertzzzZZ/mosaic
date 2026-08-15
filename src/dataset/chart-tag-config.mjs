@@ -147,14 +147,14 @@ function buildFootnote(meta) {
 function buildWarning(meta) {
 	const parts = [];
 	if (meta.partialPeriodCount > 0)
-		parts.push(`边界周期不完整：${meta.partialPeriods.join("、")}`);
+		parts.push(`Partial boundary periods: ${meta.partialPeriods.join(", ")}`);
 	if (meta.omittedBoundaryPeriodCount > 0)
 		parts.push(
-			`不完整边界周期已省略：${meta.omittedBoundaryPeriods.join("、")}`,
+			`Incomplete boundary periods omitted: ${meta.omittedBoundaryPeriods.join(", ")}`,
 		);
 	if (meta.missingPeriodCount > 0)
-		parts.push(`区间内缺失 ${meta.missingPeriodCount} 个源周期`);
-	return parts.length ? parts.join("；") : undefined;
+		parts.push(`${meta.missingPeriodCount} source periods missing within the range`);
+	return parts.length ? parts.join("; ") : undefined;
 }
 
 function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {

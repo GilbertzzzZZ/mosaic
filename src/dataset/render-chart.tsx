@@ -292,6 +292,7 @@ async function renderDataTableDataset(
 	const query = datasetQueryFromContent(body);
 	const { manifest, rows } = await loadDatasetForNote(plugin.app, sourcePath, attributes.dataset);
 	if (stale()) return;
+	// queryDataset 是无类型 .mjs 纯函数，返回形态由测试保证；在边界断言一次。
 	const build = (granularity?: string): DataTableQueryResult =>
 		queryDataset({
 			manifest,
@@ -301,7 +302,7 @@ async function renderDataTableDataset(
 			query,
 			granularity: granularity ?? granularityAttr,
 			granularityOptions,
-		});
+		}) as unknown as DataTableQueryResult;
 	const initial = build(undefined);
 	const options = granularityOptions.filter((g) =>
 		initial.meta.availableGranularities.includes(g),

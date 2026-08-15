@@ -1,6 +1,5 @@
 import React from "react";
 import { BlockShell, BlockTitle } from "./BlockShell";
-// @ts-ignore -- src/blocks/*.mjs 未类型化（declare module "*.mjs"），契约见 interfaces.md
 import { extractRows, timelineItem } from "../../blocks/payload.mjs";
 
 export interface TimelineViewProps {

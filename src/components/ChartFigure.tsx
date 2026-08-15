@@ -70,7 +70,7 @@ export const ChartFigure = ({
 	}, [granularity, rebuildEpoch]);
 
 	return (
-		<figure className="mosaic-figure" ref={figureRef as never}>
+		<figure className="mosaic-figure" ref={figureRef}>
 			{(title || options.length > 1) && (
 				<div className="mosaic-figure-header">
 					{title && (

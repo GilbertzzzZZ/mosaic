@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-// @ts-ignore -- src/blocks/*.mjs 未类型化（declare module "*.mjs"），契约见 interfaces.md
 import { extractFlowDiagram, layoutFlowDiagram } from "../../blocks/flow.mjs";
 
 export interface FlowDiagramViewProps {
@@ -61,7 +60,7 @@ export const FlowDiagramView = ({ attributes, body }: FlowDiagramViewProps) => {
 				<svg
 					viewBox={`0 0 ${layout.width} ${layout.height}`}
 					role="img"
-					aria-label={attributes.title || "流程图"}
+					aria-label={attributes.title || "Flow diagram"}
 				>
 					<defs>
 						<marker

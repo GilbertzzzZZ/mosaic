@@ -1,6 +1,5 @@
 import React from "react";
 import { BlockShell, BlockTitle, BlockKicker } from "./BlockShell";
-// @ts-ignore -- src/blocks/*.mjs 未类型化（declare module "*.mjs"），契约见 interfaces.md
 import {
 	extractRows,
 	decisionItems,
@@ -54,7 +53,7 @@ export const DecisionBoxView = ({ attributes, body }: DecisionBoxViewProps) => {
 
 	const header = (
 		<div className="mosaic-decision-header">
-			<BlockKicker>决策</BlockKicker>
+			<BlockKicker>Decision</BlockKicker>
 			{attributes.title && <BlockTitle>{attributes.title}</BlockTitle>}
 			{badges.length > 0 && (
 				<div className="mosaic-decision-badges">
