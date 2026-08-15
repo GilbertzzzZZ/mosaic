@@ -1,7 +1,8 @@
 # DataTable
 
-> DataTable 内容块的完整文档：内联表格（CSV / JSON / Markdown 表）与外部数据集（`.dataset.json`）两种数据来源，共用一套渲染。
+> DataTable 内容块的使用指导（how）：内联表格（CSV / JSON / Markdown 表）与外部数据集（`.dataset.json`）两种数据来源，共用一套渲染。
 > 只支持标签入口（成对标签为主，自闭合标签仅在 dataset 模式下才有意义）；不支持 `chartview` 代码块写法——代码块写法是 Chart 专属。
+> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；复杂度启发式与布局算法的设计动机见 [design/data-table.md](../design/data-table.md)。
 
 ## 写法
 
@@ -17,10 +18,7 @@ sample-b,5,watch
 </DataTable>
 ````
 
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。这是 Obsidian 宿主的段落切分规则决定的，不支持开标签跨多行。
-- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，后续内容（含围栏和闭标签）被当作独立段落解析，标签同样不会被接管。
-- 属性值支持双引号、单引号或不加引号三种写法：`title="示例"`、`title='示例'`、`title=示例` 均合法，但不加引号时值不能含空白、引号或 `>`、`/`；属性的 `=` 两侧不能有空格（`title = "示例"` 不被识别，整个标签按原文渲染）。
-- 闭合标签必须独占一行、与开标签同名，大小写敏感：`</DataTable>`。
+- 写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
 
 **自闭合标签 · dataset 模式**（body 允许为空，因此只有引用外部数据集时才常见）：
 
@@ -57,14 +55,10 @@ sample-b,5,watch
 
 ## Payload 契约
 
-**内联模式**（无 `dataset` 属性时）：标签体走通用的行提取规则，依次尝试四条路径：
+**内联模式**（无 `dataset` 属性时）：标签体走[通用行提取四路径](tag-syntax.md#通用行提取四路径)。DataTable 特有的两条规则：
 
-1. 标签体是一个唯一的围栏代码块（` ```json ` / ` ```tsv ` / ` ```csv ` 或缺省语言标签）：`json` 按 JSON 解析（数组本身即行数组，或 `{"rows":[...]}` 对象）；`tsv` 按 Tab 分隔；**其余任何语言标签（含拼写错误、`csv`、缺省、甚至无关标签）一律退化按逗号 CSV 解析**——语言标签只在 `json`/`tsv` 时真正生效。
-2. 无围栏、裸文本以 `[` 或 `{` 开头：整体当 JSON 解析。
-3. 无围栏、裸文本含 `|` 字符：当 Markdown 表格解析（第 1 行表头，第 2 行分隔行被无条件跳过不校验格式，第 3 行起是数据）。
-4. 兜底：裸文本按逗号 CSV 解析。
-
-每行是一个扁平对象，字段名 = 列头（CSV/TSV/Markdown 表）或 JSON key；DataTable **不对字段名做别名归一化**，列名就是原始 key（除非 `columns` 属性重排/裁剪）。单元格值经过数字嗅探：只有严格匹配 `^-?\d+(?:\.\d+)?$`（纯整数或小数）的单元格会转成数字，其余（含空字符串、日期、`"12%"`、`"1,234"`）保持字符串原样展示。
+- **不对字段名做别名归一化**：列名就是原始 key（除非 `columns` 属性重排/裁剪）。
+- **数字嗅探**：只有严格匹配 `^-?\d+(?:\.\d+)?$`（纯整数或小数）的单元格会转成数字，其余（含空字符串、日期、`"12%"`、`"1,234"`）保持字符串原样展示。
 
 **dataset 模式**（有 `dataset` 属性时）：**与内联 payload 完全互斥**。行数据 100% 来自外部 manifest + 数据文件，标签体唯一合法内容是一个可选的 ` ```query ` 围栏，JSON 对象，只能含 `from`/`to`/`where` 三个键（`from`/`to` 优先于同名属性）：
 
@@ -107,12 +101,7 @@ granularityOptions 出现 day/week/month/quarter 之外的值
 
 dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where` 校验、`rollup` 缺失等）与 Chart 共用同一套查询语义，完整列表见 [dataset-guide.md](dataset-guide.md) 排错清单。
 
-按原文渲染（不接管、不是错误框）：
-
-- 开标签跨多行（Obsidian 段落规则不支持，见上文写法说明）。
-- 标签体内出现空行。
-- 段落里混有标签以外的内容。
-- 找不到独占一行的 `</DataTable>` 闭合标签。
+按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
 
 ## 渲染效果
 
@@ -124,6 +113,8 @@ dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where
 
 ## 相关文档
 
+- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
 - [dataset-guide.md](dataset-guide.md)——dataset 模式共用的 manifest 契约、查询语义、排错清单
 - [chart.md](chart.md)——Chart 内容块，dataset 模式的姊妹实现
+- [design/data-table.md](../design/data-table.md)——复杂度启发式、布局算法与双数据源设计动机
 - [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap

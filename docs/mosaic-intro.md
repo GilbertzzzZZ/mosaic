@@ -2,6 +2,7 @@
 
 > Mosaic is a declarative content-block rendering plugin for Obsidian: declare blocks in md / mdx with a simple convention, and the plugin recognizes, parses, and renders them as rich interactive content.
 > Like a mosaic, your note is assembled from individual blocks — charts, metric grids, cards — that compose into a complete picture.
+> This document covers positioning, the block-type panorama and the roadmap only; per-block how-to guides live in `docs/guides/`, design rationale in `docs/design/`.
 
 ## Positioning
 
@@ -38,57 +39,11 @@
 
 > Three ways to declare a block, all written directly in md / mdx content.
 
-**Code block** (`---` frontmatter, optional inline CSV below)
+- **Code block** — a `chartview` fence with `---` frontmatter attributes and an optional inline CSV section (Chart only).
+- **Self-closing tag** — `<Chart ... />` with one attribute per line, data loaded from an external dataset manifest.
+- **Paired tag** — attributes on the opening tag, data payload in the body; shared by `Chart` and the five tag-only block types.
 
-````text
-```chartview
----
-title: "Example Trend"
-type: line
-series: "Metric A,Metric B"
-unit: "units"
----
-month,Metric A,Metric B
-2025-01,120,140
-2025-02,140,150
-2025-03,160,155
-```
-````
-
-Full reference: [chart.md](guides/chart.md).
-
-**Self-closing tag** (one attribute per line)
-
-```text
-<Chart
-  title="Monthly Active Paid Rate"
-  dataset="data/metrics/monthly-active-paid-rate.dataset.json"
-  type="line"
-  x="period"
-  series="paid rate,piano,violin"
-  unit="%"
-  labels="all"
-  from="2024-07-01"
-  to="2026-07-01"
-  granularity="month"
-  granularityOptions="month,quarter"
-  note="Paid rate = paying users / active users; quarterly view is the arithmetic mean of monthly rates."
-/>
-```
-
-**Paired tag** (attributes on the opening tag, data payload in the body — shared by `Chart` and the five tag-only block types)
-
-````text
-<MetricGrid title="Product Overview">
-```csv
-label,value,delta,note,status
-Total users,1.98M,,students 1.62M,neutral
-New users / mo,20K,,piano 251/day; violin 350/day,neutral
-MAU,132K,,avg WAU 67K; DAU 25K,neutral
-Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
-```
-</MetricGrid>
-````
+Shared tag-syntax rules (paragraph takeover, attribute forms, fall-back-to-source cases): [tag-syntax.md](guides/tag-syntax.md). Full syntax examples for all three entries: [chart.md](guides/chart.md).
 
 ---
 

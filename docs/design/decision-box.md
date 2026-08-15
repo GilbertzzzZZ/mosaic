@@ -1,6 +1,6 @@
 # DecisionBox 区块设计
 
-> DecisionBox 把一条决策渲染成带状态徽标的卡片，正文既可以是结构化的「条目：内容」清单，也可以是自由散文。它是六类区块中唯一空数据不报错的一个——这不是疏漏，而是它的核心设计。用法见 [../decision-box.md](../guides/decision-box.md)。
+> DecisionBox 把一条决策渲染成带状态徽标的卡片，正文既可以是结构化的「条目：内容」清单，也可以是自由散文。它是六类区块中唯一空数据不报错的一个——这不是疏漏，而是它的核心设计。用法见 [../guides/decision-box.md](../guides/decision-box.md)。
 
 ## 双路径设计：结构化 label/value 与富文本回退
 
@@ -58,4 +58,4 @@
 
 - [architecture.md](architecture.md)——错误哲学：两类失败面的划分
 - [metric-grid.md](metric-grid.md) / [timeline.md](timeline.md)——同样以词表归一状态、按各自问题域裁剪词表的姊妹设计
-- [../decision-box.md](../guides/decision-box.md)——用法、属性表与写法示例
+- [../guides/decision-box.md](../guides/decision-box.md)——用法、属性表与写法示例

@@ -1,6 +1,6 @@
 # FlowDiagram 区块设计
 
-> FlowDiagram 把节点与边渲染成静态 SVG 流程图，是六类区块中唯一带自研布局算法的一个。本文解释双形态输入的判定与归一、分层布局的思想、环的退化处理与节点配色语义。用法见 [../flow-diagram.md](../guides/flow-diagram.md)。
+> FlowDiagram 把节点与边渲染成静态 SVG 流程图，是六类区块中唯一带自研布局算法的一个。本文解释双形态输入的判定与归一、分层布局的思想、环的退化处理与节点配色语义。用法见 [../guides/flow-diagram.md](../guides/flow-diagram.md)。
 
 ## 双形态 payload 的判定与归一化
 
@@ -57,4 +57,4 @@
 ## 相关文档
 
 - [architecture.md](architecture.md)——入口识别、错误哲学等跨区块设计
-- [../flow-diagram.md](../guides/flow-diagram.md)——用法、字段表与写法示例
+- [../guides/flow-diagram.md](../guides/flow-diagram.md)——用法、字段表与写法示例

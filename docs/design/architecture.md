@@ -1,6 +1,6 @@
 # 总体设计
 
-> Mosaic 的整体架构设计：三段管线的职责边界与数据流、入口识别与宿主时机的取舍、外部数据集子系统的契约设计，以及贯穿全部区块的错误处理哲学。本文讲「为什么这么设计」；各区块的具体用法见 `docs/` 下的同名用户文档。
+> Mosaic 的整体架构设计：三段管线的职责边界与数据流、入口识别与宿主时机的取舍、外部数据集子系统的契约设计，以及贯穿全部区块的错误处理哲学。本文讲「为什么这么设计」，不含用法与属性明细；各区块的具体用法见 `docs/guides/` 下的同名指导文档。
 
 ## 三段管线
 
@@ -67,4 +67,4 @@ Chart 与 DataTable 支持从库内外部文件取数。设计目标是：正文
 ## 相关文档
 
 - [chart.md](chart.md) · [data-table.md](data-table.md) · [metric-grid.md](metric-grid.md) · [timeline.md](timeline.md) · [decision-box.md](decision-box.md) · [flow-diagram.md](flow-diagram.md)——各区块的设计细节
-- [../dataset-guide.md](../guides/dataset-guide.md)——外部数据集的用户视角契约与排错清单
+- [../guides/dataset-guide.md](../guides/dataset-guide.md)——外部数据集的用户视角契约与排错清单

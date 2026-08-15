@@ -1,7 +1,8 @@
 # FlowDiagram
 
-> FlowDiagram 内容块的完整文档：分层自动布局的流程图（SVG），两种互斥的 payload 形态——显式 graph JSON，或表格式行数据（`next` 列隐式生成边）。
+> FlowDiagram 内容块的使用指导（how）：分层自动布局的流程图（SVG），两种互斥的 payload 形态——显式 graph JSON，或表格式行数据（`next` 列隐式生成边）。
 > 只支持成对标签入口，只支持内联 payload——不支持 `dataset` 属性、不支持自闭合（body 为空时直接报错）、不支持 `chartview` 代码块写法。
+> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；分层布局与环退化的设计动机见 [design/flow-diagram.md](../design/flow-diagram.md)。
 
 ## 写法
 
@@ -40,10 +41,7 @@ c,结束,end,
 
 - **两种形态的判定**：标签体是唯一一个语言标签恰为 `json` 的围栏（或裸文本以 `{`/`[` 开头），且解析出的顶层值是非数组对象、`nodes` 字段是数组 → 形态 A；否则一律回退形态 B（走通用行提取）。写 ` ```csv ` 但内容恰好是合法 JSON **不会**被当成图解析，仍按 CSV 处理。
 - **两种形态最终汇入同一套归一化**：即使走了形态 A（显式 JSON graph），节点上的 `next`/`to` 字段依然会**再次**被拿去生成隐式边并追加到显式 `edges` 数组后面，两者合并、不去重。所有引用不存在节点 id 的边（无论显式给的还是 `next` 派生的）都被静默过滤掉，不报错。
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。不支持开标签跨多行。
-- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，标签同样不会被接管。
-- 属性值支持双引号、单引号或不加引号三种写法。
-- 闭合标签必须独占一行、与开标签同名，大小写敏感：`</FlowDiagram>`。
+- 写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
 
 ## 属性表
 
@@ -67,7 +65,7 @@ FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写
 
 `edges` 字段名可以是 `edges` 或 `links`（`edges` 优先）。
 
-**形态 B**：与其他四类共用的通用行提取规则（fenced csv/tsv/json，或裸 JSON/Markdown表/CSV；语言标签只在 `json`/`tsv` 时生效，否则退化 CSV）。
+**形态 B**：走[通用行提取四路径](tag-syntax.md#通用行提取四路径)。
 
 **节点归一化**（两种形态最终都走这一步）：
 
@@ -96,7 +94,7 @@ FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写
 
 **环退化最小示例**（伪造数据，`a → b → c → a` 三节点环）：
 
-```text
+````text
 <FlowDiagram title="示例环（退化布局）">
 ```csv
 id,label,type,next
@@ -105,7 +103,7 @@ b,节点B,action,c
 c,节点C,action,a
 ```
 </FlowDiagram>
-```
+````
 
 三个节点会被逐一拉开成三层纵向排布，而不是折叠成一个视觉闭环。
 
@@ -123,12 +121,7 @@ c,节点C,action,a
 → Mosaic: External datasets support Chart and DataTable.
 ```
 
-按原文渲染（不接管、不是错误框）：
-
-- 开标签跨多行（Obsidian 段落规则不支持，见上文写法说明）。
-- 标签体内出现空行。
-- 段落里混有标签以外的内容。
-- 找不到独占一行的 `</FlowDiagram>` 闭合标签。
+按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
 
 ## 渲染效果
 
@@ -140,5 +133,7 @@ c,节点C,action,a
 
 ## 相关文档
 
-- [data-table.md](data-table.md)
+- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
+- [data-table.md](data-table.md)——同样支持多种内联 payload 形态的姊妹组件
+- [design/flow-diagram.md](../design/flow-diagram.md)——双形态判定、分层布局与环退化的设计动机
 - [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap

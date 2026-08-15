@@ -1,6 +1,6 @@
 # MetricGrid 区块设计
 
-> MetricGrid 把一组指标卡摆成自适应网格，让「本期核心数字」一屏尽收。它的设计重心在三处：网格如何自适应、状态色如何自动判定、字段别名如何归一。用法见 [../metric-grid.md](../guides/metric-grid.md)。
+> MetricGrid 把一组指标卡摆成自适应网格，让「本期核心数字」一屏尽收。它的设计重心在三处：网格如何自适应、状态色如何自动判定、字段别名如何归一。用法见 [../guides/metric-grid.md](../guides/metric-grid.md)。
 
 ## 自适应网格
 
@@ -58,4 +58,4 @@ delta 的文字颜色刻意与状态色解耦：变化量本身保持中性文�
 
 - [architecture.md](architecture.md)——入口识别、错误哲学等跨区块设计
 - [timeline.md](timeline.md)——同样使用词表状态归一的姊妹区块
-- [../metric-grid.md](../guides/metric-grid.md)——用法与属性表
+- [../guides/metric-grid.md](../guides/metric-grid.md)——用法与属性表

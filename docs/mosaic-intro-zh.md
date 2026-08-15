@@ -2,6 +2,7 @@
 
 > Mosaic 是 Obsidian 的声明式内容块渲染插件：在 md / mdx 中按约定语法声明内容块，插件识别、解析后渲染为富交互内容。
 > 笔记如 mosaic（马赛克拼图）——chart、metric grid、card 一块块内容块，拼合成完整的阅读画面。
+> 本文只覆盖定位、内容块全景与 Roadmap；各内容块的使用指导在 `docs/guides/`，设计动机在 `docs/design/`。
 
 ## 定位
 
@@ -38,57 +39,11 @@
 
 > 三种写法，均直接写在 md / mdx 正文中。
 
-**代码块**（`---` frontmatter，可选内联 CSV 数据区）
+- **代码块**——`chartview` 围栏，`---` frontmatter 属性区 + 可选内联 CSV 数据区（仅 Chart）。
+- **自闭合标签**——`<Chart ... />`，一行一个属性，数据来自外部数据集 manifest。
+- **成对标签**——属性写在开标签上，数据 payload 写在标签体内；`Chart` 与另外五类仅支持标签入口的内容块共用这一写法。
 
-````text
-```chartview
----
-title: "示例趋势"
-type: line
-series: "指标A,指标B"
-unit: "件"
----
-month,指标A,指标B
-2025-01,120,140
-2025-02,140,150
-2025-03,160,155
-```
-````
-
-完整参考见 [chart.md](guides/chart.md)。
-
-**自闭合标签**（一行一个属性）
-
-```text
-<Chart
-  title="Monthly Active Paid Rate"
-  dataset="data/metrics/monthly-active-paid-rate.dataset.json"
-  type="line"
-  x="period"
-  series="paid rate,piano,violin"
-  unit="%"
-  labels="all"
-  from="2024-07-01"
-  to="2026-07-01"
-  granularity="month"
-  granularityOptions="month,quarter"
-  note="Paid rate = paying users / active users; quarterly view is the arithmetic mean of monthly rates."
-/>
-```
-
-**成对标签**（属性写在开标签上，数据 payload 写在标签体内——`Chart` 与另外五类仅支持标签入口的内容块共用这一写法）
-
-````text
-<MetricGrid title="Product Overview">
-```csv
-label,value,delta,note,status
-Total users,1.98M,,students 1.62M,neutral
-New users / mo,20K,,piano 251/day; violin 350/day,neutral
-MAU,132K,,avg WAU 67K; DAU 25K,neutral
-Active paid rate,2.6%,,piano 1.1%; violin 3.1%,neutral
-```
-</MetricGrid>
-````
+标签写法通则（宿主段落规则、属性语法、按原文渲染情形）见 [tag-syntax.md](guides/tag-syntax.md)；三种写法的完整示例见 [chart.md](guides/chart.md)。
 
 ---
 

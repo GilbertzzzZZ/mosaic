@@ -1,6 +1,6 @@
 # DataTable 区块设计
 
-> DataTable 的核心设计是「按内容自动决定形态」：工具栏、吸顶、冻结列由复杂度启发式给默认值，列宽与布局模式由内容测量决定，内联与外部数据集两种来源共用同一个视图。本文解释这些判定为什么这么定。用法与属性表见 [../data-table.md](../guides/data-table.md)。
+> DataTable 的核心设计是「按内容自动决定形态」：工具栏、吸顶、冻结列由复杂度启发式给默认值，列宽与布局模式由内容测量决定，内联与外部数据集两种来源共用同一个视图。本文解释这些判定为什么这么定。用法与属性表见 [../guides/data-table.md](../guides/data-table.md)。
 
 ## 复杂度启发式：何时出工具栏
 
@@ -59,4 +59,4 @@ dataset 模式的粒度按钮组采用与 Chart 相同的受控重建模式：ma
 
 - [architecture.md](architecture.md)——外部数据集契约、错误哲学
 - [chart.md](chart.md)——共用查询语义与受控重建模式的姊妹区块
-- [../data-table.md](../guides/data-table.md) / [../dataset-guide.md](../guides/dataset-guide.md)——用法、属性表与排错清单
+- [../guides/data-table.md](../guides/data-table.md) / [../guides/dataset-guide.md](../guides/dataset-guide.md)——用法、属性表与排错清单

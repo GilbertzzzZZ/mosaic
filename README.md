@@ -47,6 +47,7 @@ Chart also supports a self-closing form driven by external dataset manifests (`.
 Detailed docs are currently in Chinese; English overview: [mosaic-intro.md](docs/mosaic-intro.md).
 
 - [Mosaic intro](docs/mosaic-intro.md) ([中文](docs/mosaic-intro-zh.md)) — positioning, architecture and roadmap
+- [Tag syntax](docs/guides/tag-syntax.md) — writing rules shared by all tag blocks, common row extraction, fall-back-to-source cases
 - [Chart](docs/guides/chart.md) — all three syntaxes, full attribute table, error examples
 - [DataTable](docs/guides/data-table.md) — inline tables or external datasets, shares the dataset query layer with Chart
 - [MetricGrid](docs/guides/metric-grid.md) — status-colored metric cards
@@ -54,6 +55,8 @@ Detailed docs are currently in Chinese; English overview: [mosaic-intro.md](docs
 - [DecisionBox](docs/guides/decision-box.md) — structured label/value list, or free-text fallback
 - [FlowDiagram](docs/guides/flow-diagram.md) — auto-layout flow diagram, graph JSON or row form
 - [Dataset guide](docs/guides/dataset-guide.md) — dataset manifest contract, query semantics, troubleshooting
+
+Design notes (why it works this way): [architecture](docs/design/architecture.md) and one document per block type in [docs/design/](docs/design/).
 
 ## Development
 

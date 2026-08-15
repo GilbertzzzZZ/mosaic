@@ -1,7 +1,8 @@
 # DecisionBox
 
-> DecisionBox 内容块的完整文档：结构化的 label/value 决策清单，或空 payload 时回退成一段极简富文本。
+> DecisionBox 内容块的使用指导（how）：结构化的 label/value 决策清单，或空 payload 时回退成一段极简富文本。
 > 只支持成对标签入口，只支持内联 payload——不支持 `dataset` 属性、不支持 `chartview` 代码块写法。DecisionBox 是五类组件里**唯一在空/非结构化 payload 时不报错**的一个（误用 `dataset` 或畸形 JSON 仍会报错，见「报错示例」）。
+> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；双路径与永不报错立场的设计动机见 [design/decision-box.md](../design/decision-box.md)。
 
 ## 写法
 
@@ -25,8 +26,8 @@ label,value
 </DecisionBox>
 ```
 
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。不支持开标签跨多行。
-- **标签体内不能有空行，这一点对 DecisionBox 的富文本回退影响尤其大**：Obsidian 的 HTML block 规则一旦遇到标签体内的空行就会提前结束整个块，标签根本不会被接管，更谈不上解析出第二段。因此**自由文本回退实际只能承载单段文字或一个无序列表**，写多段落（段落之间留空行）会直接导致整个标签按原文渲染，而不是渲染出多个 `<p>`。需要多段说明时请改用结构化 label/value 数据（每行不含空行）。
+- 写法边界（开标签必须单行、标签体内不能有空行等）见 [tag-syntax.md](tag-syntax.md)。
+- **「标签体内不能有空行」对 DecisionBox 的富文本回退影响尤其大**：富文本路径按空行分段，但标签体一旦出现空行整个标签就不会被接管，因此**自由文本回退实际只能承载单段文字或一个无序列表**，写多段落（段落之间留空行）会直接导致整个标签按原文渲染，而不是渲染出多个 `<p>`。需要多段说明时请改用结构化 label/value 数据（每行不含空行）。
 - 无序列表写法（`- ` 或 `* ` 开头）在同一段落内是安全的，因为列表项之间不需要空行：
 
 ```text
@@ -35,9 +36,6 @@ label,value
 - 缺点：扩展性一般
 </DecisionBox>
 ```
-
-- 属性值支持双引号、单引号或不加引号三种写法。
-- 闭合标签必须独占一行、与开标签同名，大小写敏感：`</DecisionBox>`。
 
 ## 属性表
 
@@ -63,7 +61,7 @@ DecisionBox **不支持 `dataset`**。若在标签上写 `dataset="..."`，会�
 
 ## Payload 契约
 
-标签体走通用的行提取规则（四条路径同 DataTable/Timeline/MetricGrid），解析出 rows 后按 label/value 别名归一化：
+标签体走[通用行提取四路径](tag-syntax.md#通用行提取四路径)，解析出 rows 后按 label/value 别名归一化：
 
 | 输出字段 | 别名优先级 |
 | --- | --- |
@@ -79,18 +77,6 @@ DecisionBox **不支持 `dataset`**。若在标签上写 `dataset="..."`，会�
 
 **永不报错**：即使标签体完全为空（或自闭合无 body），也只是渲染出一个空的富文本区块，不会走错误框。这是 DecisionBox 与 DataTable/Timeline/MetricGrid/FlowDiagram 的关键差异——那四类在 rows 为空时都会报错，DecisionBox 不会。
 
-**最小示例**（伪造数据）：
-
-```text
-<DecisionBox title="示例决策" status="accepted" owner="alice">
-```csv
-label,value
-决策,采用方案 A
-代价,迁移成本约两周
-```
-</DecisionBox>
-```
-
 ### 报错示例
 
 DecisionBox 本身没有「空数据」错误路径。会触发红色错误框的情形只有两类：
@@ -103,14 +89,9 @@ fenced json 围栏内是不合法 JSON
 → Mosaic: Unexpected token ... in JSON at position ...（原生 JSON 解析错误，文案随具体错误位置变化）
 ```
 
-后者不是 DecisionBox 专属——通用行提取对 `json` 围栏的解析失败会直接透出原生 JSON 解析错误，其余四类组件遇到同样的畸形 JSON 也会走这条路径。
+后者不是 DecisionBox 专属，是[通用行提取](tag-syntax.md#通用行提取四路径)对畸形 JSON 的统一行为。
 
-按原文渲染（不接管、不是错误框）：
-
-- 开标签跨多行（Obsidian 段落规则不支持，见上文写法说明）。
-- 标签体内出现空行（连带导致「多段落富文本回退」实际不可用，见上文写法说明）。
-- 段落里混有标签以外的内容。
-- 找不到独占一行的 `</DecisionBox>` 闭合标签。
+按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)；其中「标签体内出现空行」连带导致「多段落富文本回退」实际不可用，见上文写法说明。
 
 ## 渲染效果
 
@@ -122,6 +103,7 @@ fenced json 围栏内是不合法 JSON
 
 ## 相关文档
 
-- [timeline.md](timeline.md)
-- [metric-grid.md](metric-grid.md)
+- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
+- [timeline.md](timeline.md) · [metric-grid.md](metric-grid.md)——同样以词表归一状态的姊妹组件
+- [design/decision-box.md](../design/decision-box.md)——双路径、状态归一与极简 markdown 子集的设计动机
 - [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap

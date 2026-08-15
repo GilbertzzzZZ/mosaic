@@ -1,32 +1,13 @@
 # 外部数据集渲染指导
 
-> Mosaic 的 Chart 标签如何读取外部数据集出图：manifest 契约、查询语义与排错清单。整体架构与数据流见 [mosaic-intro.md](../mosaic-intro.md)。
-> DataTable 的 dataset 模式复用同一套 manifest 契约与查询语义（`from`/`to`/`granularity`/`granularityOptions`、粒度切换按钮、溯源脚注均一致），本文的 manifest 契约与排错清单同样适用于 DataTable，见 [data-table.md](data-table.md)。
+> 外部数据集的使用指导（how）：manifest 契约、查询语义与排错清单——Chart 与 DataTable 的 dataset 模式共用这一套（`from`/`to`/`granularity`/`granularityOptions`、粒度切换按钮、溯源脚注均一致）。
+> 本文不含正文侧的标签写法与属性表——Chart 见 [chart.md](chart.md)（属性的单一权威源），DataTable 见 [data-table.md](data-table.md)；契约设计动机见 [design/architecture.md](../design/architecture.md) 的外部数据集子系统一节。
 
-## Chart 标签写法
+## 在正文中引用
 
-**基本形态**（自闭合，一行一个属性，属性值双引号）
+正文标签用 `dataset` 属性指向 manifest（路径相对当前笔记所在目录，须以 `.dataset.json` 结尾），配合 `from`/`to`/`granularity`/`granularityOptions` 声明「看哪一段、按什么粒度看」；完整写法与属性表见 [chart.md](chart.md) 与 [data-table.md](data-table.md)，本文不重复。
 
-```text
-<Chart
-  title="活跃付费率趋势"
-  dataset="data/metrics/monthly-active-paid-rate.dataset.json"
-  type="line"
-  x="period"
-  series="活跃付费率,钢琴,小提琴"
-  unit="%"
-  labels="all"
-  from="2024-07-01"
-  to="2026-07-01"
-  granularity="month"
-  granularityOptions="month,quarter"
-  note="活跃付费率 = 付费用户 / 活跃用户；季度视图为月比率的算术平均。"
-/>
-```
-
-完整属性表与类型映射/展示语义见 [chart.md](chart.md)（Chart 属性的单一权威源），本文不重复。
-
-**溯源脚注**：每张图底部自动生成 `数据集标题 · from → to · 粒度 · N/M source rows · data through 日期`；区间内有不完整/缺失周期时追加警告行。
+**溯源脚注**：每张图/表底部自动生成 `数据集标题 · from → to · 粒度 · N/M source rows · data through 日期`；区间内有不完整/缺失周期时追加警告行。
 
 ---
 
