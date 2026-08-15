@@ -865,6 +865,39 @@ test("value labels are set 2px above the rest of the chart's type", () => {
 	}
 });
 
+test("a series named only in bars= or lines= still gets drawn", () => {
+	// it is in the data and named in the tag; dropping it drew a chart that was
+	// quietly missing a column, with nothing on the page to say so
+	const csv = "month,appBuy,liveRoom,total\n2024-07,126.7,0.7,127.4\n2024-08,98.9,1,99.9";
+	const seriesOf = (built) => [...new Set(built.config.data.map((d) => d.series))];
+	const withLine = buildChartFromInline({
+		attributes: { x: "month", type: "line", series: "appBuy,liveRoom", line: "total" },
+		csv,
+	});
+	assert.deepEqual(seriesOf(withLine), ["appBuy", "liveRoom", "total"]);
+	// the same holds on the fallback path, where the type was not recognised
+	const fallback = buildChartFromInline({
+		attributes: { x: "month", type: "grouped-bar-line", series: "appBuy,liveRoom", line: "total" },
+		csv,
+	});
+	assert.deepEqual(seriesOf(fallback), ["appBuy", "liveRoom", "total"]);
+	// naming a column twice must not draw it twice
+	const dup = buildChartFromInline({
+		attributes: { x: "month", type: "line", series: "appBuy,total", line: "total" },
+		csv,
+	});
+	assert.deepEqual(seriesOf(dup), ["appBuy", "total"]);
+	// combo reads the roles separately and is unaffected
+	const combo = buildChartFromInline({
+		attributes: { x: "month", type: "combo", bars: "appBuy,liveRoom", lines: "total" },
+		csv,
+	});
+	const comboSeries = combo.config.children
+		.filter((c) => c.data)
+		.flatMap((c) => c.data.map((d) => d.series));
+	assert.deepEqual([...new Set(comboSeries)].sort(), ["appBuy", "liveRoom", "total"]);
+});
+
 test("an unknown chart type still draws, and says so", () => {
 	// a typo must not cost the whole chart: it falls back to the default shape and
 	// reports what happened, so the reader knows the picture is not what was asked for

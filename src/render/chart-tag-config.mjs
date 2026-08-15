@@ -414,7 +414,11 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 	const bars = splitList(attrs.bars ?? attrs.bar);
 	const lines = splitList(attrs.lines ?? attrs.line);
 	const explicit = splitList(attrs.series ?? attrs.y);
-	let seriesKeys = explicit.length ? explicit : [...bars, ...lines];
+	// series= 与 bars=/lines= 取并集，而不是「有 series= 就只认 series=」。后者会把
+	// 只在 bars=/lines= 里点过名的列整个丢掉：它在数据里、在标签里都写着，就是不画，
+	// 也不报错。组合图不走这里（它按角色分别读 bars/lines），所以这条只影响单视图
+	// 图型——包括类型写错降级到 line/bar 的那条路。上游 前身项目 同样取并集。
+	let seriesKeys = explicit.length ? [...new Set([...explicit, ...bars, ...lines])] : [...bars, ...lines];
 	if (seriesKeys.length === 0) {
 		seriesKeys = Object.keys(rows[0] ?? {}).filter((k) => k !== xKey);
 	}
