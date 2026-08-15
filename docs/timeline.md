@@ -107,10 +107,10 @@ Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `d
 
 <!-- TODO: screenshot pending -->
 
-- 纵向时间线，竖线连接、末项截断：![纵向时间线](assets/timeline-layout.png)
-- done / active / blocked / default 四色状态圆点（`active` 跟随 Obsidian 主题强调色）：![四色状态圆点](assets/timeline-status.png)
-- 明暗主题跟随：![明暗主题跟随](assets/timeline-theme.png)
-- 错误框呈现：![错误框呈现](assets/timeline-error.png)
+- 纵向时间线，竖线连接、末项截断（截图待补）
+- done / active / blocked / default 四色状态圆点（`active` 跟随 Obsidian 主题强调色）（截图待补）
+- 明暗主题跟随（截图待补）
+- 错误框呈现（截图待补）
 
 ## 相关文档
 

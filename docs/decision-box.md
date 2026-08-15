@@ -118,10 +118,10 @@ fenced json 围栏内是不合法 JSON
 
 <!-- TODO: screenshot pending -->
 
-- 结构化 label/value 两列布局：![结构化 label/value 布局](assets/decision-box-structured.png)
-- 富文本回退（单段 / 无序列表）：![富文本回退](assets/decision-box-fallback.png)
-- status / owner / source 徽标：![徽标](assets/decision-box-badges.png)
-- 明暗主题跟随：![明暗主题跟随](assets/decision-box-theme.png)
+- 结构化 label/value 两列布局（截图待补）
+- 富文本回退（单段 / 无序列表）（截图待补）
+- status / owner / source 徽标（截图待补）
+- 明暗主题跟随（截图待补）
 
 ## 相关文档
 

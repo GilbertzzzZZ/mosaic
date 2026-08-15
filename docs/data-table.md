@@ -120,12 +120,12 @@ dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where
 
 <!-- TODO: screenshot pending -->
 
-- 内联 CSV / JSON / Markdown 表格三种 payload 渲染一致：![三种 payload 渲染一致](assets/data-table-payloads.png)
-- 简单表格 vs 复杂表格（自动列宽、工具栏显隐）：![简单表格 vs 复杂表格](assets/data-table-complexity.png)
-- 搜索 / 冻结首列 / 复制 CSV / 表头吸顶：![工具栏能力](assets/data-table-toolbar.png)
-- dataset 模式：粒度按钮组与溯源脚注：![dataset 模式](assets/data-table-dataset.png)
-- 明暗主题跟随：![明暗主题跟随](assets/data-table-theme.png)
-- 错误框呈现：![错误框呈现](assets/data-table-error.png)
+- 内联 CSV / JSON / Markdown 表格三种 payload 渲染一致（截图待补）
+- 简单表格 vs 复杂表格（自动列宽、工具栏显隐）（截图待补）
+- 搜索 / 冻结首列 / 复制 CSV / 表头吸顶（截图待补）
+- dataset 模式：粒度按钮组与溯源脚注（截图待补）
+- 明暗主题跟随（截图待补）
+- 错误框呈现（截图待补）
 
 ## 相关文档
 

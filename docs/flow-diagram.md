@@ -136,12 +136,12 @@ c,节点C,action,a
 
 <!-- TODO: screenshot pending -->
 
-- 形态 A（显式 graph JSON）分层布局：![形态 A 分层布局](assets/flow-diagram-json.png)
-- 形态 B（表格式行，`next` 隐式生成边）分层布局：![形态 B 分层布局](assets/flow-diagram-rows.png)
-- 环退化布局（环节点拉直为纵向链）：![环退化布局](assets/flow-diagram-cycle.png)
-- start/end/decision/gate/risk/action 六色节点：![六色节点](assets/flow-diagram-types.png)
-- 明暗主题跟随：![明暗主题跟随](assets/flow-diagram-theme.png)
-- 错误框呈现：![错误框呈现](assets/flow-diagram-error.png)
+- 形态 A（显式 graph JSON）分层布局（截图待补）
+- 形态 B（表格式行，`next` 隐式生成边）分层布局（截图待补）
+- 环退化布局（环节点拉直为纵向链）（截图待补）
+- start/end/decision/gate/risk/action 六色节点（截图待补）
+- 明暗主题跟随（截图待补）
+- 错误框呈现（截图待补）
 
 ## 相关文档
 

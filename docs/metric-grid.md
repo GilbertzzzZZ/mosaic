@@ -102,10 +102,10 @@ label,value,delta,note,status
 
 <!-- TODO: screenshot pending -->
 
-- 自适应网格布局（卡片数量越多列数越多，最小宽 150px）：![自适应网格布局](assets/metric-grid-layout.png)
-- good / risk / watch / neutral 四色状态边框：![四色状态边框](assets/metric-grid-status.png)
-- 明暗主题跟随：![明暗主题跟随](assets/metric-grid-theme.png)
-- 错误框呈现：![错误框呈现](assets/metric-grid-error.png)
+- 自适应网格布局（卡片数量越多列数越多，最小宽 150px）（截图待补）
+- good / risk / watch / neutral 四色状态边框（截图待补）
+- 明暗主题跟随（截图待补）
+- 错误框呈现（截图待补）
 
 ## 相关文档
 

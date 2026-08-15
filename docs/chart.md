@@ -234,12 +234,12 @@ frontmatter 有 dataset 同时又带 CSV 数据区
 
 <!-- TODO: screenshot pending -->
 
-- 折线 / 柱状 / 堆叠 / 组合图：![折线 / 柱状 / 堆叠 / 组合图](assets/chart-types.png)
-- 粒度切换按钮组（仅外部数据集模式）：![粒度切换按钮组](assets/chart-granularity.png)
-- 单位与格式化（`%` 后缀、货币前缀、千分位）：![单位与格式化](assets/chart-units.png)
-- 明暗主题跟随：![明暗主题跟随](assets/chart-theme.png)
-- 溯源脚注与不完整周期警告（仅外部数据集模式）：![溯源脚注与不完整周期警告](assets/chart-footnote.png)
-- 错误框呈现：![错误框呈现](assets/chart-error.png)
+- 折线 / 柱状 / 堆叠 / 组合图（截图待补）
+- 粒度切换按钮组（仅外部数据集模式）（截图待补）
+- 单位与格式化（`%` 后缀、货币前缀、千分位）（截图待补）
+- 明暗主题跟随（截图待补）
+- 溯源脚注与不完整周期警告（仅外部数据集模式）（截图待补）
+- 错误框呈现（截图待补）
 
 ---
 
