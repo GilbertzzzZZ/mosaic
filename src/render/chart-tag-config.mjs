@@ -357,8 +357,10 @@ const Y_AXIS = {
 // 字重取关键字而不是数字：G 的 fontWeight 只认 normal / bold / bolder / lighter，
 // 数字字重还要看用户主题的字体有没有对应字面，"bold" 有 CSS 合成加粗兜底。
 // highlight 的另外两件事在 G2 v5 下做不到，见 docs 与本次实施报告：
-//   底色块   —— 轴标签是一个裸的 @antv/g Text，@antv/component 的轴 label 样式表里
+//   标签底色 —— 轴标签是一个裸的 @antv/g Text，@antv/component 的轴 label 样式表里
 //               没有任何 background* 键（text mark 和图例项才有 backgroundFill）。
+//               注意这说的只是「轴标签背后的底色」；绘图区里的竖向色带是另一回事，
+//               走的是下面的 highlightBand()，做得到。
 //   强制显示 —— 轴标签抽稀是 @antv/component 的 autoHide，按「奇偶步长 + 几何相交」
 //               整批取舍（items.filter((d, i) => i % seq ...)），只有 keepHeader /
 //               keepTail 两个开关，没有按项豁免的入口。
@@ -366,6 +368,45 @@ function highlightAxisX(periods) {
 	if (periods.length === 0) return undefined;
 	const marked = new Set(periods);
 	return { labelFontWeight: (d) => (marked.has(d?.label) ? "bold" : "normal") };
+}
+
+// 加粗之外的第二层：被点名的那一期，整列铺一条竖向背景色带。只加粗太弱——用户看过
+// 实物后的原话是「要仔细看才发现」。色带画在绘图区里，不是画在轴标签背后：轴标签是
+// 一个裸的 @antv/g Text，@antv/component 的轴 label 样式表里没有任何 background* 键，
+// 那条路走不通（见上面 highlightAxisX 的注释）。
+//
+// 用 G2 内置的 rangeX mark，两个方向都不用算坐标：
+//   高度  RangeX = AbstractRange({ extendY: true })，extendY 让 y 方向恒取 [0, 1]，
+//         色带自动铺满整个绘图区，既不用给 y 值，也不进 y scale 的值域。
+//   宽度  range.ts 的 extend() 里有 `C1[i] + scale.getBandWidth(scale.invert(+C1[i]))`，
+//         band scale 原生支持：x 与 x1 给同一个类别值，色带就正好补成那一列的宽度。
+// x1 必须显式写：extend() 解构的是 value.x 和 value.x1 两个通道，只给 x 会在 C1[i]
+// 上抛 TypeError——rangeX 的 MaybeDefaultX 只给「数组型 data」补 x1，对象型不补。
+//
+// 挂在 annotations 而不是自己往 children 里塞：plots 的 transformOptions 把顶层配置
+// （data / xField / yField / colorField / label / state / legend …）深合并进每一个
+// children 成员，自己塞就等于让色带继承整套数据映射——会拿到 encode.color（于是进
+// 图例）、labels（于是画数值标签）、state.active（于是跟着悬停变色）。annotations
+// 这条路的 extendedProperties 是空数组，一样都不继承，而且自带 tooltip: false。
+// 顺带解决「组合图画几次」：annotations 写在顶层，无论视图里有几个数据 mark，色带
+// 都只生成一个 mark。
+//
+// zIndex 必须写：annotations 一律被 push 到 children 末尾，绘制顺序上会盖在数据之上。
+// G2 给每个 mark 建一层 main layer <g> 并写 style.zIndex = mark.zIndex ?? 0
+// （runtime/plot.js 的 updateLayers），取 -1 就把色带那层压到全部数据层之下。
+const HIGHLIGHT_BAND_Z_INDEX = -1;
+function highlightBand(periods) {
+	if (periods.length === 0) return undefined;
+	return [
+		{
+			type: "rangeX",
+			data: periods.map((period) => ({ period })),
+			encode: { x: "period", x1: "period" },
+			zIndex: HIGHLIGHT_BAND_Z_INDEX,
+			// 空壳：明暗色值由 chart-theme 在 withTheme() 里注入，和悬停蒙层走同一条路。
+			style: {},
+		},
+	];
 }
 
 // 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
@@ -465,6 +506,33 @@ export function applyHoverBandStyle(config, style) {
 		};
 	}
 	return banded;
+}
+
+// highlight= 色带的明暗配色。和悬停蒙层同源——两端纯色消掉色相，只用透明度分强弱。
+// 取 0.1，正好是悬停蒙层的两倍：悬停蒙层是划过就没的临时反馈，可以压到几乎看不见；
+// 色带是一直画着的标记，用户看过只加粗的版本后的结论就是「太弱」。
+// 两套主题对照（深色底按 #1E1E1E、浅色底按 #FFFFFF 算叠加后的明度差）：
+//   深色  +22（网格线 +8，悬停蒙层 +11）
+//   浅色  −26（网格线 −38，悬停蒙层 −13）
+// 即：两套都比网格线更显眼一档，浅色下仍弱于网格线，深色下强于网格线但远不到能压过
+// 数据的程度——色带在数据之下画（zIndex −1），柱子和折线始终是最上面那层。
+// 两层会同时出现（鼠标正好停在被标记的那一列）：0.1 打底再叠 0.05 得 0.145，仍读得出
+// 「这一列被悬停了」，不会糊成一块。
+export function highlightBandStyle(dark) {
+	return { fill: dark ? "#FFFFFF" : "#000000", fillOpacity: 0.1 };
+}
+
+// 把色带配色填进 annotations 里留下的那只空壳。单视图图表和 DualAxes 都把 annotations
+// 写在顶层（转换时才变成 children 末尾的一个 mark），所以只有一处要改；返回改到的
+// mark，调用方可以核对覆盖面。
+export function applyHighlightBandStyle(config, style) {
+	const bands = (Array.isArray(config.annotations) ? config.annotations : []).filter(
+		(mark) => mark?.type === "rangeX",
+	);
+	for (const band of bands) {
+		band.style = { ...band.style, ...fresh(style) };
+	}
+	return bands;
 }
 
 // 悬停竖线的明暗配色。默认的 #1b1e23 @0.5 叠在深色底上明度差不到 2，实际是看不见的；
@@ -632,7 +700,14 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		? { ...baseCommon, warning: [baseCommon.warning, typeNotice].filter(Boolean).join("; ") }
 		: baseCommon;
 	const showLabels = labelsEnabled(attrs);
-	const highlight = splitList(attrs.highlight);
+	// 只认数据里真有的周期，并且去重。加粗对写错的名字本来就是空转，色带不是：色带的
+	// x 通道和数据 mark 共用同一条 x scale，一个不存在的周期名会给 band scale 凭空多出
+	// 一个类别，图上多一根没有数据的空列。加粗和色带用同一份名单。
+	const periodsInData = new Set(rows.map((row) => String(row[xKey])));
+	const highlight = [...new Set(splitList(attrs.highlight))].filter((p) =>
+		periodsInData.has(p),
+	);
+	const band = highlightBand(highlight);
 
 	if (type === "combo" || type === "combo-dual-axis") {
 		let barKeys = bars,
@@ -771,6 +846,9 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 				// 上的 interaction 合并回 view。两个键都不在 TRANSFORM_OPTION_KEY 里，
 				// 转换过后不会被清掉。
 				interaction: fresh(COMBO_INTERACTION),
+				// 组合图有三个数据 mark，色带仍只画一次：annotations 写在顶层，转换出来
+				// 的是一个 mark，不是每个 child 各一份。
+				...(band ? { annotations: band } : {}),
 				children: linesFirst
 					? [lineChild, pointChild, barChild]
 					: [barChild, lineChild, pointChild],
@@ -816,6 +894,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		tooltip: valueTooltip("value", formatter),
 		// 折线图的每个系列都是折线，图例全给横杠；柱图全给方块。
 		legend: legendConfig(type === "line" ? seriesLabels : []),
+		...(band ? { annotations: band } : {}),
 	};
 	if (type === "line")
 		return {
@@ -823,6 +902,13 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			chartType: "Line",
 			config: {
 				...config,
+				// 折线图的 x 默认是 point 比例尺（paddingInner 恒为 1 → bandWidth 恒为
+				// 0），rangeX 拿到的列宽就是 0，色带会缩成一条看不见的零宽度线。想要
+				// 色带有宽度，这条 scale 就必须是 band——padding 沿用柱图那一份，色带
+				// 宽度因此和柱图一致。折线自己会加 getBandWidth()/2 的偏移把点摆回列
+				// 中心（mark/line.ts 的 xoffset），组合图里的折线一直是这么画的。
+				// 只有点名了 highlight= 才换：没点名的折线图一个像素都不动。
+				...(band ? { scale: { ...config.scale, x: { type: "band", ...fresh(BAR_X_SCALE) } } } : {}),
 				point: fresh(LINE_POINT),
 				style: fresh(LINE_STROKE),
 				interaction: fresh(CROSSHAIR_INTERACTION),
