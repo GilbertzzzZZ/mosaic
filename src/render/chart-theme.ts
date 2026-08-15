@@ -1,11 +1,11 @@
 import {
 	applyCrosshairStyle,
-	applyHighlightBandStyle,
+	applyHighlightMarkStyle,
 	applyHoverBandStyle,
 	applyLabelStyle,
 	applyTooltipStyle,
 	crosshairStyle,
-	highlightBandStyle,
+	highlightMarkStyle,
 	hoverBandStyle,
 	labelTextStyle,
 	tooltipStyle,
@@ -46,7 +46,7 @@ export function withTheme<T extends { config: Record<string, unknown> }>(built: 
 	built.config.theme = { type: dark ? "classicDark" : "classic" };
 	applyLabelStyle(built.config, labelTextStyle(dark));
 	applyHoverBandStyle(built.config, hoverBandStyle(dark));
-	applyHighlightBandStyle(built.config, highlightBandStyle(dark));
+	applyHighlightMarkStyle(built.config, highlightMarkStyle(dark));
 	applyCrosshairStyle(built.config, crosshairStyle(dark));
 	applyTooltipStyle(built.config, tooltipStyle(dark));
 	withGridStroke(built.config as Record<string, any>, dark);

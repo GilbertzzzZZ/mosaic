@@ -15,8 +15,8 @@ import {
 	labelTextStyle,
 	applyHoverBandStyle,
 	hoverBandStyle,
-	applyHighlightBandStyle,
-	highlightBandStyle,
+	applyHighlightMarkStyle,
+	highlightMarkStyle,
 	applyCrosshairStyle,
 	crosshairStyle,
 	applyTooltipStyle,
@@ -1592,12 +1592,18 @@ test("the crosshair picks a different colour per theme", () => {
 	assert.equal(crosshairStyle(true).crosshairsStroke, "#FFFFFF");
 });
 
-// Everything below is about the second half of highlight=: the background stripe.
-// Bolding alone tested too weak in the hand, so the named period also gets a
-// full-height band behind the data. The band is a rangeX mark declared as a top-level
-// annotation; these assertions all land on the spec the engine receives, because the
-// whole point is that the mark reaches G2 with nothing of the data mapping attached.
-const bandsOf = (built) => marksOf(asEngineSees(built)).filter((m) => m.type === "rangeX");
+// Everything below is about the second half of highlight=: the mark drawn in the plot
+// area. Bolding alone tested too weak in the hand, so a named period also gets a mark
+// behind the data — and which mark depends on the x scale:
+//   band scale (every chart with bars) -> a rangeX stripe filling the whole slot
+//   point scale (the line chart)       -> a lineX rule standing on the point
+// Both are declared as top-level annotations; these assertions land on the spec the
+// engine receives, because the whole point is that the mark reaches G2 with nothing of
+// the data mapping attached.
+const RULE_TYPES = { line: "lineX" };
+const markerTypeFor = (name) => RULE_TYPES[name] ?? "rangeX";
+const markersOf = (built) =>
+	marksOf(asEngineSees(built)).filter((m) => m.type === "rangeX" || m.type === "lineX");
 const withHighlight = (attrs, highlight) =>
 	buildChartFromTag({
 		manifest,
@@ -1605,44 +1611,52 @@ const withHighlight = (attrs, highlight) =>
 		attributes: { ...base, ...attrs, labels: "all", highlight, granularity: "month" },
 	});
 
-test("highlight= paints one full-height stripe per named period, under the data", () => {
+test("highlight= marks each named period once, under the data", () => {
 	for (const [name, attrs] of CHART_SHAPES) {
 		const built = withHighlight(attrs, "2026-01, 2026-03");
+		// one adaptor pass only: asEngineSees rewrites the config in place, so a second
+		// call would hand back different objects and break the identity check below
 		const spec = asEngineSees(built);
-		const bands = marksOf(spec).filter((m) => m.type === "rangeX");
+		const markers = marksOf(spec).filter((m) => m.type === "rangeX" || m.type === "lineX");
 		// one mark for the whole view, not one per data mark: the combo has three
-		// children and still gets a single stripe layer
-		assert.equal(bands.length, 1, `${name}: expected exactly one stripe mark`);
-		const [band] = bands;
+		// children and still gets a single marker layer
+		assert.equal(markers.length, 1, `${name}: expected exactly one marker mark`);
+		const [marker] = markers;
+		assert.equal(marker.type, markerTypeFor(name), `${name}: wrong mark for this x scale`);
 		assert.deepEqual(
-			band.data,
+			marker.data,
 			[{ period: "2026-01" }, { period: "2026-03" }],
-			`${name}: stripe data`,
+			`${name}: marker data`,
 		);
-		// x1 is not optional: AbstractRange destructures value.x AND value.x1, and
-		// rangeX's MaybeDefaultX only fills x1 in for array-shaped data. Same field on
-		// both channels is what makes the stripe exactly one column wide, because
-		// range.ts adds scale.getBandWidth() to the x1 end.
-		assert.deepEqual(band.encode, { x: "period", x1: "period" }, `${name}: stripe encode`);
-		// height comes for free: RangeX is AbstractRange({extendY: true}), so y is
-		// pinned to [0, 1] and the stripe never touches the y scale
-		assert.equal(band.encode.y, undefined, `${name}: stripe must not claim a y value`);
+		if (marker.type === "rangeX") {
+			// x1 is not optional for rangeX: AbstractRange destructures value.x AND
+			// value.x1, and MaybeDefaultX only fills x1 in for array-shaped data. Same
+			// field on both channels is what makes the stripe exactly one column wide,
+			// because range.ts adds scale.getBandWidth() to the x1 end.
+			assert.deepEqual(marker.encode, { x: "period", x1: "period" }, `${name}: encode`);
+		} else {
+			// lineX declares only an x channel, so there is no second one to fill
+			assert.deepEqual(marker.encode, { x: "period" }, `${name}: encode`);
+		}
+		// height comes for free either way: rangeX is AbstractRange({extendY: true}) and
+		// lineX draws [x, 1] -> [x, 0]. Neither ever touches the y scale.
+		assert.equal(marker.encode.y, undefined, `${name}: marker must not claim a y value`);
 		// and it has to be under the data. G2 gives every mark its own main layer and
 		// stamps style.zIndex = mark.zIndex ?? 0 on it (runtime/plot.js updateLayers),
-		// so a negative zIndex is the only thing keeping the stripe off the bars —
+		// so a negative zIndex is the only thing keeping the marker off the bars —
 		// annotations are always appended to the end of children.
-		assert.ok(band.zIndex < 0, `${name}: stripe zIndex was ${band.zIndex}`);
+		assert.ok(marker.zIndex < 0, `${name}: marker zIndex was ${marker.zIndex}`);
 		for (const mark of marksOf(spec)) {
-			if (mark.type === "rangeX") continue;
+			if (mark === marker) continue;
 			assert.ok(
-				(mark.zIndex ?? 0) > band.zIndex,
-				`${name}: ${mark.type} would be painted below the stripe`,
+				(mark.zIndex ?? 0) > marker.zIndex,
+				`${name}: ${mark.type} would be painted below the marker`,
 			);
 		}
 	}
 });
 
-test("no highlight= means no stripe mark at all", () => {
+test("no highlight= means no marker mark at all", () => {
 	for (const [name, attrs] of CHART_SHAPES) {
 		const built = buildChartFromTag({
 			manifest,
@@ -1650,16 +1664,16 @@ test("no highlight= means no stripe mark at all", () => {
 			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
 		});
 		assert.equal(built.config.annotations, undefined, `${name}: nothing to annotate`);
-		assert.equal(bandsOf(built).length, 0, `${name}: drew a stripe nobody asked for`);
+		assert.equal(markersOf(built).length, 0, `${name}: drew a marker nobody asked for`);
 	}
 });
 
 test("a period the data does not have never reaches the x scale", () => {
-	// the stripe shares the x scale with the data marks, so an unmatched period would
-	// add a category to the band scale and open an empty column in the chart
+	// the marker shares the x scale with the data marks, so an unmatched period would
+	// add a category to the scale and open an empty column in the chart
 	const built = withHighlight({ type: "bar", series: "Total" }, "2026-02, 2029-12");
-	const [band] = bandsOf(built);
-	assert.deepEqual(band.data, [{ period: "2026-02" }]);
+	const [marker] = markersOf(built);
+	assert.deepEqual(marker.data, [{ period: "2026-02" }]);
 	// the bold list is filtered by the same rule, so the two never disagree
 	assert.equal(built.config.axis.x.labelFontWeight({ label: "2026-02" }), "bold");
 	assert.equal(built.config.axis.x.labelFontWeight({ label: "2029-12" }), "normal");
@@ -1669,82 +1683,132 @@ test("a period the data does not have never reaches the x scale", () => {
 	assert.equal(none.config.axis.x, undefined, "no match, nothing to bold");
 });
 
-test("the stripe stays out of the legend, the tooltip and the hover band", () => {
+test("the marker stays out of the legend, the tooltip and the hover band", () => {
 	// it is decoration: it must not colour a series, print a number, open a tooltip or
-	// respond to the pointer
+	// respond to the pointer. Checked for both mark types — lineX is a different mark
+	// from rangeX and inherits none of rangeX's conclusions.
+	const seen = new Set();
 	for (const [name, attrs] of CHART_SHAPES) {
-		const [band] = bandsOf(withHighlight(attrs, "2026-02"));
+		const [marker] = markersOf(withHighlight(attrs, "2026-02"));
+		seen.add(marker.type);
 		// no colour channel means no entry in the colour scale the legend is built from
-		assert.equal(band.encode.color, undefined, `${name}: stripe claims a colour`);
-		assert.equal(band.colorField, undefined, `${name}: stripe claims a colour field`);
+		assert.equal(marker.encode.color, undefined, `${name}: marker claims a colour`);
+		assert.equal(marker.colorField, undefined, `${name}: marker claims a colour field`);
 		// plots stamps tooltip: false on every annotation; without it the shared
-		// tooltip would list the stripe alongside the real series
-		assert.equal(band.tooltip, false, `${name}: stripe is tooltipped`);
+		// tooltip would list the marker alongside the real series
+		assert.equal(marker.tooltip, false, `${name}: marker is tooltipped`);
 		// no value labels, and no hover-band shell to be painted by the theme
-		assert.ok(!band.labels?.length, `${name}: stripe carries labels`);
-		assert.equal(band.state, undefined, `${name}: stripe carries hover state`);
+		assert.ok(!marker.labels?.length, `${name}: marker carries labels`);
+		assert.equal(marker.state, undefined, `${name}: marker carries hover state`);
 	}
-	// and the pointer can never land on it: elementHighlight in region mode only ever
-	// considers these mark types, which is the list the engine itself ships
+	assert.deepEqual([...seen].sort(), ["lineX", "rangeX"], "both mark types were covered");
+	// and the pointer can never land on either: elementHighlight in region mode only
+	// ever considers these mark types, which is the list the engine itself ships
 	const { VALID_FIND_BY_X_MARKS } = G2("interaction/utils.js");
-	assert.ok(!VALID_FIND_BY_X_MARKS.includes("rangeX"), VALID_FIND_BY_X_MARKS.join());
+	for (const type of ["rangeX", "lineX"]) {
+		assert.ok(!VALID_FIND_BY_X_MARKS.includes(type), `${type} in ${VALID_FIND_BY_X_MARKS}`);
+	}
 });
 
-test("a line chart switches x to a band so the stripe has a width to fill", () => {
-	// rangeX takes its width from scale.getBandWidth(). A line chart's x is a point
-	// scale, whose paddingInner is pinned to 1, so the band width is exactly zero and
-	// the stripe would collapse into an invisible hairline.
+test("the line chart gets a rule on the point, and its x scale is left alone", () => {
+	// A line chart's x is a point scale, whose paddingInner is pinned to 1, so its band
+	// width is exactly zero — a rangeX stripe there would collapse to nothing. That is
+	// why the line chart gets a rule instead, and why its x scale needs no surgery.
 	const domain = ["2026-01", "2026-02", "2026-03"];
-	assert.equal(new Point({ domain, range: [0, 1] }).getBandWidth(), 0);
+	const point = new Point({ domain, range: [0, 1] });
+	assert.equal(point.getBandWidth(), 0, "a stripe here would be zero pixels wide");
 	assert.ok(
 		new Band({ domain, range: [0, 1], paddingInner: 0.5, paddingOuter: 0.25 }).getBandWidth() > 0,
 	);
 
-	const band = { type: "band", paddingInner: 0.5, paddingOuter: 0.25 };
-	const highlighted = withHighlight({ type: "line", series: "Total" }, "2026-02");
-	assert.deepEqual(highlighted.config.scale.x, band);
-	// and it has to reach the mark, or the scale group keeps its inferred point type
-	const drawn = marksOf(asEngineSees(highlighted)).find((m) => m.type === "line");
-	assert.deepEqual(drawn.scale.x, band);
-	// same padding as the bars, so a stripe is the same width whatever the chart is
-	const bar = withHighlight({ type: "bar", series: "Total" }, "2026-02");
-	assert.equal(bar.config.scale.x.paddingInner, band.paddingInner);
-	assert.equal(bar.config.scale.x.paddingOuter, band.paddingOuter);
+	const built = withHighlight({ type: "line", series: "Total" }, "2026-02");
+	const [marker] = markersOf(built);
+	assert.equal(marker.type, "lineX");
+	// the rule stands exactly on the data point. Both offsets are a multiple of the
+	// band width, and the band width is zero here: lineX offsets by
+	// bandOffset(0) * getBandWidth(), the line mark by getBandWidth() / 2.
+	const at = point.map("2026-02");
+	assert.equal(at + 0 * point.getBandWidth(), at, "lineX offset");
+	assert.equal(at + point.getBandWidth() / 2, at, "line mark offset");
+	// so nothing about the line chart's x has to move
+	assert.equal(built.config.scale.x, undefined);
+});
 
-	// a line chart nobody highlighted keeps the point scale it always had
-	const plain = buildChartFromTag({
+test("inline csv gets the same marker, keyed off its own x column", () => {
+	// the inline path builds rows itself instead of going through queryDataset, so the
+	// period the marker matches on comes from a different place than in a dataset chart
+	const built = buildChartFromInline({
+		attributes: { x: "month", type: "bar", series: "a", highlight: "2025-01, 2025-04" },
+		csv: INLINE_CSV,
+	});
+	const spec = asEngineSees(built);
+	const [marker] = marksOf(spec).filter((m) => m.type === "rangeX");
+	assert.ok(marker, "inline chart drew no marker");
+	// 2025-04 is not in the csv, so it is dropped rather than opening an empty column
+	assert.deepEqual(marker.data, [{ period: "2025-01" }]);
+	// and the value it matches on is the one the chart actually plots: a single-view
+	// chart keeps its data on the view, the marker carries its own
+	assert.ok(spec.data.some((d) => d.period === "2025-01"), "period must match the plotted key");
+
+	// a line chart from inline data takes the rule, same split as the dataset path
+	const line = buildChartFromInline({
+		attributes: { x: "month", type: "line", series: "a", highlight: "2025-01" },
+		csv: INLINE_CSV,
+	});
+	assert.equal(markersOf(line)[0].type, "lineX");
+	assert.equal(line.config.scale.x, undefined);
+});
+
+test("the marker picks a different colour per theme, and it reaches the drawn mark", () => {
+	const light = highlightMarkStyle(false);
+	const dark = highlightMarkStyle(true);
+	assert.equal(light.rangeX.fill, "#000000");
+	assert.equal(dark.rangeX.fill, "#FFFFFF");
+	assert.equal(light.lineX.stroke, "#000000");
+	assert.equal(dark.lineX.stroke, "#FFFFFF");
+
+	// the stripe is twice the hover band: that one is a wash you see only while the
+	// pointer is there, this one is always on the chart and only-bold read as too faint
+	assert.equal(light.rangeX.fillOpacity, 2 * hoverBandStyle(false).backgroundFillOpacity);
+	// the rule is twice the stripe again: the same ink spread over a whole column reads
+	// as nothing once it is squeezed into a two pixel line
+	assert.equal(light.lineX.strokeOpacity, 2 * light.rangeX.fillOpacity);
+	// still under the weight of the data, whose lines are 3px of saturated colour
+	assert.ok(light.lineX.lineWidth < 3, "the rule must not match the data line");
+	// and it must not be mistaken for the hover crosshair, which is also a 2px pure
+	// black or white vertical line: the dash is what separates a standing annotation
+	// from a pointer-driven readout, and the crosshair stays the louder of the two
+	const crosshair = buildChartFromTag({
 		manifest,
 		rows,
 		attributes: { ...base, type: "line", series: "Total", granularity: "month" },
-	});
-	assert.equal(plain.config.scale.x, undefined);
-});
-
-test("the stripe picks a different colour per theme, and it reaches the drawn mark", () => {
-	const light = highlightBandStyle(false);
-	const dark = highlightBandStyle(true);
-	assert.equal(light.fill, "#000000");
-	assert.equal(dark.fill, "#FFFFFF");
-	// twice the hover band: that one is a wash you see only while the pointer is there,
-	// this one is always on the chart and only-bold already read as too faint
-	assert.equal(light.fillOpacity, 2 * hoverBandStyle(false).backgroundFillOpacity);
-	assert.equal(dark.fillOpacity, light.fillOpacity);
-	// still under the weight of the data: a tenth of an ink layer over the background
-	assert.ok(light.fillOpacity <= 0.15, `${light.fillOpacity} would compete with the bars`);
+	}).config.interaction.tooltip;
+	assert.equal(light.lineX.lineWidth, crosshair.crosshairsLineWidth);
+	assert.ok(light.lineX.strokeOpacity < crosshair.crosshairsStrokeOpacity);
+	assert.ok(light.lineX.lineDash?.length > 0, "the rule has to be dashed");
+	assert.equal(crosshair.crosshairsLineDash, undefined, "the crosshair is solid");
+	// nothing else in the chart is dashed either: the grid was explicitly made solid
+	assert.deepEqual(
+		buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, type: "bar", series: "Total", granularity: "month" },
+		}).config.axis.y.gridLineDash,
+		[0, 0],
+	);
 
 	for (const [name, attrs] of CHART_SHAPES) {
 		const built = withHighlight(attrs, "2026-02");
 		// the config only ships an empty shell, exactly like the hover band: colour is
 		// withTheme()'s job, which is what the mosaic:theme-change rebuild re-runs
 		assert.deepEqual(built.config.annotations[0].style, {}, `${name}: colour leaked into build`);
-		const painted = applyHighlightBandStyle(built.config, dark);
-		assert.equal(painted.length, 1, `${name}: one stripe to paint`);
-		const [drawn] = bandsOf(built);
-		assert.equal(drawn.style.fill, "#FFFFFF", name);
-		assert.equal(drawn.style.fillOpacity, dark.fillOpacity, name);
+		const painted = applyHighlightMarkStyle(built.config, dark);
+		assert.equal(painted.length, 1, `${name}: one marker to paint`);
+		const [drawn] = markersOf(built);
+		assert.deepEqual(drawn.style, dark[drawn.type], name);
 	}
-	// nothing to paint is not an error — most charts carry no stripe
-	assert.deepEqual(applyHighlightBandStyle({ children: [] }, dark), []);
+	// nothing to paint is not an error — most charts carry no marker
+	assert.deepEqual(applyHighlightMarkStyle({ children: [] }, dark), []);
 });
 
 const INLINE_CSV = "month,a,b\n2025-01,120,80\n2025-02,140,\n2025-03,160,95";
