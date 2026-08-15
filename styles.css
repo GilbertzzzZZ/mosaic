@@ -296,7 +296,9 @@
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 8px;
 	background: var(--background-primary);
-	box-shadow: var(--shadow-s, 0 1px 2px rgba(0, 0, 0, 0.08));
+	/* 刻意没有 box-shadow：Chart / Timeline / DecisionBox / MetricGrid 四类区块都是
+	   「1px 边框 + 8px 圆角 + 无阴影」，DataTable 曾是唯一带阴影的一个，看上去像浮起来。
+	   （下面冻结首列那条 box-shadow 是一条 1px 竖分隔线，与立体感无关，不要一起删。） */
 	width: 100%;
 	max-width: 100%;
 }
@@ -360,6 +362,23 @@
 .mosaic-data-table th {
 	color: var(--text-muted);
 	font-weight: 650;
+}
+/* 表头背景单独成一条，且刻意写得比宿主更具体——不是冗余，删了会退回「有、没有、有」。
+   Obsidian app.css 里有一条列斑马纹（1.13.7 实测）：
+       .markdown-rendered thead tr > th:nth-child(2n+2) {
+           background-color: var(--table-column-alt-background);
+       }
+   而 --table-column-alt-background 一路回落到 --table-background，实测计算值是
+   transparent，也就是这条规则的效果是「把偶数列的背景擦掉」。
+   具体度：宿主 (0,2,3) —— .markdown-rendered 与 :nth-child() 两个类级、thead/tr/th
+   三个元素；原来的 .mosaic-data-table th 只有 (0,1,1)，输了，于是第 2 列被擦成透明，
+   三列呈现「有 / 没有 / 有」（headless Chrome 实测 rgb(40,40,40) / rgba(0,0,0,0) /
+   rgb(40,40,40)）。下面这条是 (0,2,4)，只多一个元素选择器就赢，不需要 !important。
+   另：不要改用 var(--table-header-background)——它同样回落到 --table-background，
+   实测计算值也是 transparent，用了等于选择「表头不要背景」，与「三列统一有背景」相反。
+   首列另有一条 .is-first-column-frozen th:first-child (0,4,1) 覆盖在这条之上，
+   两者取的是同一个 --background-secondary，冻结与否三列都一致。 */
+.mosaic-data-table .table-card table thead tr > th {
 	background: var(--background-secondary);
 }
 .mosaic-data-table .table-card.is-sticky-header th {
