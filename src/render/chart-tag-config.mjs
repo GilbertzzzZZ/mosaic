@@ -591,6 +591,9 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common }) {
 		...config,
 		scale: { ...config.scale, x: fresh(BAR_X_SCALE) },
 		state: fresh(HOVER_BAND_STATE),
+		// plots 的 Column 默认已开 background，这里补的是 region——让蒙层与组合图
+		// 一样「进列就出」，而不是必须压在柱体上。
+		interaction: { elementHighlight: fresh(HOVER_BAND_INTERACTION) },
 	};
 	if (type === "grouped-bar")
 		return {

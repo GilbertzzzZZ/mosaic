@@ -924,6 +924,9 @@ test("every chart with bars carries a hover band shell the theme can paint", () 
 		const { active } = built.config.state;
 		assert.equal(active.backgroundFill, "#000000", name);
 		assert.equal(active.backgroundFillOpacity, 0.05, name);
+		// the band has to appear on entering the column, not only on hitting the bar
+		assert.equal(built.config.interaction.elementHighlight.region, true, name);
+		assert.equal(built.config.interaction.elementHighlight.background, true, name);
 	}
 });
 
