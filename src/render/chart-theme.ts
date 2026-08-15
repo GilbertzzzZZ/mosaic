@@ -2,9 +2,11 @@ import {
 	applyCrosshairStyle,
 	applyHoverBandStyle,
 	applyLabelStyle,
+	applyTooltipStyle,
 	crosshairStyle,
 	hoverBandStyle,
 	labelTextStyle,
+	tooltipStyle,
 } from "./chart-tag-config.mjs";
 
 // 跟随 Obsidian 明暗主题选择 G2 内置主题。classic 与 classicDark 的
@@ -43,6 +45,7 @@ export function withTheme<T extends { config: Record<string, unknown> }>(built: 
 	applyLabelStyle(built.config, labelTextStyle(dark));
 	applyHoverBandStyle(built.config, hoverBandStyle(dark));
 	applyCrosshairStyle(built.config, crosshairStyle(dark));
+	applyTooltipStyle(built.config, tooltipStyle(dark));
 	withGridStroke(built.config as Record<string, any>, dark);
 	return built;
 }

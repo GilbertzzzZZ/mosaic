@@ -1,3 +1,6 @@
+// register 必须从 plots 导入而不是 g2：plots 打包了自己那份 g2，两份 g2 各有一张
+// 形状注册表，注册到另一张表上的形状图例查不到。
+import { register } from "@ant-design/plots";
 import { wilkinsonExtended } from "@antv/scale";
 import { queryDataset } from "../parse/dataset-query.mjs";
 import {
@@ -39,22 +42,85 @@ const CHART_NUMBER_FORMAT = new Intl.NumberFormat("en-US", {
 // G2 v5 的配置项；shapeField 选实心圆，point mark 的默认形状是空心的。
 const LINE_POINT = { shapeField: "circle", style: { r: 3, lineWidth: 0 } };
 // 折线线宽：v5 的主题默认给 1，比升级前细了一半（v4 主题给 2），折线在图里退成
-// 了一根发丝。显式设回 2。style 不在 plots 的 EXTENDED_PROPERTIES 里，不会渗进
-// point 简写生成的子 mark，数据点半径不受影响。
-const LINE_STROKE = { lineWidth: 2 };
-// 图例标记统一为方块（默认时折线是短线、柱状是方块，混图不统一）。
-const LEGEND = { color: { itemMarker: "square" } };
-// 数值标签防碰撞：先把越界标签平移回绘图区（首尾数据点贴着边缘，缺这步会被
-// 下一步整个隐藏），再隐藏仍然重叠的。
+// 了一根发丝。取 3 —— 用户逐项确认的值，比升级前还粗一档。style 不在 plots 的
+// EXTENDED_PROPERTIES 里，不会渗进 point 简写生成的子 mark，数据点半径不受影响。
+const LINE_STROKE = { lineWidth: 3 };
+// 图例的折线标记：12 宽 × 4 高的横杠，必须自定义形状——内置的走不通，三条硬伤：
+// 引擎有一层反向缩放（@antv/component 的 scaleToPixel + Item.scaleSize），
+//   渲染尺寸 = bbox × (1 − lineWidth·√2 / 16) × itemMarkerSize / 16
+// 分母恒为 16：形状路径的半径永远取主题的 itemMarkerSize（8），用户写的那个只用来
+// 定归一化目标。反解「12 宽 4 高」得 itemMarkerSize 22.702 / itemMarkerLineWidth
+// 5.3333，数学上可解但 (1) 布局按 itemMarkerSize 算，可见间距被撑到 9.35；
+// (2) 行高取 max(itemMarkerSize, 文字高 16)，图例带从 28px 涨到 34.7px；
+// (3) itemMarkerSize 是整个图例共享的标量，方块要 12、横杠要 22.7，没法共存。
+// 自定义形状一次绕开三条：长边被归一到 itemMarkerSize，3:1 的自然长宽比渲染出来
+// 恒为 S × S/3，与主题的 itemMarkerSize 无关，主题以后改那个值也不会坏。
+// .style 必填：useMarker 直接读 symbol.style.includes('stroke')，不设会 TypeError。
+// 取 fill 类而不是 stroke 类：fill 类的 lineWidth 恒为 0，不触发上面那层反向缩放。
+const LEGEND_BAR_SYMBOL = "legendBar";
+const legendBar = (x, y, r) => [
+	["M", x - r, y - r / 3],
+	["L", x + r, y - r / 3],
+	["L", x + r, y + r / 3],
+	["L", x - r, y + r / 3],
+	["Z"],
+];
+legendBar.style = ["fill"];
+register(`symbol.${LEGEND_BAR_SYMBOL}`, legendBar);
+
+// 图例方块 12×12。itemMarkerLineWidth 必须显式写 0：inferItemMarkerLineWidth 只有
+// 在用户显式给值时才短路，否则会按「形状是不是线类」自动塞 lineWidth = 4，而那个 4
+// 会通过上面的反向缩放把方块缩到 5.17px、把间距撑到 9.42px。现在没发生只是因为数据
+// 点用了 shapeField: "circle" 顺带建了一条形状比例尺把判定带偏——数据点写法一改，
+// 图例方块就会无声缩水三成。
+const LEGEND_MARKER_SIZE = 12;
+// itemSpacing 的三段依次是「色块↔文字」「文字↔数值」「数值↔焦点」（@antv/component
+// 的 legend/category/item.ts 里的 spacing1/2/3）。只收第一段，其余留主题默认 8/4。
+const LEGEND_ITEM_SPACING = [4, 8, 4];
+
+// 图例：顶部居中，折线系列用横杠、其余用方块。
+// 位置和对齐是两个键，且对齐写在 layout 这一层（没有 align 这个键）：引擎按
+// position 查表得到布局预设，top 对应 ['row', 'flex-start', 'center']，flex-start
+// 就是「顶部左对齐」的来源；用户给的 layout 会覆盖预设（inferComponentLayout）。
+// 居中是相对图例自己的包围盒（≈整个画布宽）而不是绘图区，配置层面没有「相对绘图区
+// 居中」的开关，单轴图因此会偏左十几像素。
+// itemMarker 写成回调：参数是系列名（引擎传的是 d.id），按折线系列的标签集合分流。
+// 注意「默认时折线是短线、柱状是方块」对引擎成立、对本插件不成立——本插件的实际默认
+// 是「折线圆点、柱状方块」，组合图更是四项全圆，所以两类都得点名。
+// LEGEND 不能是模块级常量：回调依赖每张图自己的折线标签集合。
+function legendConfig(lineLabels = []) {
+	const lines = new Set(lineLabels);
+	return {
+		color: {
+			position: "top",
+			layout: { justifyContent: "center" },
+			itemMarker: (name) => (lines.has(name) ? LEGEND_BAR_SYMBOL : "square"),
+			itemMarkerSize: LEGEND_MARKER_SIZE,
+			itemMarkerLineWidth: 0,
+			itemSpacing: [...LEGEND_ITEM_SPACING],
+		},
+	};
+}
+// 数值标签防碰撞，三段，顺序不可换：
+//   exceedAdjust    把越界标签平移回绘图区（首尾数据点贴着边缘，缺这步会被后面整个隐藏）
+//   overlapDodgeY   迭代把碰撞的标签上下错开，从不隐藏——这一段是「错开优先」的本体
+//   overlapHide     错不开的兜底隐藏
+// 三个变换的实现都以「先把全部标签设为可见」开头，而变换从左到右复合，所以后一个
+// 隐藏型会撤销前一个的隐藏结果：隐藏型只能有一个，且必须排在最后。
 const LABEL_TRANSFORM = [
 	{ type: "exceedAdjust", bounds: "main" },
+	{ type: "overlapDodgeY", padding: 2, maxIterations: 20 },
 	{ type: "overlapHide" },
 ];
-// 上面那组是组级的：runtime 按 label 分组、逐组去重叠，所以柱标签和折线标签互相看
-// 不见——双轴图上「$ 123,800」和「4%」几乎贴在一起却都留着。这一份跑在视图级，对全
-// 视图的标签一次性去重叠，是升级前没有的能力。单视图图表只有一个 mark，配了等价于
-// 无害；真正吃到的是组合图和双轴图。
-const VIEW_LABEL_TRANSFORM = [{ type: "overlapHide" }];
+// 曾经还有一份视图级的 labelTransform（顶层 config.labelTransform），声称能跨 mark
+// 去重叠。它从未运行过：plots 的 transformOptions 把顶层 labelTransform 下发进每个
+// mark 并从顶层删除（它不在 VIEW_OPTIONS 白名单里），而 G2 只从 view 节点读这个键
+// （runtime/plot.js 的 initializeState → plotLabels），mark 上那份无人读取。
+// 它同时是个定时炸弹：数值标签是双层画的（光晕层 + 文字层）、两层位置完全重合，而
+// overlapHide 是「先到先得、后来者碰上就隐藏」，文字层永远排在光晕层之后——一旦真的
+// 生效，所有文字层会被全部隐藏，只剩与背景同色的光晕层，数字集体消失。
+// 教训：原测试断言的是「配置对象上有这个键」，而不是「这个能力真的生效」。配置对，
+// 效果是零。所以顶层一律不写 labelTransform，并有一条反向断言守着。
 // 标签默认从锚点往下画：柱状图的锚点是柱顶，文字落进柱体内部；折线的锚点只有
 // 一个点、位置处理器不给对齐方式，退回 G 的 start/alphabetic，文字落在点右侧。
 // 改成画在图元外侧：文本框边距锚点 4px，框边到字形还有约 4px 字体伸展空间，
@@ -76,6 +142,21 @@ const LABEL_OUTSIDE = {
 	textBaseline: (d) => (isNegative(d) ? "top" : "bottom"),
 	dy: (d) => (isNegative(d) ? 4 : -4),
 };
+// 堆叠柱专用：数字画在每一段的正中间。堆叠柱的每一段是独立图元，包围盒就是该段
+// 自己的矩形（不是整根柱子），position: "inside" 落在该矩形的几何中心。
+// 三个连带项缺一不可：
+//   dy 归零        —— 留着 ±4 会整体偏 4px
+//   正负不分流     —— inside 对正负是同一个答案，保留 (d) => isNegative(d) ? ... 的
+//                     回调会把负值段的标签又推到段底边
+//   变换链留空     —— 用户确认「永远画，溢出就溢出」：既不隐藏，overlapDodgeY 也不能
+//                     用，它会把标签上下推开，正好毁掉「段内居中」
+// "middle" / "center" 不是合法取值，不在位置派发表里，写了会抛异常（不是静默回退）。
+const LABEL_CENTER = {
+	textAlign: "center",
+	position: "inside",
+	textBaseline: "middle",
+	dy: 0,
+};
 // 柱宽由 x band 比例尺的 padding 决定，默认 paddingInner/paddingOuter 都是 0.1
 // （柱宽 = 槽宽的 0.9，柱子几乎相接）。paddingInner 0.5 把柱宽压回槽宽的一半，
 // 配套的 paddingOuter 0.25 让首尾两槽与中间等宽、柱子仍居槽中央。折线图的 x
@@ -96,10 +177,40 @@ const VALUE_FONT_SIZE = 14;
 // 那张表是用 element.style.cssText += 写成**内联样式**的，styles.css 里的选择器不加
 // !important 压不过它。interaction.tooltip.css 是引擎留的正规入口，会被 deepMix 进
 // 同一张表，改出来仍是内联样式，优先级一致，也就不必动 !important。
-const TOOLTIP_CSS = { ".g2-tooltip": { "font-size": `${VALUE_FONT_SIZE}px` } };
+// 这里只放与明暗无关的排版；颜色（文字、描边色、边框色）由 chart-theme 在
+// withTheme() 里通过 applyTooltipStyle 注入，和网格线、悬停蒙层走同一条路。
+// 紧凑化的四处对照（深色主题实测原值）：容器 padding 12 → 8/10，条目行高 2em(28px)
+// → 1.5em，min-width 120px → 0（长宽随内容走），max-width 360 → 240。
+// 数值那一列原本有 margin-left: 30px + min-width: 28px 撑着，一起收掉才真的变窄。
+// 描边：tooltip 是 DOM 不是 canvas，用 CSS 的 -webkit-text-stroke 实现。写成
+// width / color 两个 longhand 而不是简写，才好把色值单独交给 chart-theme。
+// 宽度与 canvas 那层不是同一个口径，别照抄：canvas 那层 lineWidth 给 4，描边居中于
+// 轮廓、外扩 2px；这里 2px 的描边同样居中，paint-order 让文字盖掉内侧一半，实际外扩
+// 1px。DOM 上的字比 canvas 上的数字小一档、底色也不透明，1px 够用。
+// paint-order 这一行不能省——它正是标签那套双层画法要解决的同一个问题：默认描边居中
+// 于字形轮廓，会从笔画两侧各吃掉一半线宽；paint-order: stroke fill 让描边先画、文字
+// 后覆盖，字身分毫无损。DOM 侧有这个属性，所以不必像 canvas 那样画两层。
+// 边框与描边都要：紧凑化之后 padding 收窄、min-width 放开，边界会变模糊，边框给出
+// 明确的框；描边保证文字在任何底色上都读得出——两者解决的是不同问题。
+const TOOLTIP_TEXT_STROKE_WIDTH = 2;
+const TOOLTIP_CSS = {
+	".g2-tooltip": {
+		"font-size": `${VALUE_FONT_SIZE}px`,
+		"line-height": "1.5",
+		padding: "8px 10px",
+		"min-width": "0",
+		"max-width": "240px",
+		"border-width": "1px",
+		"border-style": "solid",
+		"-webkit-text-stroke-width": `${TOOLTIP_TEXT_STROKE_WIDTH}px`,
+		"paint-order": "stroke fill",
+	},
+	".g2-tooltip-list-item": { "line-height": "1.5em" },
+	".g2-tooltip-list-item-value": { "margin-left": "12px", "min-width": "0" },
+};
 // 折线悬停时跟着鼠标走的那条竖线。引擎默认硬编码 1px、#1b1e23、0.5 不透明度，同样
-// 不读主题：深色底上那个色叠出来几乎不可分辨。线宽对齐 LINE_STROKE 的 2，stroke 由
-// chart-theme 注入。
+// 不读主题：深色底上那个色叠出来几乎不可分辨。线宽保持 2，比数据线细一档——它是辅助
+// 线，不该和数据线（3）一样重。stroke 由 chart-theme 注入。
 // 只写不带 X/Y 的 crosshairs 前缀：subObject(style, 'crosshairs') 会把 crosshairsXxx
 // 这种键剥成 xXxx 的垃圾键。真正画竖线的是 crosshairsY（updateRuleY），命名与直觉相反，
 // 这里两条都不点名，样式对两条轴都生效。
@@ -238,10 +349,32 @@ const Y_AXIS = {
 	gridStrokeOpacity: 1,
 };
 
+// x 轴上被 highlight= 点名的那几期：轴标签加粗。
+// 轴标签的每个 label* 样式键都能写成按刻度调用的回调——@antv/component 的
+// renderLabel 走 getCallbackStyle(style, [datum, index, data])，datum 是
+// { value, label, id }，label 就是这一格的周期文本（G2 的 getData 里
+// toString(labelFormatter(prettyNumber(d), ...))，prettyNumber 原样放行非数字）。
+// 字重取关键字而不是数字：G 的 fontWeight 只认 normal / bold / bolder / lighter，
+// 数字字重还要看用户主题的字体有没有对应字面，"bold" 有 CSS 合成加粗兜底。
+// highlight 的另外两件事在 G2 v5 下做不到，见 docs 与本次实施报告：
+//   底色块   —— 轴标签是一个裸的 @antv/g Text，@antv/component 的轴 label 样式表里
+//               没有任何 background* 键（text mark 和图例项才有 backgroundFill）。
+//   强制显示 —— 轴标签抽稀是 @antv/component 的 autoHide，按「奇偶步长 + 几何相交」
+//               整批取舍（items.filter((d, i) => i % seq ...)），只有 keepHeader /
+//               keepTail 两个开关，没有按项豁免的入口。
+function highlightAxisX(periods) {
+	if (periods.length === 0) return undefined;
+	const marked = new Set(periods);
+	return { labelFontWeight: (d) => (marked.has(d?.label) ? "bold" : "normal") };
+}
+
 // 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
 // 共用一个对象时后一个 mark 会沿用前一个的字段。
-function valueLabel(field, formatter) {
-	return { text: field, formatter, transform: fresh(LABEL_TRANSFORM), ...LABEL_OUTSIDE };
+// centered 是堆叠柱专用的段内居中口径，见 LABEL_CENTER。
+function valueLabel(field, formatter, centered = false) {
+	return centered
+		? { text: field, formatter, transform: [], ...LABEL_CENTER }
+		: { text: field, formatter, transform: fresh(LABEL_TRANSFORM), ...LABEL_OUTSIDE };
 }
 
 // 光晕往字形轮廓外扩的像素数（两层画法里等于 lineWidth 的一半）。参照系：升级前
@@ -262,6 +395,11 @@ const LABEL_HALO_WIDTH = 2;
 // 上层给一个透明描边、宽度与下层相同：只为让两层的 renderBounds 一致——
 // exceedAdjust 按 renderBounds 把越界的标签推回绘图区，两层宽度不同就会推出位移，
 // 光晕和字会错开。透明色在 G 里不是 none，照样计入包围盒，但画出来没有颜色。
+// overlapDodgeY 现在也吃这条不变量，而且更吃：runtime 的 plotLabels 按 label 配置
+// 对象分组跑变换（labelDescriptor），两层是两个不同的配置对象，所以各自成一组、
+// 各算各的位移——两组的输入几何必须逐像素相同，算出来的位移才会相同。两层因此从来
+// 不会互相碰撞（也就不会自己躲自己），但只要 renderBounds 一旦不等，光晕就会和字
+// 分家。改这里的 lineWidth 前先想清楚这一条。
 // 字色取两端的纯色，配 bold：光晕再宽，字身也始终是最深 / 最浅的那一档。
 // fontWeight 取关键字 "bold"：G 的 fontWeight 只认 normal / bold / bolder /
 // lighter 这几个关键字，数字字重还要看用户主题的字体有没有对应字面，"bold" 有
@@ -345,6 +483,43 @@ export function applyCrosshairStyle(config, style) {
 		tooltip: { ...tooltip, ...fresh(style) },
 	};
 	return config.interaction.tooltip;
+}
+
+// tooltip 的明暗配色。引擎的深色主题把文字压到 #A6A6A6（对比度 6.77），而图表上的
+// 数字是纯白 / 纯黑加双层光晕——「亮度一致」要补的正是这个差距。
+// 三个跟主题走的色：文字色、描边（光晕）色、边框色。文字与描边和数值标签同源
+// （labelTextStyle 的 text / halo），边框取一层低对比的分隔色，与网格线同量级。
+// 引擎深色主题另外把 title / name-label / value 三条各自染成 #A6A6A6，逐条盖掉，
+// 否则只改容器 color 会被更具体的那三条继承赢走。
+export function tooltipStyle(dark) {
+	const text = dark ? "#FFFFFF" : "#000000";
+	const halo = dark ? "#1F1F1F" : "#FFFFFF";
+	const border = dark ? "#3D3D3D" : "#D9D9D9";
+	return {
+		".g2-tooltip": {
+			color: text,
+			"border-color": border,
+			"-webkit-text-stroke-color": halo,
+		},
+		".g2-tooltip-title": { color: text },
+		".g2-tooltip-list-item-name-label": { color: text },
+		".g2-tooltip-list-item-value": { color: text },
+	};
+}
+
+// 把明暗色值合进 interaction.tooltip.css。逐个选择器浅合并：色值和上面的排版键写在
+// 同一张表里，整块替换会把 padding / max-width 那些一起冲掉。
+// 单视图图表的 interaction 挂在 config 上，DualAxes 也挂在顶层（plots 深合并下发给
+// 每个 child），所以只有一处要改；返回改到的 css 表，调用方可以核对覆盖面。
+export function applyTooltipStyle(config, style) {
+	const tooltip = config.interaction?.tooltip;
+	if (!tooltip?.css) return undefined;
+	const css = { ...tooltip.css };
+	for (const [selector, rules] of Object.entries(style)) {
+		css[selector] = { ...css[selector], ...fresh(rules) };
+	}
+	config.interaction = { ...config.interaction, tooltip: { ...tooltip, css } };
+	return css;
 }
 
 // v5 的 scale 没有 formatter：轴刻度走 axis.labelFormatter，数值标签走
@@ -457,6 +632,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		? { ...baseCommon, warning: [baseCommon.warning, typeNotice].filter(Boolean).join("; ") }
 		: baseCommon;
 	const showLabels = labelsEnabled(attrs);
+	const highlight = splitList(attrs.highlight);
 
 	if (type === "combo" || type === "combo-dual-axis") {
 		let barKeys = bars,
@@ -495,24 +671,40 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			barY = yScale({ key: "barY", domainMin: 0, domainMax });
 			lineY = yScale({ key: "lineY", domainMin: 0, domainMax });
 		}
+		// 三个 child 共用同一条 x scale，而 G2 按 scale 分组合并 guide、后写的覆盖
+		// 先写的，所以 highlight 的配置得每个 child 各带一份且完全一致。每次调用返回
+		// 一个新对象：同一份配置被两处引用会在渲染层被就地改写。
+		const xAxis = () => {
+			const x = highlightAxisX(highlight);
+			return x ? { x } : {};
+		};
 		const barAxis = {
+			...xAxis(),
 			y: {
 				...fresh(Y_AXIS),
 				labelFormatter: barFormatter,
 				...(dual && leftUnit ? { title: leftUnit } : {}),
 			},
 		};
-		const lineAxis = {
-			y: {
-				...fresh(Y_AXIS),
-				position: "right",
-				// 每条连续轴默认自带一层网格。右轴的刻度和左轴不在同一批高度上，
-				// 两层网格叠出来是两倍密度的横线；网格只留给左轴。
-				grid: false,
-				labelFormatter: lineFormatter,
-				...(dual && rightUnit ? { title: rightUnit } : {}),
-			},
-		};
+		// 只有 combo-dual-axis 才画右轴。combo 的设计是「柱和线共用同一段值域」，
+		// 既然共用，右轴就是左轴的逐格复制——同样的数字印两遍，还平白误导读者以为
+		// 这两个指标分属两个量纲。关掉它绘图区还能变宽一截。
+		// axis: { y: false } 是引擎认的关法：addGuideToScale 的 normalize() 把 false
+		// 折成 scale.y.guide = null，inferComponent 再按 guide === null 整条滤掉。
+		const lineAxis = dual
+			? {
+					...xAxis(),
+					y: {
+						...fresh(Y_AXIS),
+						position: "right",
+						// 每条连续轴默认自带一层网格。右轴的刻度和左轴不在同一批高度上，
+						// 两层网格叠出来是两倍密度的横线；网格只留给左轴。
+						grid: false,
+						labelFormatter: lineFormatter,
+						...(rightUnit ? { title: rightUnit } : {}),
+					},
+				}
+			: { ...xAxis(), y: false };
 		const barChild = {
 			type: "interval",
 			data: barLong,
@@ -571,8 +763,8 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			config: {
 				xField: "period",
 				scale: { color: { range }, x: fresh(BAR_X_SCALE) },
-				legend: fresh(LEGEND),
-				labelTransform: fresh(VIEW_LABEL_TRANSFORM),
+				// 只有折线那几个系列拿横杠标记，柱系列仍是方块。
+				legend: legendConfig(lineKeys.map((key) => labelFor(attrs, key))),
 				state: fresh(HOVER_BAND_STATE),
 				// 写在顶层是唯一正确的路径：plots 的 transformOptions 把 interaction
 				// 收进 rest、深合并进每个 child mark，G2 的 bubbleOptions() 再把 mark
@@ -604,6 +796,8 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 					],
 				)
 			: headroomMax(data.map((d) => d.value));
+	const highlightX = highlightAxisX(highlight);
+	const seriesLabels = seriesKeys.map((key) => labelFor(attrs, key));
 	const config = {
 		data,
 		xField: "period",
@@ -612,11 +806,16 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		// 图例；分组 / 堆叠取不到 series 通道时会回落到 color 通道，够用。
 		colorField: "series",
 		scale: { color: { range: colorsFor(attrs, seriesKeys) }, y: yScale({ domainMax: yMax }) },
-		label: showLabels ? valueLabel("value", formatter) : undefined,
-		labelTransform: fresh(VIEW_LABEL_TRANSFORM),
-		axis: { y: { ...fresh(Y_AXIS), labelFormatter: formatter, ...(unit ? { title: unit } : {}) } },
+		label: showLabels
+			? valueLabel("value", formatter, type === "stacked-bar")
+			: undefined,
+		axis: {
+			...(highlightX ? { x: highlightX } : {}),
+			y: { ...fresh(Y_AXIS), labelFormatter: formatter, ...(unit ? { title: unit } : {}) },
+		},
 		tooltip: valueTooltip("value", formatter),
-		legend: fresh(LEGEND),
+		// 折线图的每个系列都是折线，图例全给横杠；柱图全给方块。
+		legend: legendConfig(type === "line" ? seriesLabels : []),
 	};
 	if (type === "line")
 		return {

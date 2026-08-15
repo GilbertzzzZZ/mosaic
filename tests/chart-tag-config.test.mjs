@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import { wilkinsonExtended, Linear } from "@antv/scale";
 import {
 	parseDatasetManifest,
@@ -16,7 +17,50 @@ import {
 	hoverBandStyle,
 	applyCrosshairStyle,
 	crosshairStyle,
+	applyTooltipStyle,
+	tooltipStyle,
 } from "../src/render/chart-tag-config.mjs";
+
+// The config we hand to <Line/>, <Column/> or <DualAxes/> is NOT what the engine
+// reads: @ant-design/plots merges it into the plot's own defaults, pushes most of
+// the top level down into the mark children and then deletes every top-level key
+// that is not in its VIEW_OPTIONS whitelist. A test that reads our config object
+// only proves the shape we wrote — not that the key survived to the layer that
+// reads it. `asEngineSees` runs the real adaptor so assertions can land on the
+// spec the engine actually receives.
+// The CJS build is used on purpose: the ESM build has directory imports Node
+// refuses to resolve.
+const require = createRequire(import.meta.url);
+const { mergeWithArrayCoverage } = require("@ant-design/plots/lib/core/utils");
+const PLOTS = {
+	Line: require("@ant-design/plots/lib/core/plots/line").Line,
+	Column: require("@ant-design/plots/lib/core/plots/column").Column,
+	DualAxes: require("@ant-design/plots/lib/core/plots/dual-axes").DualAxes,
+};
+// G2 itself, as bundled inside plots — the copy whose shape registry and guide
+// normalisation are the ones actually in play at runtime.
+const G2 = (path) =>
+	require(`@ant-design/plots/node_modules/@antv/g2/lib/${path}`);
+const { addGuideToScale } = G2("runtime/transform.js");
+
+function asEngineSees(built) {
+	const Plot = PLOTS[built.chartType];
+	assert.ok(Plot, `no plot class for ${built.chartType}`);
+	// what Plot.mergeOption() does, minus the DOM
+	const options = mergeWithArrayCoverage(
+		{},
+		{ type: "view", autoFit: true },
+		Plot.getDefaultOptions(),
+		built.config,
+	);
+	Plot.prototype.getSchemaAdaptor.call(null)({ chart: null, options });
+	return options;
+}
+
+// The marks the engine ends up with: for a single-view chart plots creates one
+// from its own defaults (`children: [{type: 'line'}]`) and pours our top-level
+// options into it, so there is never a "no children" case.
+const marksOf = (spec) => spec.children ?? [];
 
 const manifest = parseDatasetManifest(
 	JSON.stringify({
@@ -125,6 +169,54 @@ test("combo pins both implicit axes to one scale", () => {
 	assert.equal(barChild.scale.y.domainMax, lineChild.scale.y.domainMax);
 	assert.equal(barChild.yField, "barValue");
 	assert.equal(lineChild.yField, "lineValue");
+});
+
+test("combo drops the right axis, combo-dual-axis keeps it", () => {
+	// combo pins both sides to one domain, so the right axis was a tick-for-tick copy
+	// of the left — the same numbers printed twice, and a standing invitation to read
+	// the two series as living in different units.
+	const single = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "combo", bars: "Split", lines: "Total", granularity: "month" },
+	});
+	const rightAxes = (built) =>
+		built.config.children.filter((child) => child.axis?.y?.position === "right");
+	assert.equal(rightAxes(single).length, 0);
+	// the line and its points share one y scale, so both have to say the same thing:
+	// G2 merges guides per scale and the last writer wins
+	for (const child of single.config.children) {
+		if (child.type === "interval") continue;
+		assert.equal(child.axis.y, false, child.type);
+	}
+	// `false` is the engine's own off switch: G2's addGuideToScale normalises it to
+	// scale.y.guide = null, and inferComponent drops every scale whose guide is null.
+	// Running that step for real is the difference between "we wrote false" and "the
+	// axis is gone" — feed it the mark plots actually hands over.
+	const guideOf = (mark) => addGuideToScale([], mark, {})[1].scale.y.guide;
+	for (const mark of marksOf(asEngineSees(single))) {
+		if (mark.type === "interval") {
+			assert.notEqual(guideOf(mark), null); // the left axis stays
+			continue;
+		}
+		assert.equal(guideOf(mark), null, `${mark.type}: still guides an axis`);
+	}
+
+	const dual = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo-dual-axis",
+			bars: "Split",
+			lines: "Total",
+			granularity: "month",
+		},
+	});
+	assert.equal(rightAxes(dual).length, 2); // the line and its points
+	for (const mark of marksOf(asEngineSees(dual))) {
+		assert.notEqual(addGuideToScale([], mark, {})[1].scale.y.guide, null, mark.type);
+	}
 });
 
 test("combo-dual-axis keeps axes independent with unit titles", () => {
@@ -319,8 +411,21 @@ test("configs carry value formatters on the axis, the labels and the tooltip", (
 	const [barChild, lineChild] = combo.config.children;
 	assert.equal(typeof barChild.axis.y.labelFormatter, "function");
 	assert.equal(typeof barChild.label.formatter, "function");
-	assert.equal(typeof lineChild.axis.y.labelFormatter, "function");
+	// combo has no right axis to format any more, but its numbers still need one
+	assert.equal(lineChild.axis.y, false);
 	assert.equal(typeof lineChild.label.formatter, "function");
+	const dual = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo-dual-axis",
+			bars: "Split",
+			lines: "Total",
+			granularity: "month",
+		},
+	});
+	assert.equal(typeof dual.config.children[1].axis.y.labelFormatter, "function");
 });
 
 test("value labels read the field they belong to", () => {
@@ -381,19 +486,99 @@ test("combo respects tag writing order (lines first)", () => {
 	assert.deepEqual(pointChild.style, { r: 3, lineWidth: 0 });
 });
 
-test("legend markers are squares", () => {
-	const line = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: { ...base, type: "line", series: "Total", granularity: "month" },
-	});
-	assert.deepEqual(line.config.legend, { color: { itemMarker: "square" } });
-	const combo = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: { ...base, type: "combo", bars: "Split", lines: "Total", granularity: "month" },
-	});
-	assert.deepEqual(combo.config.legend, { color: { itemMarker: "square" } });
+// The legend option is written at the top level but the engine reads it off the
+// mark: plots deletes every top-level key outside VIEW_OPTIONS, and G2 turns a
+// mark's `legend.color` into the colour scale's guide. So the mark is the layer
+// that has to still hold it.
+const legendOf = (built) => {
+	const marks = marksOf(asEngineSees(built)).filter((mark) => mark.legend?.color);
+	assert.ok(marks.length > 0, "the legend never reached a mark");
+	return marks[0].legend.color;
+};
+
+test("bar series get a square marker, line series get a bar", () => {
+	// the comment this replaces claimed the engine defaults to a dash for lines and a
+	// square for columns. True of the engine, false here: our line charts hand the
+	// legend a shape scale through the data points' shapeField, so the real default
+	// is a dot for lines and a square for columns — and all four dots on a combo.
+	const line = legendOf(
+		buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, type: "line", series: "Total,Split", granularity: "month" },
+		}),
+	);
+	// the series names, not the raw column keys: the manifest relabels Total
+	assert.equal(line.itemMarker("Total metric"), "legendBar");
+	assert.equal(line.itemMarker("Split"), "legendBar");
+
+	const bar = legendOf(
+		buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, type: "grouped-bar", series: "Total,Split", granularity: "month" },
+		}),
+	);
+	assert.equal(bar.itemMarker("Total metric"), "square");
+	assert.equal(bar.itemMarker("Split"), "square");
+
+	// a combo has to carry both at once — this is the case a single itemMarkerSize
+	// could never serve, which is why the bar is a registered shape and not `hyphen`
+	const combo = legendOf(
+		buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, type: "combo", bars: "Split", lines: "Total", granularity: "month" },
+		}),
+	);
+	assert.equal(combo.itemMarker("Split"), "square");
+	assert.equal(combo.itemMarker("Total metric"), "legendBar");
+});
+
+test("the legend bar is a fill shape with a 3:1 aspect, so 12 renders as 12x4", () => {
+	// the engine normalises the marker's long edge to itemMarkerSize
+	// (@antv/component scaleToPixel + Item.scaleSize), so a path whose natural box is
+	// 3:1 comes out S wide by S/3 high whatever the theme's own itemMarkerSize is.
+	// It must be a fill shape: useMarker forces lineWidth to 0 for those, and a
+	// non-zero line width is exactly what shrinks the marker
+	// (rendered = bbox x (1 - lineWidth*sqrt2/16) x itemMarkerSize/16).
+	const { Symbols } = G2("utils/marker.js");
+	const symbol = Symbols.get("legendBar");
+	assert.ok(symbol, "the shape was never registered");
+	assert.deepEqual(symbol.style, ["fill"]); // useMarker reads .style directly
+	const [, ...points] = symbol(0, 0, 24).filter((seg) => seg[0] !== "Z");
+	const xs = points.map((p) => p[1]);
+	const ys = points.map((p) => p[2]);
+	const width = Math.max(...xs) - Math.min(...xs);
+	const height = Math.max(...ys) - Math.min(...ys);
+	assert.equal(width / height, 3);
+});
+
+test("the legend sits top centre with a 12px marker and a 4px gap to the label", () => {
+	// position and alignment are two separate keys, and alignment lives one level
+	// down in `layout` (there is no `align`): the engine looks the preset up by
+	// position, and top resolves to ['row', 'flex-start', 'center'] — flex-start
+	// being exactly the "stuck to the left" this replaces.
+	for (const [name, attrs] of CHART_SHAPES) {
+		const legend = legendOf(
+			buildChartFromTag({
+				manifest,
+				rows,
+				attributes: { ...base, ...attrs, granularity: "month" },
+			}),
+		);
+		assert.equal(legend.position, "top", name);
+		assert.deepEqual(legend.layout, { justifyContent: "center" }, name);
+		assert.equal(legend.itemMarkerSize, 12, name);
+		// itemSpacing is [marker-to-label, label-to-value, value-to-focus]; only the
+		// first one was asked to move
+		assert.deepEqual(legend.itemSpacing, [4, 8, 4], name);
+		// this one must be stated, not inherited: inferItemMarkerLineWidth only
+		// short-circuits on an explicit value, otherwise it hands line-ish shapes a
+		// lineWidth of 4, which the reverse scaling turns into a 5.17px square and a
+		// 9.42px gap. Today it stays 12x12 only by accident.
+		assert.equal(legend.itemMarkerLineWidth, 0, name);
+	}
 });
 
 test("percent unit suffixes formatted values", () => {
@@ -453,11 +638,21 @@ test("currency units prefix formatted values", () => {
 	assert.equal(usd.config.axis.y.labelFormatter(1234.5), "$ 1,234.5");
 });
 
-test("labels get anti-overlap transforms", () => {
+test("labels dodge before they hide, and only ever hide last", () => {
+	// hiding was the whole complaint: the old chain went straight from "nudge the
+	// out-of-bounds ones back in" to "hide whatever still overlaps". overlapDodgeY
+	// pushes colliding labels apart instead and never hides anything.
+	// The order is not cosmetic: every transform starts by making all labels visible
+	// again, and they compose left to right, so a second hiding transform would undo
+	// the first one's work. There can be exactly one, and it has to come last.
 	const expected = [
 		{ type: "exceedAdjust", bounds: "main" },
+		{ type: "overlapDodgeY", padding: 2, maxIterations: 20 },
 		{ type: "overlapHide" },
 	];
+	const hiders = expected.filter((t) => t.type.endsWith("Hide"));
+	assert.equal(hiders.length, 1);
+	assert.equal(expected.at(-1).type, "overlapHide");
 	const line = buildChartFromTag({
 		manifest,
 		rows,
@@ -485,6 +680,201 @@ test("labels get anti-overlap transforms", () => {
 	for (const child of combo.config.children) {
 		if (!child.label) continue; // the point mark carries no labels
 		assert.deepEqual(child.label.transform, expected);
+	}
+});
+
+test("a stacked bar centres its numbers inside each segment and never hides one", () => {
+	// Every segment of a stacked bar is its own shape, and its bounding box is that
+	// segment's rectangle rather than the whole column, so "inside" lands on the
+	// segment's own centre. Three things travel with that and all three are load
+	// bearing: dy has to go to zero or the text sits 4px off; the sign-based
+	// callbacks have to go, because "inside" is the same answer either way and a
+	// position of "bottom" would shove a negative segment's number onto its lower
+	// edge; and the chain has to be empty, because the user asked for the number to
+	// always be drawn — which rules out hiding AND rules out overlapDodgeY, since
+	// pushing labels up and down is precisely what "centred in the segment" is not.
+	const built = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "stacked-bar",
+			series: "Total,Split",
+			labels: "all",
+			granularity: "month",
+		},
+	});
+	const label = built.config.label;
+	assert.equal(label.position, "inside");
+	assert.equal(label.textBaseline, "middle");
+	assert.equal(label.textAlign, "center");
+	assert.equal(label.dy, 0);
+	// no callbacks left: a sign-driven answer here is the bug, not the feature
+	for (const key of ["position", "textBaseline", "dy"]) {
+		assert.notEqual(typeof label[key], "function", key);
+	}
+	assert.deepEqual(label.transform, []);
+	// "inside" has to be a real member of the placement table — "middle"/"center" are
+	// not in it and throw rather than falling back
+	const PLACEMENTS = [
+		"area", "bottom", "bottomLeft", "bottomRight", "inside", "left", "outside",
+		"right", "spider", "surround", "top", "topLeft", "topRight",
+	];
+	assert.ok(PLACEMENTS.includes(label.position));
+	// and the placement has to survive down to the mark the engine draws
+	const drawn = marksOf(asEngineSees(built)).find((mark) => mark.labels?.length);
+	assert.equal(drawn.labels[0].position, "inside");
+	assert.deepEqual(drawn.labels[0].transform, []);
+
+	// every other shape keeps the outside placement
+	for (const [name, attrs] of CHART_SHAPES) {
+		if (name === "stacked-bar") continue;
+		const other = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
+		});
+		const marks = [other.config, ...(other.config.children ?? [])];
+		for (const mark of marks.filter((m) => m.label)) {
+			assert.equal(typeof mark.label.position, "function", `${name}/${mark.type}`);
+			assert.equal(mark.label.position({ value: 1, barValue: 1, lineValue: 1 }), "top");
+			assert.notEqual(mark.label.transform.length, 0, `${name}/${mark.type}`);
+		}
+	}
+});
+
+test("highlight= bolds the x axis labels it names, and leaves the rest alone", () => {
+	// Axis label styles accept a per-tick callback: @antv/component's renderLabel
+	// resolves every label* style through getCallbackStyle(style, [datum, i, data]),
+	// and datum.label is the tick's own text.
+	const built = buildChartFromInline({
+		attributes: {
+			x: "month",
+			type: "bar",
+			series: "a",
+			highlight: "2025-01, 2025-03",
+		},
+		csv: INLINE_CSV,
+	});
+	const weight = built.config.axis.x.labelFontWeight;
+	assert.equal(typeof weight, "function");
+	assert.equal(weight({ label: "2025-01" }), "bold");
+	assert.equal(weight({ label: "2025-03" }), "bold");
+	assert.equal(weight({ label: "2025-02" }), "normal");
+	assert.equal(weight({}), "normal"); // a tick with no label must not crash
+	// keyword, not a number: G only honours normal/bold/bolder/lighter, and a numeric
+	// weight depends on the reader's font shipping that face
+	assert.ok(isBold(weight({ label: "2025-01" })));
+	// and it has to reach the mark the engine reads the guide off
+	const drawn = marksOf(asEngineSees(built)).find((mark) => mark.axis?.x);
+	assert.equal(drawn.axis.x.labelFontWeight({ label: "2025-01" }), "bold");
+	assert.equal(drawn.axis.x.labelFontWeight({ label: "2025-02" }), "normal");
+
+	// no highlight= means no axis.x at all, so the theme's own weight stands
+	const plain = buildChartFromInline({
+		attributes: { x: "month", type: "bar", series: "a" },
+		csv: INLINE_CSV,
+	});
+	assert.equal(plain.config.axis.x, undefined);
+});
+
+test("highlight= reaches both sides of a combo, which share one x scale", () => {
+	// G2 merges guides per scale and the last writer wins, so an x axis configured on
+	// only one child would be silently overwritten by the other
+	const built = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo",
+			bars: "Split",
+			lines: "Total",
+			highlight: "2026-02",
+			granularity: "month",
+		},
+	});
+	// the value to write in highlight= is the period as the chart labels it, which at
+	// month grain is "2026-02" (and "2026-Q1" at quarter grain, where a month can
+	// never match — that is the right answer, not a bug)
+	const periods = built.config.children[0].data.map((d) => d.period);
+	assert.ok(periods.includes("2026-02"), `periods were ${periods}`);
+	for (const child of built.config.children) {
+		assert.equal(typeof child.axis.x.labelFontWeight, "function", child.type);
+		assert.equal(child.axis.x.labelFontWeight({ label: "2026-02" }), "bold", child.type);
+		assert.equal(child.axis.x.labelFontWeight({ label: "2026-01" }), "normal", child.type);
+	}
+	// turning the right axis off must not take the x axis with it
+	assert.equal(built.config.children[1].axis.y, false);
+});
+
+test("the tooltip is compact and its text is themed to match the chart's numbers", () => {
+	// the engine's dark theme paints the tooltip's text #A6A6A6 while the numbers on
+	// the chart are pure white with a halo; "same brightness" is closing that gap.
+	// Structure lives in the config, colour comes from withTheme() — the split the
+	// mosaic:theme-change rebuild depends on.
+	for (const [name, attrs] of CHART_SHAPES) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, granularity: "month" },
+		});
+		const container = built.config.interaction.tooltip.css[".g2-tooltip"];
+		assert.equal(container["font-size"], "14px", name);
+		assert.equal(container["min-width"], "0", name); // was 120px: the floor on width
+		assert.equal(container["max-width"], "240px", name); // was 360px
+		assert.equal(container.padding, "8px 10px", name); // was 12px all round
+		// the row height was 2em == 28px at our font size
+		const item = built.config.interaction.tooltip.css[".g2-tooltip-list-item"];
+		assert.equal(item["line-height"], "1.5em", name);
+		// paint-order is the whole point of doing the stroke in CSS: without it the
+		// stroke is centred on the glyph outline and eats half its stem, which is the
+		// same problem the two-layer canvas labels exist to dodge
+		assert.equal(container["-webkit-text-stroke-width"], "2px", name);
+		assert.equal(container["paint-order"], "stroke fill", name);
+		assert.equal(container["border-style"], "solid", name);
+		assert.equal(container["border-width"], "1px", name);
+		// no colour is decided here
+		for (const key of ["color", "border-color", "-webkit-text-stroke-color"]) {
+			assert.equal(container[key], undefined, `${name}: ${key} belongs to the theme`);
+		}
+
+		for (const dark of [false, true]) {
+			const applied = applyTooltipStyle(built.config, tooltipStyle(dark));
+			const [text, halo] = dark ? ["#FFFFFF", "#1F1F1F"] : ["#000000", "#FFFFFF"];
+			assert.equal(applied[".g2-tooltip"].color, text, name);
+			assert.equal(applied[".g2-tooltip"]["-webkit-text-stroke-color"], halo, name);
+			assert.ok(applied[".g2-tooltip"]["border-color"], name);
+			// the dark theme repaints three more specific selectors #A6A6A6, so the
+			// container colour alone would lose to them
+			for (const selector of [
+				".g2-tooltip-title",
+				".g2-tooltip-list-item-name-label",
+				".g2-tooltip-list-item-value",
+			]) {
+				assert.equal(applied[selector].color, text, `${name} ${selector}`);
+			}
+			// and the layout keys must survive the merge
+			assert.equal(applied[".g2-tooltip"]["max-width"], "240px", name);
+			assert.equal(applied[".g2-tooltip-list-item-value"]["margin-left"], "12px", name);
+		}
+		// the whole sheet has to reach the interaction the engine runs. plots strips
+		// `interaction` off the top level (not in VIEW_OPTIONS) and merges it into every
+		// mark; G2's bubbleOptions() then folds the marks' copies back onto the view,
+		// so the mark is where it has to be found.
+		const carriers = marksOf(asEngineSees(built)).filter((mark) => mark.interaction);
+		assert.ok(carriers.length > 0, `${name}: the interaction reached no mark`);
+		assert.equal(
+			carriers[0].interaction.tooltip.css[".g2-tooltip"]["max-width"],
+			"240px",
+			`${name}: as the engine sees it`,
+		);
+	}
+});
+
+test("the tooltip text lands on the same colour as the value labels", () => {
+	for (const dark of [false, true]) {
+		const [, glyph] = labelTextStyle(dark);
+		assert.equal(tooltipStyle(dark)[".g2-tooltip"].color, glyph.fill, dark ? "dark" : "light");
 	}
 });
 
@@ -559,13 +949,14 @@ test("every value label is configured identically apart from the field it reads"
 	// combo splits the bars and the line into separate marks, and a single-view chart
 	// keeps its label on the root; all three have to look like one component. Only the
 	// field and its formatter may differ — a dual axis carries a unit per side.
+	// stacked-bar is deliberately out: its numbers sit centred inside each segment,
+	// which is a different placement contract and has its own test.
 	const shapeOf = ({ text, formatter, ...rest }) => rest;
 	const seen = [];
 	for (const [name, attrs] of [
 		["line", { type: "line", series: "Total,Split" }],
 		["bar", { type: "bar", series: "Total" }],
 		["grouped-bar", { type: "grouped-bar", series: "Total,Split" }],
-		["stacked-bar", { type: "stacked-bar", series: "Total,Split" }],
 		["combo", { type: "combo", bars: "Split", lines: "Total" }],
 		["combo-dual-axis", { type: "combo-dual-axis", bars: "Split", lines: "Total" }],
 	]) {
@@ -580,7 +971,7 @@ test("every value label is configured identically apart from the field it reads"
 			});
 		}
 	}
-	assert.ok(seen.length >= 16, `only ${seen.length} label layers found`);
+	assert.ok(seen.length >= 14, `only ${seen.length} label layers found`);
 	// compare layer 0 against every other layer 0, and likewise for layer 1
 	for (const which of ["#0", "#1"]) {
 		const group = seen.filter(([name]) => name.endsWith(which));
@@ -659,8 +1050,9 @@ test("a build at another granularity in between leaves the next one untouched", 
 	}
 });
 
-test("lines are drawn at the pre-upgrade width across every chart that has one", () => {
-	// the v5 theme halves the v4 default of 2, which left the line a hairline
+test("lines are drawn at the width the user picked, on every chart that has one", () => {
+	// the v5 theme ships 1, half of v4's 2, which left the line a hairline; 3 is the
+	// value the user settled on — one step heavier than it ever was before
 	const cases = [
 		["line", { type: "line", series: "Total" }],
 		["combo", { type: "combo", bars: "Split", lines: "Total" }],
@@ -675,7 +1067,11 @@ test("lines are drawn at the pre-upgrade width across every chart that has one",
 		const line = built.config.children
 			? built.config.children.find((child) => child.type === "line")
 			: built.config;
-		assert.equal(line.style.lineWidth, 2, name);
+		assert.equal(line.style.lineWidth, 3, name);
+		// and the width has to reach the mark the engine draws, not just our object
+		const spec = asEngineSees(built);
+		const drawn = marksOf(spec).find((mark) => mark.type === "line");
+		assert.equal(drawn.style.lineWidth, 3, `${name}: as the engine sees it`);
 		// the dots keep the radius they had before the upgrade; the style that thickens
 		// the line must not leak into them
 		const point = built.config.children
@@ -1003,23 +1399,61 @@ test("the tooltip reads at the same size as the value labels", () => {
 			attributes: { ...base, ...attrs, granularity: "month" },
 		});
 		const css = built.config.interaction?.tooltip?.css;
-		assert.deepEqual(css, { ".g2-tooltip": { "font-size": "14px" } }, name);
+		assert.equal(css[".g2-tooltip"]["font-size"], "14px", name);
+		for (const layer of labelTextStyle(false)) {
+			assert.equal(`${layer.fontSize}px`, css[".g2-tooltip"]["font-size"], name);
+		}
 	}
 });
 
-test("labels also de-overlap across marks, not just within one", () => {
-	// the group-level transform buckets by label, so a bar's number and a line's
-	// number never see each other; on a dual axis they end up all but touching
+test("no chart carries a view-level labelTransform, because it can never run", () => {
+	// It used to, and it never ran once: plots pushes a top-level labelTransform
+	// into every mark and drops it from the top (it is not in VIEW_OPTIONS), while
+	// G2 reads the key only off the view node. The old test asserted the key was on
+	// the config object — the shape was right and the effect was zero.
+	// It was also a time bomb: value labels are drawn as two exactly coincident
+	// layers (halo + glyph) and overlapHide is first-come-first-served, so the glyph
+	// layer — always second — would have been hidden on every label, leaving only
+	// backdrop-coloured halos. The numbers would have vanished the day it worked.
 	for (const [name, attrs] of CHART_SHAPES) {
 		const built = buildChartFromTag({
 			manifest,
 			rows,
 			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
 		});
+		assert.equal(built.config.labelTransform, undefined, `${name}: config`);
+		const spec = asEngineSees(built);
+		// and nothing downstream reinstates one
+		assert.equal(spec.labelTransform, undefined, `${name}: view level`);
+		for (const mark of marksOf(spec)) {
+			assert.equal(mark.labelTransform, undefined, `${name}/${mark.type}: mark level`);
+		}
+	}
+});
+
+test("the transforms we do write survive down to the mark that reads them", () => {
+	// label.transform is the group-level chain and G2 reads it off the mark, so this
+	// is the layer that has to still hold it after plots has rewritten the config.
+	const built = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "combo",
+			bars: "Split",
+			lines: "Total",
+			labels: "all",
+			granularity: "month",
+		},
+	});
+	const spec = asEngineSees(built);
+	const labelled = marksOf(spec).filter((mark) => mark.labels?.length);
+	assert.equal(labelled.length, 2, "bar and line both keep their labels");
+	for (const mark of labelled) {
 		assert.deepEqual(
-			built.config.labelTransform,
-			[{ type: "overlapHide" }],
-			`${name}: no view-level pass`,
+			mark.labels[0].transform.map((t) => t.type),
+			["exceedAdjust", "overlapDodgeY", "overlapHide"],
+			mark.type,
 		);
 	}
 });
@@ -1126,7 +1560,10 @@ test("only the line chart carries a crosshair, at the same weight as its line", 
 			assert.equal(tooltip?.crosshairsLineWidth, undefined, `${name}: inert config`);
 			continue;
 		}
-		assert.equal(tooltip.crosshairsLineWidth, 2, name); // matches LINE_STROKE
+		// one step lighter than the data line (3): it is a guide, it should not read
+		// as heavy as the data
+		assert.equal(tooltip.crosshairsLineWidth, 2, name);
+		assert.ok(tooltip.crosshairsLineWidth < built.config.style.lineWidth, name);
 		// a thicker rule is a wider hit target, and unlike the marker the crosshair
 		// Line does not opt out of pointer events on its own
 		assert.equal(tooltip.crosshairsPointerEvents, "none", name);
@@ -1162,7 +1599,7 @@ test("inline: builds a line chart from csv with defaults", () => {
 		(d) => d.period === "2025-02" && d.series === "b",
 	);
 	assert.equal(feb.value, null);
-	assert.deepEqual(built.config.legend, { color: { itemMarker: "square" } });
+	assert.equal(built.config.legend.color.position, "top");
 });
 
 test("inline: x defaults to the first csv column", () => {
