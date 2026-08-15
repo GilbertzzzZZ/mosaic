@@ -15,10 +15,14 @@ Ported files (under src/parse/):
     reshaped into pure functions for the Obsidian host)
 
 Ported files (under src/parse/blocks/):
-  - src/parse/blocks/payload.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (payload extraction & normalization helpers)
-  - src/parse/blocks/table-complexity.mjs, src/blocks/table-layout.mjs — ported from 早期内部实现 src/content/ (table heuristics)
-  - src/parse/blocks/flow.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (FlowDiagram parsing & layered DAG layout)
-  - src/parse/blocks/dataset-table.mjs — ported from 早期内部实现 src/content/mdx-lite.mjs (datasetQueryFromContent)
+  - payload.mjs           (from src/content/mdx-lite.mjs: payload extraction
+    and normalization helpers)
+  - table-complexity.mjs  (from src/content/: table complexity heuristics)
+  - table-layout.mjs      (from src/content/: table layout heuristics)
+  - flow.mjs              (from src/content/mdx-lite.mjs: FlowDiagram parsing
+    and layered DAG layout)
+  - dataset-table.mjs     (from src/content/mdx-lite.mjs: dataset query
+    extraction)
 
 Licensed under the Apache License, Version 2.0; you may obtain a copy at
 http://www.apache.org/licenses/LICENSE-2.0
