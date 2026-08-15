@@ -163,12 +163,17 @@ function headroomMax(values) {
 	return max > 0 ? max * Y_HEADROOM : undefined;
 }
 
-// nice 把值域往上取整到一个整刻度，轴顶因此正好压在带标签的那一档上。单视图图表
-// 恢复它（升级时以「nice 会把 8% 留白圆掉」为由关过，方向反了——nice 只会往上取，
-// 留白只增不减）；DualAxes 的两个子图不取整，与升级前一致：那边两侧轴各自取整会
-// 把左右刻度错开，读数时对不上行。
+// nice 把值域两端取整到整刻度，轴顶因此正好压在带标签的那一档上。升级时以「nice 会
+// 把 8% 留白圆掉」为由关过，方向反了——nice 只会往外取，留白只增不减。
+// 全图型一律开启，双轴图也不例外。双轴图曾按「升级前本来就没有 nice」保留过不取整，
+// 但升级前同时也没有这 8% 留白，两件事凑在一起才成立：留白把轴顶顶到一个不整的数
+// （64,500 → 69,660），刻度算法据此改用更粗的一档（10,000），而域外的两端又要按 v4
+// 的规矩丢掉，最后左右轴各只剩 2 档，比升级前的 4/5 档明显稀疏。开启 nice 后回到
+// 4 档，且轴顶落在刻度上。
+// 显式写死而不是依赖默认值：Column 与 DualAxes 的默认选项里都带着 nice: true，
+// 不写就等于把这个决定交给引擎。
 function yScale({ key, domainMin, domainMax }) {
-	const scale = {};
+	const scale = { nice: true };
 	if (key !== undefined) {
 		scale.key = key;
 		// DualAxes 默认把每个 child 的 y 设成 independent，独立后 key 失效、
@@ -177,9 +182,6 @@ function yScale({ key, domainMin, domainMax }) {
 	}
 	if (domainMin !== undefined) scale.domainMin = domainMin;
 	if (domainMax !== undefined) scale.domainMax = domainMax;
-	// 两条路径都显式写死：Column 与 DualAxes 的默认选项里都带着 nice: true，
-	// 不写就等于把这个决定交给引擎的默认值。
-	scale.nice = key === undefined;
 	return scale;
 }
 

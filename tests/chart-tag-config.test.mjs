@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { wilkinsonExtended } from "@antv/scale";
+import { wilkinsonExtended, Linear } from "@antv/scale";
 import {
 	parseDatasetManifest,
 	parseDatasetData,
@@ -882,27 +882,33 @@ test("labels also de-overlap across marks, not just within one", () => {
 	}
 });
 
-test("single-view charts round the axis top, dual-axis children do not", () => {
+test("every chart rounds its axis top onto a labelled tick", () => {
 	// both Column and DualAxes ship nice: true in their own defaults, so every path
 	// has to state its choice rather than inherit one
-	const single = ["line", "bar", "grouped-bar", "stacked-bar"];
 	for (const [name, attrs] of CHART_SHAPES) {
 		const built = buildChartFromTag({
 			manifest,
 			rows,
 			attributes: { ...base, ...attrs, granularity: "month" },
 		});
-		if (single.includes(name)) {
-			assert.equal(built.config.scale.y.nice, true, name);
-			continue;
-		}
-		// rounding each side of a dual axis on its own pulls the two sets of ticks
-		// onto different heights, and the readings stop lining up
-		for (const child of built.config.children) {
-			if (!child.scale?.y) continue;
-			assert.equal(child.scale.y.nice, false, `${name}/${child.type}`);
-		}
+		const scales = built.config.children
+			? built.config.children.filter((child) => child.scale?.y).map((c) => c.scale.y)
+			: [built.config.scale.y];
+		assert.ok(scales.length > 0, `${name}: no y scale found`);
+		for (const scale of scales) assert.equal(scale.nice, true, name);
 	}
+});
+
+test("headroom plus unrounded ticks would leave a dual axis nearly bare", () => {
+	// this is why the dual axis rounds too. Its domain has no zero floor, so the 8%
+	// headroom lands the top on an unround number, the optimiser answers with a
+	// coarser step, and the two ticks that fall outside the domain get dropped.
+	const raw = [42000, 64500 * 1.08]; // the demo dataset's revenue axis
+	const bare = wilkinsonExtended(...raw, 5).filter((t) => t >= raw[0] && t <= raw[1]);
+	assert.equal(bare.length, 2, "the premise of this test no longer holds");
+	const rounded = new Linear({ domain: raw, tickCount: 5, nice: true, tickMethod: wilkinsonExtended });
+	const [lo, hi] = rounded.getOptions().domain;
+	assert.equal(wilkinsonExtended(lo, hi, 5).filter((t) => t >= lo && t <= hi).length, 4);
 });
 
 test("every chart with bars carries a hover band shell the theme can paint", () => {
