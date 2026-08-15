@@ -11,7 +11,13 @@ export const COMPONENT_NAMES = [
 ];
 
 const OPEN_TAG = new RegExp(`<(${COMPONENT_NAMES.join("|")})(?=[\\s/>])`, "g");
-const ATTR = /([A-Za-z_][A-Za-z0-9_-]*)=(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+))/g;
+// 属性名必须从行首或空白之后起头（第 1 组），否则 `零售业务Label="x"` 会被从中间
+// 切开、错认成一个没人写过的 `Label` 属性。左边界写成捕获组而不是 lookbehind：
+// esbuild target 是 es2017（< es2018），会把带 lookbehind 的字面量降级成
+// `new RegExp("…")`，把语法问题推迟到运行时；捕获组在任何 target 上原样保留。
+// 字符集仍是 ASCII——中文属性名不支持，且必须被整体判定为不认识。
+const ATTR =
+	/(^|\s)([A-Za-z_][A-Za-z0-9_-]*)=(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+))/g;
 const PAIRED_BODY = /^\s*```(?:csv)?[ \t]*\n([\s\S]*?)\n```[ \t]*\s*$/;
 
 // 六名字通用识别：自闭合/成对标签边界 + 属性解析。body 原文透传，不做 fence 校验
@@ -80,27 +86,43 @@ function matchPaired(source, start, name) {
 	};
 }
 
-// inner 仅由 attr=value 对（双引号/单引号/裸值三形态）和空白组成时返回属性表，否则 null。
-// 属性表是动态键的字符串字典，推断只能得到空对象类型 `{}`，因此这里显式声明——
+// 扫描 inner，一遍同时产出「认出的属性表」与「未归属的剩余文本」。剩余文本按
+// 匹配区间 [match.index + 左边界空白长度, ATTR.lastIndex) 原地切除得到——不能用
+// `remainder.replace(attr[0], "")`：字符串参数只替换第一处，同一段 `attr=value`
+// 文本在别处重复出现时会剥错位置，剩余片段就不再是原文的忠实切片。
+// 属性表是动态键的字符串字典，推断只能得到空对象类型 `{}`，因此显式声明——
 // 没有固定字段名，声明不会掩盖任何改名。
+// 导出仅供解析层测试直接观察这两个产物（`parseAttrs` 只回传前者或 null）。
+/**
+ * @param {string} inner
+ * @returns {{ attributes: Record<string, string>, remainder: string }}
+ */
+export function scanAttrs(inner) {
+	/** @type {Record<string, string>} */
+	const attributes = {};
+	let remainder = "";
+	let cursor = 0;
+	ATTR.lastIndex = 0;
+	let attr;
+	while ((attr = ATTR.exec(inner))) {
+		const from = attr.index + attr[1].length; // 越过左边界捕获的那段空白
+		remainder += inner.slice(cursor, from);
+		cursor = ATTR.lastIndex;
+		attributes[attr[2]] = attr[3] ?? attr[4] ?? attr[5] ?? "";
+	}
+	remainder += inner.slice(cursor);
+	return { attributes, remainder };
+}
+
+// inner 仅由 attr=value 对（双引号/单引号/裸值三形态）和空白组成时返回属性表，否则 null。
 /**
  * @param {string} inner
  * @returns {Record<string, string> | null}
  */
 function parseAttrs(inner) {
 	if (inner.includes("<")) return null;
-	let remainder = inner;
-	ATTR.lastIndex = 0;
-	let attr;
-	while ((attr = ATTR.exec(inner))) {
-		remainder = remainder.replace(attr[0], "");
-	}
+	const { attributes, remainder } = scanAttrs(inner);
 	if (remainder.trim().length !== 0) return null;
-	const attributes = {};
-	ATTR.lastIndex = 0;
-	while ((attr = ATTR.exec(inner))) {
-		attributes[attr[1]] = attr[2] ?? attr[3] ?? attr[4] ?? "";
-	}
 	return attributes;
 }
 

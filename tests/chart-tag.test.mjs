@@ -4,6 +4,7 @@ import {
 	findChartTags,
 	findComponentTags,
 	isOnlyComponentTags,
+	scanAttrs,
 	COMPONENT_NAMES,
 } from "../src/parse/chart-tag.mjs";
 
@@ -209,5 +210,112 @@ test("Chart compat path: non-csv-fence paired Chart candidates are still dropped
 test("mixed paragraph is not swallowed by a generalized component tag", () => {
 	const text = `<DecisionBox title="x"\n\nsome unrelated paragraph ending with />\n\nmore content after`;
 	assert.equal(findComponentTags(text).length, 0);
+});
+
+// —— 属性名左边界 ——
+// 中文属性名不支持；不支持不等于可以从中间切一刀错认成别的属性。以下两份 inner 取自
+// 一批真实笔记里的标签（CJK 版是原始写法，ASCII 版是仓库里那张图现在的写法）。
+
+const CJK_INNER =
+	' title="按业务拆分" type="stacked-bar" x="month" series="零售业务,企业服务业务"' +
+	' unit="万元" 零售业务Label="零售业务" 零售业务Color="#2563eb"' +
+	' 企业服务业务Label="企业服务业务" 企业服务业务Color="#d97706"';
+
+const ASCII_INNER =
+	' title="按业务拆分" type="stacked-bar" x="month"' +
+	' series="retailBusiness,enterpriseBusiness" unit="万元" highlight="2026-06"' +
+	' labels="all" retailBusinessLabel="零售业务" retailBusinessColor="#2563eb"' +
+	' enterpriseBusinessLabel="企业服务业务" enterpriseBusinessColor="#d97706"';
+
+test("a CJK attribute name yields no attribute at all, not a sliced-off ASCII tail", () => {
+	const { attributes, remainder } = scanAttrs(CJK_INNER);
+	// 恰好这五个 ASCII 键，一个不多
+	assert.deepEqual(Object.keys(attributes), [
+		"title",
+		"type",
+		"x",
+		"series",
+		"unit",
+	]);
+	// 没有凭空造出 Label / Color（旧版会造出来，且两组还互相覆盖）
+	assert.equal("Label" in attributes, false);
+	assert.equal("Color" in attributes, false);
+	assert.deepEqual(attributes, {
+		title: "按业务拆分",
+		type: "stacked-bar",
+		x: "month",
+		series: "零售业务,企业服务业务",
+		unit: "万元",
+	});
+	// 四条中文字段完整留在未归属片段里：含字段名、等号和引号里的值
+	assert.equal(
+		remainder.trim(),
+		'零售业务Label="零售业务" 零售业务Color="#2563eb"' +
+			' 企业服务业务Label="企业服务业务" 企业服务业务Color="#d97706"',
+	);
+});
+
+test("CJK attribute names still fail the whole tag (gate unchanged by Task 12)", () => {
+	assert.equal(findComponentTags(`<Chart${CJK_INNER} />`).length, 0);
+});
+
+test("the ASCII spelling of the same tag parses exactly as before", () => {
+	const { attributes, remainder } = scanAttrs(ASCII_INNER);
+	assert.equal(remainder.trim(), "");
+	// 11 个键，键序与值逐字节固定
+	assert.deepEqual(Object.keys(attributes), [
+		"title",
+		"type",
+		"x",
+		"series",
+		"unit",
+		"highlight",
+		"labels",
+		"retailBusinessLabel",
+		"retailBusinessColor",
+		"enterpriseBusinessLabel",
+		"enterpriseBusinessColor",
+	]);
+	assert.deepEqual(attributes, {
+		title: "按业务拆分",
+		type: "stacked-bar",
+		x: "month",
+		series: "retailBusiness,enterpriseBusiness",
+		unit: "万元",
+		highlight: "2026-06",
+		labels: "all",
+		retailBusinessLabel: "零售业务",
+		retailBusinessColor: "#2563eb",
+		enterpriseBusinessLabel: "企业服务业务",
+		enterpriseBusinessColor: "#d97706",
+	});
+	// 同一份属性走完整入口，结果一致
+	const tags = findChartTags(`<Chart${ASCII_INNER} />`);
+	assert.equal(tags.length, 1);
+	assert.deepEqual(tags[0].attributes, attributes);
+});
+
+test("attribute names must start at a whitespace boundary, not mid-token", () => {
+	// 紧贴前一个值、没有分隔空白的写法，整块作废，而不是被认成一个新属性
+	assert.equal(findChartTags('<Chart title="a"type="line" />').length, 0);
+	// 单引号与裸值形态同样受左边界约束
+	assert.deepEqual(Object.keys(scanAttrs(" 主营unit='万元' type=line").attributes), [
+		"type",
+	]);
+});
+
+test("the unattributed remainder is a faithful slice when the same attr text repeats", () => {
+	// `unit="万元"` 出现两次：一次是中文字段的 ASCII 尾巴，一次是真属性。
+	// 旧的 remainder.replace(attr[0], "") 只换第一处，会把中文字段的尾巴剥掉，
+	// 剩下 ` 零售业务 unit="万元"`——既毁了原文，又谎报有一个未归属的 unit。
+	const { attributes, remainder } = scanAttrs(' 零售业务unit="万元" unit="万元"');
+	assert.deepEqual(attributes, { unit: "万元" });
+	assert.equal(remainder.trim(), '零售业务unit="万元"');
+	assert.equal(remainder.includes('零售业务unit="万元"'), true);
+
+	// 纯 ASCII 的重复属性：两处都被剥干净，剩余只有空白
+	const dup = scanAttrs(' a="1" a="1"');
+	assert.deepEqual(dup.attributes, { a: "1" });
+	assert.equal(dup.remainder.trim(), "");
 });
 
