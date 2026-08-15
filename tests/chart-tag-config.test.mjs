@@ -686,8 +686,17 @@ test("lines are drawn at the pre-upgrade width across every chart that has one",
 	}
 });
 
-test("value labels sit above the mark instead of inside it", () => {
-	const above = { textAlign: "center", textBaseline: "bottom", dy: -4 };
+test("value labels sit outside the mark instead of inside it", () => {
+	// placement now depends on the sign, so these are the values a positive datum
+	// resolves to; the negative side has its own test
+	const positive = { value: 1 };
+	const resolve = (label) => ({
+		textAlign: label.textAlign,
+		textBaseline: label.textBaseline(positive),
+		dy: label.dy(positive),
+		position: label.position(positive),
+	});
+	const above = { textAlign: "center", textBaseline: "bottom", dy: -4, position: "top" };
 	const line = buildChartFromTag({
 		manifest,
 		rows,
@@ -699,9 +708,7 @@ test("value labels sit above the mark instead of inside it", () => {
 			granularity: "month",
 		},
 	});
-	for (const [key, value] of Object.entries(above)) {
-		assert.equal(line.config.label[key], value);
-	}
+	assert.deepEqual(resolve(line.config.label), above);
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
@@ -716,9 +723,7 @@ test("value labels sit above the mark instead of inside it", () => {
 	});
 	for (const child of combo.config.children) {
 		if (!child.label) continue; // the point mark carries no labels
-		for (const [key, value] of Object.entries(above)) {
-			assert.equal(child.label[key], value);
-		}
+		assert.deepEqual(resolve(child.label), above, child.type);
 	}
 });
 
@@ -863,6 +868,51 @@ test("value labels are set 2px above the rest of the chart's type", () => {
 			assert.equal(layer.fontSize, 14, dark ? "dark" : "light");
 		}
 	}
+});
+
+test("a negative bar carries its number below the bar, not above the axis", () => {
+	// a negative bar's bounding box has the zero line as its TOP edge, so leaving
+	// position at "top" pins the label to the axis while the bar points the other way
+	const built = buildChartFromInline({
+		attributes: { x: "month", type: "bar", series: "profit", labels: "all" },
+		csv: "month,profit\n2026-01,47.9\n2026-02,-47.9",
+	});
+	const label = Array.isArray(built.config.label) ? built.config.label[0] : built.config.label;
+	const up = { value: 47.9 };
+	const down = { value: -47.9 };
+	assert.equal(label.position(up), "top");
+	assert.equal(label.position(down), "bottom");
+	assert.equal(label.textBaseline(up), "bottom");
+	assert.equal(label.textBaseline(down), "top");
+	// dy pushes the text away from the shape, so it has to flip sign with it
+	assert.equal(label.dy(up), -4);
+	assert.equal(label.dy(down), 4);
+	assert.equal(label.textAlign, "center");
+});
+
+test("the sign is read from whichever value field the mark carries", () => {
+	// single-view marks read `value`; a combo splits into barValue and lineValue
+	const combo = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "combo", bars: "Split", lines: "Total", labels: "all", granularity: "month" },
+	});
+	for (const child of combo.config.children) {
+		if (!child.label) continue;
+		const label = Array.isArray(child.label) ? child.label[0] : child.label;
+		const field = label.text;
+		assert.equal(label.position({ [field]: -1 }), "bottom", `${child.type}/${field}`);
+		assert.equal(label.position({ [field]: 1 }), "top", `${child.type}/${field}`);
+	}
+	// a missing or non-numeric value must not be read as negative
+	const plain = buildChartFromInline({
+		attributes: { x: "month", type: "bar", series: "profit", labels: "all" },
+		csv: "month,profit\n2026-01,5",
+	});
+	const label = Array.isArray(plain.config.label) ? plain.config.label[0] : plain.config.label;
+	assert.equal(label.position({}), "top");
+	assert.equal(label.position({ value: null }), "top");
+	assert.equal(label.position({ value: 0 }), "top"); // zero is not negative
 });
 
 test("a series named only in bars= or lines= still gets drawn", () => {

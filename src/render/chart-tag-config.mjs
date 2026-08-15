@@ -57,9 +57,25 @@ const LABEL_TRANSFORM = [
 const VIEW_LABEL_TRANSFORM = [{ type: "overlapHide" }];
 // 标签默认从锚点往下画：柱状图的锚点是柱顶，文字落进柱体内部；折线的锚点只有
 // 一个点、位置处理器不给对齐方式，退回 G 的 start/alphabetic，文字落在点右侧。
-// 改成往上画：文本框底边距锚点 4px，框底到数字底部还有约 4px 字体下伸空间，
-// 合起来是图元上方约 8px 的空隙。
-const LABEL_ABOVE = { textAlign: "center", textBaseline: "bottom", dy: -4 };
+// 改成画在图元外侧：文本框边距锚点 4px，框边到字形还有约 4px 字体伸展空间，
+// 合起来是图元外约 8px 的空隙。
+// 正负分流，三个键缺一不可：
+//   position     决定锚点取包围盒的哪条边。负值柱的包围盒**顶边就是零轴**，
+//                留在 'top' 的话标签会贴在 0 上、与朝下的柱子背道而驰。
+//   textBaseline 决定文字画在锚点的哪一侧。
+//   dy           把文字再推离图元 4px，方向随正负翻转。
+// 写成回调是合法的：runtime 对 label 的每个选项都过一遍 valueOf()——是函数就按
+// 当前数据点调用（runtime/plot.js 的 createLabelShapeFunction）。所以一份模板能
+// 服务所有 mark，不必按字段名各生成一份，也就不会破坏「所有标签配置一致」的约束。
+// toLong() 只会写出 value / barValue / lineValue 三者之一，取到哪个就是哪个。
+const isNegative = (datum) =>
+	Number(datum?.value ?? datum?.barValue ?? datum?.lineValue ?? 0) < 0;
+const LABEL_OUTSIDE = {
+	textAlign: "center",
+	position: (d) => (isNegative(d) ? "bottom" : "top"),
+	textBaseline: (d) => (isNegative(d) ? "top" : "bottom"),
+	dy: (d) => (isNegative(d) ? 4 : -4),
+};
 // 柱宽由 x band 比例尺的 padding 决定，默认 paddingInner/paddingOuter 都是 0.1
 // （柱宽 = 槽宽的 0.9，柱子几乎相接）。paddingInner 0.5 把柱宽压回槽宽的一半，
 // 配套的 paddingOuter 0.25 让首尾两槽与中间等宽、柱子仍居槽中央。折线图的 x
@@ -225,7 +241,7 @@ const Y_AXIS = {
 // 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
 // 共用一个对象时后一个 mark 会沿用前一个的字段。
 function valueLabel(field, formatter) {
-	return { text: field, formatter, transform: fresh(LABEL_TRANSFORM), ...LABEL_ABOVE };
+	return { text: field, formatter, transform: fresh(LABEL_TRANSFORM), ...LABEL_OUTSIDE };
 }
 
 // 光晕往字形轮廓外扩的像素数（两层画法里等于 lineWidth 的一半）。参照系：升级前
