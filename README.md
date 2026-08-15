@@ -2,6 +2,8 @@
 
 Declarative content blocks for your notes: write a plain-text declaration, get rich interactive content — no changes to the source file, no external site required. Notes compose like a mosaic, one block at a time: Chart, DataTable, MetricGrid, Timeline, DecisionBox and FlowDiagram are available today; more block types are planned. Works in both `.md` and `.mdx` files.
 
+> **Blocks render in reading view.** Live Preview support is planned but not there yet — if you paste an example and see raw text, switch the note to reading view with `Cmd/Ctrl + E`.
+
 ## What it looks like
 
 ![Inline combo chart rendered in reading view](docs/_assets/readme-chart.png)
@@ -10,7 +12,7 @@ Declarative content blocks for your notes: write a plain-text declaration, get r
 
 ## Quick example
 
-Paste this into a note and switch to reading view (Live Preview is not yet supported):
+Paste this into a note and switch to reading view:
 
 ````text
 <Chart title="Monthly signups" type="combo" x="month" bars="Trials" lines="Signups" labels="all">
