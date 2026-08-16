@@ -65,7 +65,8 @@ npm run install:vault  # build + 拷三件套到测试 vault
 
 ## 测试 vault（真机验证）
 
-- 位置 `测试 vault`（仓库外独立目录，不进 git；不要用其他生产 vault 做测试）。
+- 位置 `测试 vault`——**它自己是一个独立的 git 仓库**（本地，无 remote），不是本仓库的子目录，也不会被本仓库跟踪。不要用其他生产 vault 做测试。
+- 改测试库前先 `git -C 测试 vault status` 看清工作区；写坏了 `git checkout` 就能回退，不需要手工备份。`.obsidian/` 不进 git（宿主状态，随每次部署和插件开关而变）。
 - 测试文档按内容块类型分目录：`chart/` `data-table/` `timeline/` `metric-grid/` `decision-box/` `flow-diagram/`，每类下按写法编号（`01-code-inline` / `02-code-dataset` / `03-tag-inline` / `04-tag-dataset` / `09-errors`；外部数据只有 Chart 与 DataTable 支持，其余四类没有 02/04 两格）。
 - `cases/` 是综合案例（混合写法），`_assets/` 是数据文件，`_readme/` 是 README 截图专用页——三者定位不同，不要混用。
 - 每个 `.md` 都有一份**逐字节相同**的 `.mdx`，用 vault 根的 `sync-mdx.sh` 维护；新增和改动都要成对。
