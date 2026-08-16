@@ -123,7 +123,84 @@ function legendConfig(lineLabels = []) {
 //
 // 变换之外还有一个开关：label.selector 可以在碰撞发生**之前**就筛掉一部分，
 // 取 'first' | 'last' | 自定义函数。主动筛的结果可控，被动隐藏的结果看运气。
-const LABEL_TRANSFORM = [];
+
+// ── 关键数据优先：空间够就一个不少，不够时从最平淡的开始牺牲 ──
+//
+// overlapHide 按数组顺序先到先得，priority 就是那个排序函数。不传的话，牺牲谁
+// 由绘制次序（CSV 行序）决定，与重要性无关。
+//
+// 分级依据能读到整行原始数据——引擎创建标签节点时，把 label 配置里所有没被内部
+// 消费的键原样挂上节点，datum 也在其中，没有白名单过滤
+// （runtime/plot.js 的 createLabelShapeFunction → shape/label/label.js 的
+//  applyStyle(overrideStyle)）。所以不必从格式化后的文字里 parse 数值。
+const RANK_HIGHLIGHTED = 0; // highlight= 点名的周期：用户已明说这几期重要
+const RANK_EDGE = 1; // 首尾两期：缺了读不出「从多少到多少」
+const RANK_EXTREME = 2; // 最大 / 最小：趋势的转折点
+const RANK_PLAIN = 3; // 其余
+const RANK_KEY = "mosaicLabelRank";
+
+// 每个 mark 的 data 只在渲染时才传进来，极值按 (data, field) 缓存一次，避免
+// 每个标签各遍历一遍整份数据。WeakMap 挂在 data 数组上，data 被回收就一起走。
+const extremesCache = new WeakMap();
+function extremesOf(data, field) {
+	let byField = extremesCache.get(data);
+	if (!byField) extremesCache.set(data, (byField = new Map()));
+	let found = byField.get(field);
+	if (!found) {
+		let min = Number.POSITIVE_INFINITY;
+		let max = Number.NEGATIVE_INFINITY;
+		for (const row of data) {
+			const v = Number(row?.[field]);
+			if (!Number.isFinite(v)) continue;
+			if (v < min) min = v;
+			if (v > max) max = v;
+		}
+		byField.set(field, (found = { min, max }));
+	}
+	return found;
+}
+
+// 返回一个按 datum 求值的回调：引擎的 valueOf 会以 (datum, index, data) 调用它，
+// 所以首尾和极值都能就地算出来，不用在外面预先展开一遍数据。
+function labelRank(marked, xKey, field) {
+	return (datum, index, data) => {
+		if (marked.size && marked.has(String(datum?.[xKey]))) return RANK_HIGHLIGHTED;
+		if (index === 0 || index === (data?.length ?? 0) - 1) return RANK_EDGE;
+		const v = Number(datum?.[field]);
+		if (Number.isFinite(v) && Array.isArray(data)) {
+			const { min, max } = extremesOf(data, field);
+			if (v === min || v === max) return RANK_EXTREME;
+		}
+		return RANK_PLAIN;
+	};
+}
+
+// 同级之间按数值绝对值从大到小。值优先取 datum 上的原始数字，取不到才退回文字
+// （清洗掉千分位、货币前缀、百分号）——文字是格式化的产物，能不依赖就不依赖。
+// 局部变量刻意不叫 attrs 或 attributes：Task 13 的漂移守卫会现场 grep 本文件，
+// 按那两个名字后面跟的字段推断「插件消费了哪些标签属性」。这里读的是图形节点而不
+// 是标签属性表，重名会让它把 datum、text 当成用户可写的属性，给每张图挂一条假提示。
+// 守卫连注释一起 grep，所以这段话也不能写出那种形式的示例。
+function labelMagnitude(node) {
+	const props = node?.attributes ?? node?.style ?? {};
+	const raw = Number(props.datum?.[props[`${RANK_KEY}Field`]]);
+	if (Number.isFinite(raw)) return Math.abs(raw);
+	const n = Number.parseFloat(String(props.text ?? "").replace(/[^0-9.eE+-]/g, ""));
+	return Number.isFinite(n) ? Math.abs(n) : Number.NEGATIVE_INFINITY;
+}
+function labelPriority(a, b) {
+	const ra = a?.attributes?.[RANK_KEY] ?? RANK_PLAIN;
+	const rb = b?.attributes?.[RANK_KEY] ?? RANK_PLAIN;
+	return ra - rb || labelMagnitude(b) - labelMagnitude(a);
+}
+
+function labelTransform() {
+	return [
+		{ type: "exceedAdjust", bounds: "main" },
+		{ type: "overlapDodgeY", padding: 0, maxIterations: 10 },
+		{ type: "overlapHide", priority: labelPriority },
+	];
+}
 // 曾经还有一份视图级的 labelTransform（顶层 config.labelTransform），声称能跨 mark
 // 去重叠。它从未运行过：plots 的 transformOptions 把顶层 labelTransform 下发进每个
 // mark 并从顶层删除（它不在 VIEW_OPTIONS 白名单里），而 G2 只从 view 节点读这个键
@@ -443,10 +520,19 @@ function highlightMarks(periods, type) {
 // 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
 // 共用一个对象时后一个 mark 会沿用前一个的字段。
 // centered 是堆叠柱专用的段内居中口径，见 LABEL_CENTER。
-function valueLabel(field, formatter, centered = false) {
-	return centered
-		? { text: field, formatter, transform: [], ...LABEL_CENTER }
-		: { text: field, formatter, transform: fresh(LABEL_TRANSFORM), ...LABEL_OUTSIDE };
+// marked/xKey 用来给每个标签评级（见 labelRank）。堆叠柱不参与——它的数字永远画，
+// 没有取舍可言，链条本来就是空的。
+function valueLabel(field, formatter, centered = false, marked = new Set(), xKey = "period") {
+	if (centered) return { text: field, formatter, transform: [], ...LABEL_CENTER };
+	return {
+		text: field,
+		formatter,
+		transform: labelTransform(),
+		// 这两个键引擎不认识，会原样挂到标签节点上，供 priority 读取。
+		[RANK_KEY]: labelRank(marked, xKey, field),
+		[`${RANK_KEY}Field`]: field,
+		...LABEL_OUTSIDE,
+	};
 }
 
 // 光晕往字形轮廓外扩的像素数（两层画法里等于 lineWidth 的一半）。参照系：升级前
@@ -766,6 +852,8 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		periodsInData.has(p),
 	);
 	const marker = highlightMarks(highlight, type);
+	// 同一份名单第三个用途：加粗轴标签、画色带/竖线，以及防碰撞时优先保住这几期。
+	const marked = new Set(highlight);
 
 	if (type === "combo" || type === "combo-dual-axis") {
 		let barKeys = bars,
@@ -841,7 +929,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			group: barKeys.length > 1,
 			scale: { y: barY },
 			axis: barAxis,
-			label: showLabels ? valueLabel("barValue", barFormatter) : undefined,
+			label: showLabels ? valueLabel("barValue", barFormatter, false, marked) : undefined,
 			tooltip: valueTooltip("barValue", barFormatter),
 		};
 		const lineChild = {
@@ -852,7 +940,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			scale: { y: lineY },
 			axis: lineAxis,
 			style: fresh(LINE_STROKE),
-			label: showLabels ? valueLabel("lineValue", lineFormatter) : undefined,
+			label: showLabels ? valueLabel("lineValue", lineFormatter, false, marked) : undefined,
 			tooltip: valueTooltip("lineValue", lineFormatter),
 		};
 		// 数据点写成折线的兄弟 mark，而不是折线的 point 简写：简写生成的 mark
@@ -937,7 +1025,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		colorField: "series",
 		scale: { color: { range: colorsFor(attrs, seriesKeys) }, y: yScale({ domainMax: yMax }) },
 		label: showLabels
-			? valueLabel("value", formatter, type === "stacked-bar")
+			? valueLabel("value", formatter, type === "stacked-bar", marked)
 			: undefined,
 		axis: {
 			...(highlightX ? { x: highlightX } : {}),

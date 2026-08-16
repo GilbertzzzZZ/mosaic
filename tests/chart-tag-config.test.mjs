@@ -722,16 +722,23 @@ test("currency units prefix formatted values", () => {
 	assert.equal(usd.config.axis.y.labelFormatter(1234.5), "$ 1,234.5");
 });
 
-test("the collision chain is deliberately empty right now", () => {
-	// 防碰撞链暂时清空，为的是先看清引擎不加干预的原样，再从零配起。
-	// 这条测试守的是「空是有意的」——谁加回变换，这里就会红，逼他连同
-	// chart-tag-config.mjs 里那段选型说明一起更新，而不是悄悄塞进去。
-	//
-	// 重新配置时，两条排列约束仍然成立（读过引擎实现，不是猜的）：
-	//   1. 每个变换都以「先把全部标签设为可见」开头且从左到右复合，所以隐藏型
-	//      只能有一个、且必须排在最后，否则后一个会撤销前一个的成果。
-	//   2. exceedAdjust 必须排在隐藏型之前：首尾数据点贴着绘图区边缘，不先平移
-	//      回来就会被隐藏型整个抹掉。
+test("the chain dodges, then hides the least important labels last", () => {
+	// 两条排列约束（读过引擎实现）：每个变换都以「先把全部标签设为可见」开头且从左
+	// 到右复合，所以隐藏型只能有一个、必须最后；exceedAdjust 必须在隐藏型之前，
+	// 否则贴着绘图区边缘的首尾标签会被整个抹掉。
+	// 断言链条的形状与顺序，不钉 dodge 的两个数值——那是要按真机效果反复调的旋钮。
+	const chain = ["exceedAdjust", "overlapDodgeY", "overlapHide"];
+	assert.equal(chain.filter((t) => t.endsWith("Hide")).length, 1);
+	assert.equal(chain.at(-1), "overlapHide");
+	const shape = (transform, label) => {
+		assert.deepEqual(transform.map((t) => t.type), chain, label);
+		assert.equal(transform[0].bounds, "main", label);
+		const dodge = transform.find((t) => t.type === "overlapDodgeY");
+		assert.equal(typeof dodge.padding, "number", label);
+		assert.equal(dodge.maxIterations >= 1, true, label);
+		// 隐藏必须带排序函数：不带的话牺牲谁由 CSV 行序决定，与重要性无关
+		assert.equal(typeof transform.at(-1).priority, "function", label);
+	};
 	for (const [name, attrs] of [
 		["line", { type: "line", series: "Total" }],
 		["bar", { type: "bar", series: "Total" }],
@@ -742,11 +749,119 @@ test("the collision chain is deliberately empty right now", () => {
 			rows,
 			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
 		});
-		const marks = [built.config, ...(built.config.children ?? [])];
-		for (const mark of marks.filter((m) => m.label)) {
-			assert.deepEqual(mark.label.transform, [], `${name}/${mark.type}`);
+		for (const mark of [built.config, ...(built.config.children ?? [])].filter((m) => m.label)) {
+			shape(mark.label.transform, `${name}/${mark.type}`);
 		}
 	}
+});
+
+test("the cull spares the highlighted, the edges and the extremes, in that order", () => {
+	// 分级是我们自己写的逻辑，不是选个引擎参数，所以要测它排出来的次序。
+	// 引擎按 (datum, index, data) 调用这个回调，结果原样挂到标签节点上给 priority 读。
+	const built = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "line",
+			series: "Total",
+			labels: "all",
+			granularity: "month",
+			highlight: rows[2].month,
+		},
+	});
+	const label = built.config.label;
+	const rank = label.mosaicLabelRank;
+	const field = label.mosaicLabelRankField;
+	assert.equal(typeof rank, "function");
+	assert.equal(typeof field, "string");
+
+	// 造一份连续数据，最大最小都在中间，两头都不是极值
+	const data = [
+		{ period: "p0", value: 50 },
+		{ period: "p1", value: 90 },
+		{ period: "p2", value: 10 },
+		{ period: "p3", value: 60 },
+		{ period: "p4", value: 55 },
+	];
+	const r = (i) => rank(data[i], i, data);
+	assert.equal(r(0), 1, "首期");
+	assert.equal(r(4), 1, "末期");
+	assert.equal(r(1), 2, "最大值");
+	assert.equal(r(2), 2, "最小值");
+	assert.equal(r(3), 3, "其余");
+	// highlight 压过一切，连极值也让位——用户已明说这几期重要。
+	// 周期名从真实数据里取：highlight= 会先被「必须在数据里存在」那道过滤筛一遍，
+	// 编一个不存在的周期名进去，名单会是空的，这条断言就测了个寂寞。
+	const real = built.config.data;
+	const period = real[1].period;
+	const marked = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: {
+			...base,
+			type: "line",
+			series: "Total",
+			labels: "all",
+			granularity: "month",
+			highlight: period,
+		},
+	}).config.label.mosaicLabelRank;
+	// 中间一期，既非首尾；给它一份两头是极值的数据，确保它本来只配 RANK_PLAIN
+	const plain = [
+		{ period: "a", value: 0 },
+		{ period, value: 5 },
+		{ period: "c", value: 9 },
+		{ period: "d", value: 6 },
+	];
+	assert.equal(rank(plain[1], 1, plain), 3, "没点名时它只是普通一期");
+	assert.equal(marked(plain[1], 1, plain), 0, "点名后排到最前");
+
+	// 分级算得对，还得看 priority 真的按它排——引擎读的是节点属性，替身按同一形状造
+	const priority = built.config.label.transform.at(-1).priority;
+	const node = (rankValue, value) => ({
+		attributes: { mosaicLabelRank: rankValue, mosaicLabelRankField: "value", datum: { value }, text: `${value}` },
+	});
+	const sorted = (nodes) =>
+		nodes.sort(priority).map((n) => `${n.attributes.mosaicLabelRank}:${n.attributes.datum.value}`);
+	// 级别压过数值：被点名的小数排在普通的大数前面
+	assert.deepEqual(sorted([node(3, 999), node(0, 1)]), ["0:1", "3:999"]);
+	// 四级严格有序
+	assert.deepEqual(sorted([node(3, 9), node(1, 9), node(2, 9), node(0, 9)]), [
+		"0:9",
+		"1:9",
+		"2:9",
+		"3:9",
+	]);
+	// 同级之间按绝对值从大到小，负数按绝对值算——亏损不该因为画在下方就先被牺牲
+	assert.deepEqual(sorted([node(3, 5), node(3, -900), node(3, 40)]), [
+		"3:-900",
+		"3:40",
+		"3:5",
+	]);
+	// 值取自 datum 而非文字。这两条只有在格式化把大小关系弄反时才分得出差别：
+	// "1.2k" 按文字 parse 得到 1.2，会被排到 "50" 后面，而它其实是 1200。
+	assert.deepEqual(
+		sorted([
+			{
+				attributes: {
+					mosaicLabelRank: 3,
+					mosaicLabelRankField: "value",
+					datum: { value: 1200 },
+					text: "1.2k",
+				},
+			},
+			node(3, 50),
+		]),
+		["3:1200", "3:50"],
+	);
+	// 没带 rank 的节点（理论上不该出现）按最低级处理，不能排到关键数据前面
+	assert.deepEqual(
+		[{ attributes: { text: "7", datum: { value: 7 } } }, node(0, 1)]
+			.sort(priority)
+			.map((n) => n.attributes.datum.value),
+		[1, 7],
+	);
 });
 
 test("a stacked bar centres its numbers inside each segment and never hides one", () => {
@@ -1016,7 +1131,8 @@ test("every value label is configured identically apart from the field it reads"
 	// field and its formatter may differ — a dual axis carries a unit per side.
 	// stacked-bar is deliberately out: its numbers sit centred inside each segment,
 	// which is a different placement contract and has its own test.
-	const shapeOf = ({ text, formatter, ...rest }) => rest;
+	// rank 回调与它读的字段名都随 field 而变，跟 text/formatter 同类，单独验
+	const shapeOf = ({ text, formatter, mosaicLabelRank, mosaicLabelRankField, ...rest }) => rest;
 	const seen = [];
 	for (const [name, attrs] of [
 		["line", { type: "line", series: "Total,Split" }],
@@ -1032,7 +1148,10 @@ test("every value label is configured identically apart from the field it reads"
 		});
 		for (const mark of applyLabelStyle(built.config, labelTextStyle(false))) {
 			mark.label.forEach((layer, i) => {
-				seen.push([`${name}/${mark.type ?? "view"}#${i}`, shapeOf(layer)]);
+				const at = `${name}/${mark.type ?? "view"}#${i}`;
+				assert.equal(typeof layer.mosaicLabelRank, "function", at);
+				assert.equal(layer.mosaicLabelRankField, layer.text, at);
+				seen.push([at, shapeOf(layer)]);
 			});
 		}
 	}
@@ -1523,11 +1642,15 @@ test("the transforms we do write survive down to the mark that reads them", () =
 	const labelled = marksOf(spec).filter((mark) => mark.labels?.length);
 	assert.equal(labelled.length, 2, "bar and line both keep their labels");
 	for (const mark of labelled) {
-		// 链条现在是空的，但这条守护不能撤——Task 0 那个坑正是「配置下发到了错误的
-		// 层级，而测试只看配置对象上有没有这个键」。这里断言的是 transform 确实活到
-		// 了引擎真正读它的那一层，重新配置时它会原地接住新内容。
-		assert.equal(Array.isArray(mark.labels[0].transform), true, mark.type);
-		assert.deepEqual(mark.labels[0].transform, [], mark.type);
+		// Task 0 那个坑正是「配置下发到了错误的层级，而测试只看配置对象上有没有这个
+		// 键」。这里断言链条确实活到了引擎真正读它的那一层。
+		assert.deepEqual(
+			mark.labels[0].transform.map((t) => t.type),
+			["exceedAdjust", "overlapDodgeY", "overlapHide"],
+			mark.type,
+		);
+		// 分级回调也必须一路活到这里，否则 priority 读不到 rank，四级形同虚设
+		assert.equal(typeof mark.labels[0].mosaicLabelRank, "function", mark.type);
 	}
 });
 
