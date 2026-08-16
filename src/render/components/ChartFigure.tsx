@@ -154,7 +154,9 @@ export const ChartFigure = ({
 							<figcaption className="mosaic-figure-title">{title}</figcaption>
 						)}
 						{unit && (
-							<span className="mosaic-figure-unit">（{unit}）</span>
+							// 括号内侧留空格：半角括号紧贴中文会显得挤。写成模板字符串而不是
+							// JSX 里的字面空格——那种空格会被 JSX 的空白折叠规则吃掉。
+							<span className="mosaic-figure-unit">{`( ${unit} )`}</span>
 						)}
 					</div>
 				)}

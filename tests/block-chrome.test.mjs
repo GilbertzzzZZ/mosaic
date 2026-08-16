@@ -160,7 +160,7 @@ test("a single-axis unit follows the title on the heading row", async () => {
 	await flush();
 	const line = query(host, "span.mosaic-figure-unit");
 	assert.notEqual(line, null);
-	assert.equal(line.textContent, "（万元）");
+	assert.equal(line.textContent, "( 万元 )");
 	// 位置：紧跟标题，同处标题行左半边——不进画布，所以不受图例布局摆布
 	const heading = query(host, "div.mosaic-figure-heading");
 	assert.notEqual(heading, null);
@@ -172,7 +172,7 @@ test("a single-axis unit follows the title on the heading row", async () => {
 test("a dual-axis chart writes both units on one line as 左 / 右", async () => {
 	const host = chartFigure({ builtExtra: { leftUnit: "万元", rightUnit: "%" } });
 	await flush();
-	assert.equal(query(host, "span.mosaic-figure-unit").textContent, "（万元 / %）");
+	assert.equal(query(host, "span.mosaic-figure-unit").textContent, "( 万元 / % )");
 });
 
 test("a unit with no title still gets its heading slot", async () => {
@@ -181,7 +181,7 @@ test("a unit with no title still gets its heading slot", async () => {
 	const heading = query(host, "div.mosaic-figure-heading");
 	assert.notEqual(heading, null);
 	assert.equal(query(host, "figcaption.mosaic-figure-title"), null);
-	assert.equal(heading.childNodes[0].textContent, "（万元）");
+	assert.equal(heading.childNodes[0].textContent, "( 万元 )");
 });
 
 test("the unit stays put when the source is showing", async () => {
@@ -190,7 +190,7 @@ test("the unit stays put when the source is showing", async () => {
 	query(host, '[aria-label="Show source"]').click();
 	await flush();
 	// 标题行不随内容切换而改变——unit 在画布之外，没有要让开的东西
-	assert.equal(query(host, "span.mosaic-figure-unit").textContent, "（万元）");
+	assert.equal(query(host, "span.mosaic-figure-unit").textContent, "( 万元 )");
 });
 
 test("unit= travels from the tag all the way to the DOM line", async () => {
@@ -212,7 +212,7 @@ test("unit= travels from the tag all the way to the DOM line", async () => {
 		getSectionInfo: () => ({ text, lineStart: 0, lineEnd: 5 }),
 	});
 	await flush();
-	assert.equal(query(el, "span.mosaic-figure-unit").textContent, "（万元）");
+	assert.equal(query(el, "span.mosaic-figure-unit").textContent, "( 万元 )");
 	// 轴标题里不该再有一份
 	assert.equal(JSON.stringify(renders[renders.length - 1].config).includes('"title":"万元"'), false);
 });
