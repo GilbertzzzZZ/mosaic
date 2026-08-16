@@ -444,10 +444,15 @@
 /* 这里曾有一条 .mosaic-data-table caption：title= 当年画在表格内部的 <caption> 里，
    是五类里唯一不画 .mosaic-block-title 的一个。标题统一到头部之后表内不再有 caption，
    规则一并删掉。 */
-/* 行分隔线用 inset box-shadow 而不是 border-bottom：见上面 separate 那条注释——
-   separate 下 border 不合并会让行高涨 1px，inset 不参与合并，行高分毫不动。 */
+/* border: none 是必须的，不是保险起见。宿主给每个单元格加了**四边各 1px** 的
+   border（1.13.7 实测 rgb(53,57,62)）。collapse 时它与我们的线合并掉、看不出来；
+   改 separate 之后两条线各画各的——单元格之间出现两条线夹一道缝，行高也从 28.89
+   涨到 30.89。清掉宿主那份，只留下面这条 inset。
+   行分隔线用 inset box-shadow 而不是 border-bottom：见上面 separate 那条注释——
+   separate 下 border 不合并会让行高再涨 1px，inset 不参与合并，行高分毫不动。 */
 .mosaic-data-table th,
 .mosaic-data-table td {
+	border: none;
 	padding: 6px 10px;
 	box-shadow: inset 0 -1px 0 var(--background-modifier-border);
 	font-size: 13px;
