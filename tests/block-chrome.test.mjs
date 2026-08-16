@@ -681,6 +681,59 @@ function fontSizeIn(css, selector) {
 	return /font-size:\s*([^;]+);/.exec(body)?.[1].trim();
 }
 
+// 表格在框内滚动、表头与首列钉住。纯 CSS 的事，node 侧没有排版引擎可问，所以断言
+// 样式表本身——与上面那条原文视图字号的测试同一个路子。
+test("a long table scrolls inside its own frame, with the header and first column pinned", () => {
+	const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+	const ruleOf = (selector) => {
+		const at = css.indexOf(`${selector} {`);
+		assert.notEqual(at, -1, `${selector} rule missing from styles.css`);
+		return css.slice(at, css.indexOf("}", at));
+	};
+
+	// (a) 框体限高。没有它，position: sticky 找不到高度受限的滚动祖先，top: 0 永远
+	// 不触发——吸顶那条规则以前就是这么一直没生效的。
+	const scroll = ruleOf(".mosaic-data-table .table-scroll");
+	const maxHeight = /max-height:\s*([^;]+);/.exec(scroll)?.[1].trim();
+	assert.ok(maxHeight, "表格没有高度上限，sticky 不会生效");
+	assert.ok(/^\d+px$/.test(maxHeight), `max-height 该是一个确定的高度，实际是 ${maxHeight}`);
+
+	// (b) 双向滚动：横向给宽表，纵向给长表。overflow-x 单独一个方向不够。
+	const overflow = /overflow:\s*([^;]+);/.exec(scroll)?.[1].trim();
+	assert.equal(overflow, "auto", `overflow 该是双向 auto，实际是 ${overflow}`);
+
+	// (c) 表头与首列都钉住，且都是无条件的——选择器里不能再出现开关 class。
+	for (const selector of [
+		".mosaic-data-table thead th",
+		".mosaic-data-table th:first-child,\n.mosaic-data-table td:first-child",
+	]) {
+		assert.ok(ruleOf(selector).includes("position: sticky"), `${selector} 没有钉住`);
+	}
+	// 只查活规则，不查注释——注释里留着「这两个 class 曾经存在」的来龙去脉。
+	const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	assert.equal(
+		/\.is-sticky-header|\.is-first-column-frozen/.test(withoutComments),
+		false,
+		"钉住不该再挂在开关 class 上",
+	);
+
+	// 左上角那格同属表头与首列，层级必须压过另外两组
+	const corner = ruleOf(".mosaic-data-table thead th:first-child");
+	const zOf = (rule) => Number(/z-index:\s*(\d+);/.exec(rule)?.[1] ?? 0);
+	assert.ok(
+		zOf(corner) > zOf(ruleOf(".mosaic-data-table thead th")),
+		"左上角那格会被表头盖住",
+	);
+
+	// 分隔线必须是 inset box-shadow 而不是 border：border-collapse 下边框归表格绘制，
+	// sticky 的格子滚走时线会留在原地。
+	const table = ruleOf(".mosaic-data-table table");
+	assert.ok(table.includes("border-collapse: separate"), "collapse 下 sticky 的边框会掉队");
+	const cell = ruleOf(".mosaic-data-table th,\n.mosaic-data-table td");
+	assert.ok(cell.includes("inset 0 -1px 0"), "行分隔线该用 inset box-shadow");
+	assert.equal(/border-bottom:/.test(cell), false, "还留着 border-bottom");
+});
+
 test("the source view follows the body text size instead of being shrunk", () => {
 	// 字号是纯 CSS 的事，node 侧没有排版引擎可问，所以这里断言样式表本身。
 	const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");

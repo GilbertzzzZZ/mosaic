@@ -403,12 +403,27 @@
 /* The toolbar buttons carry no rules of their own: Obsidian's native button
    already supplies the size, colours, hover background, shadow and focus
    ring — more than the hand-written set did. */
+/* 表格在框内滚动，不把整篇笔记撑长。上限约 26 行（表头 1 + 数据 25）：
+   行高 = 上下 padding 6px×2 + 字号 13px × 宿主正文行高（约 1.5）≈ 31.5px，
+   26 × 31.5 ≈ 820px。取固定值而不是 calc()：行高里的 line-height 来自宿主主题，
+   CSS 里拿不到一个可靠的变量去乘；.mosaic-source-view 的 420px 也是同样的取法。
+   读者把正文字号调大后实际显示行数会略少于 25，这是可接受的近似。
+   **这条是 sticky 的前提**：position: sticky 需要一个高度受限的滚动祖先才有
+   参照物，没有 max-height 时 top: 0 永远不触发——表头吸顶那条规则以前就是这么
+   一直没生效的。
+   overflow 写双向：横向给宽表（scroll 布局），纵向给长表。 */
 .mosaic-data-table .table-scroll {
-	overflow-x: auto;
+	max-height: 820px;
+	overflow: auto;
 }
+/* separate 而不是 collapse。collapse 下边框的绘制归表格、不归单元格，sticky 的
+   表头和首列滚走时，边框会留在原地——线和格子分家。separate + border-spacing: 0
+   让每个单元格自己画边，位置跟着单元格走，视觉上与 collapse 无异（相邻边不再合并，
+   但下面的分隔线都画在单元格内侧，不会叠成 2px）。 */
 .mosaic-data-table table {
 	width: 100%;
-	border-collapse: collapse;
+	border-collapse: separate;
+	border-spacing: 0;
 }
 .mosaic-data-table .table-card[data-table-layout="scroll"] table,
 .mosaic-data-table .table-card[data-table-layout="fit"] table,
@@ -425,10 +440,12 @@
 /* 这里曾有一条 .mosaic-data-table caption：title= 当年画在表格内部的 <caption> 里，
    是五类里唯一不画 .mosaic-block-title 的一个。标题统一到头部之后表内不再有 caption，
    规则一并删掉。 */
+/* 行分隔线用 inset box-shadow 而不是 border-bottom：见上面 separate 那条注释。
+   inset（画在单元格内侧）而不是外投影——外投影会被下一行单元格的背景盖掉。 */
 .mosaic-data-table th,
 .mosaic-data-table td {
 	padding: 6px 10px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	box-shadow: inset 0 -1px 0 var(--background-modifier-border);
 	font-size: 13px;
 	text-align: left;
 	overflow-wrap: break-word;
@@ -451,6 +468,37 @@
    另：不要改用 var(--table-header-background)——它同样回落到 --table-background，
    实测计算值也是 transparent，用了等于选择「表头不要背景」，与「三列统一有背景」相反。 */
 .mosaic-data-table .table-card table thead tr > th {
+	background: var(--background-secondary);
+}
+
+/* 表头与首列在滚动时钉住。**无条件生效**，没有阈值也没有开关——大表滚起来钉住、
+   小表根本不滚，是同一条规则在不同内容量下的自然结果，不是两种组件。
+   （这里曾经是 .is-sticky-header / .is-first-column-frozen 两个条件 class，由一层
+   「表格大了自动开」的复杂度判定挂上去。那层判定连同它的五个属性一起删了：判据量的
+   是数据的物理尺寸，与读者要不要这个功能无关。）
+   sticky 的参照物是 .table-scroll——它有 max-height 才成为滚动容器，这两条规则才
+   有意义；以前没有 max-height，所以吸顶那条从未真正生效过。
+
+   分隔线一律用 inset box-shadow，不用 border：见 border-collapse 那条注释。
+   背景色必须写死不透明，否则滚动时下层内容会从格子里透上来。 */
+.mosaic-data-table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+.mosaic-data-table th:first-child,
+.mosaic-data-table td:first-child {
+	position: sticky;
+	left: 0;
+	background: var(--background-primary);
+	box-shadow:
+		inset 0 -1px 0 var(--background-modifier-border),
+		inset -1px 0 0 var(--background-modifier-border);
+}
+/* 左上角那一格同时属于表头和首列，两个方向都要钉住，层级必须压过另外两组——
+   否则横滚时它会被后面的表头盖住，纵滚时被后面的首列盖住。 */
+.mosaic-data-table thead th:first-child {
+	z-index: 2;
 	background: var(--background-secondary);
 }
 .mosaic-table-meta {
