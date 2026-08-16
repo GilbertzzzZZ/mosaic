@@ -743,18 +743,16 @@ test("a long table scrolls inside its own frame, with the header and first colum
 
 	// 表头的下边线同理：border-collapse: collapse 下边框由表格绘制，表头钉住不动而
 	// 表格往上跑，那条线就跟着表格走了——表头与数据之间出现一条会上下滑的缝。
-	// 整表已经是 separate + inset 分隔线，表头不需要再单独关掉 border-bottom——
-	// 它跟其余单元格共用同一条 inset 规则。这里改为守住那条共用规则本身。
-	const cell = ruleOf(".mosaic-data-table th,\n.mosaic-data-table td");
-	assert.ok(cell.includes("inset 0 -1px 0"), "行分隔线不是 inset，滚动时会掉队");
-	assert.equal(/border-bottom:/.test(cell), false, "还留着 border-bottom");
-
-	// separate + spacing 0 是消掉首列半像素的唯一办法（真机实测：collapse 下首列相对
-	// 容器恒偏 0.5px，separate 下为 0）。它必须与 inset 分隔线同时成立，否则行高会
-	// 涨 1px——边框变粗就是这么来的。
+	// 只有钉住的那两条边改 inset，其余边框原样留给宿主——曾经把整表改成 separate
+	// 并清掉宿主的 border，结果列与列之间的竖线、首列左边框、外框全没了。
+	assert.ok(head.includes("inset 0 -1px 0"), "表头下边线不是 inset，滚动时会掉队");
+	assert.ok(head.includes("border-bottom: none"), "表头还留着会掉队的 border-bottom");
 	const table = ruleOf(".mosaic-data-table table");
-	assert.ok(table.includes("border-collapse: separate"), "collapse 会让首列偏 0.5px");
-	assert.ok(table.includes("border-spacing: 0"), "separate 少了 border-spacing: 0");
+	assert.ok(table.includes("border-collapse: collapse"), "改 separate 会让宿主的边框全部现形");
+
+	// 首列去掉左边框是消半像素的关键：collapse 把合并后的 1px 由相邻两格各分担一半，
+	// 首列内容盒因此右移 0.5px，sticky 钉不住那半格。真机实测 0.5 → 0。
+	assert.ok(firstColumn.includes("border-left: none"), "首列留着左边框，会有半像素抖动");
 
 	// 左上角同属表头与首列，两条线都要
 	assert.ok(

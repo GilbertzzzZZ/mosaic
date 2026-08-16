@@ -416,18 +416,9 @@
 	max-height: 820px;
 	overflow: auto;
 }
-/* separate + border-spacing: 0，不是 collapse。collapse 会把合并后的 1px 边框由相邻
-   两个单元格各分担一半，于是首列单元格的内容盒往右挪 0.5px——sticky 的 left: 0 把它
-   钉在滚动容器左缘，那半格却还在，devicePixelRatio 为 1 时无法整数对齐，滚动中被舍入
-   到 0 或 1，看起来就是左右抖。真机实测：collapse 下首列相对容器恒偏 0.5px，separate
-   下恒为 0。
-   **切 separate 必须与「分隔线改 inset」同时做**：separate 下相邻边框不再合并，若行
-   分隔线仍是 border-bottom，行高会从 29.89 涨到 30.89（真机量过），这正是上一次改
-   separate 时边框变粗的确切机制。inset 画在各自盒内，本来就不参与合并。 */
 .mosaic-data-table table {
 	width: 100%;
-	border-collapse: separate;
-	border-spacing: 0;
+	border-collapse: collapse;
 }
 .mosaic-data-table .table-card[data-table-layout="scroll"] table,
 .mosaic-data-table .table-card[data-table-layout="fit"] table,
@@ -444,17 +435,10 @@
 /* 这里曾有一条 .mosaic-data-table caption：title= 当年画在表格内部的 <caption> 里，
    是五类里唯一不画 .mosaic-block-title 的一个。标题统一到头部之后表内不再有 caption，
    规则一并删掉。 */
-/* border: none 是必须的，不是保险起见。宿主给每个单元格加了**四边各 1px** 的
-   border（1.13.7 实测 rgb(53,57,62)）。collapse 时它与我们的线合并掉、看不出来；
-   改 separate 之后两条线各画各的——单元格之间出现两条线夹一道缝，行高也从 28.89
-   涨到 30.89。清掉宿主那份，只留下面这条 inset。
-   行分隔线用 inset box-shadow 而不是 border-bottom：见上面 separate 那条注释——
-   separate 下 border 不合并会让行高再涨 1px，inset 不参与合并，行高分毫不动。 */
 .mosaic-data-table th,
 .mosaic-data-table td {
-	border: none;
 	padding: 6px 10px;
-	box-shadow: inset 0 -1px 0 var(--background-modifier-border);
+	border-bottom: 1px solid var(--background-modifier-border);
 	font-size: 13px;
 	text-align: left;
 	overflow-wrap: break-word;
@@ -488,12 +472,17 @@
    sticky 的参照物是 .table-scroll——它有 max-height 才成为滚动容器，这两条规则才
    有意义；以前没有 max-height，所以吸顶那条从未真正生效过。
 
-   分隔线一律用 inset box-shadow，理由见 border-collapse 那条注释。
-   背景色必须写死不透明，否则滚动时下层内容会从格子里透上来。 */
+   钉住的那两条边（表头的下边线、首列的右边线）改用 inset box-shadow：collapse 下
+   边框由表格绘制，钉住的格子滚走时 border 会留在原地。其余边框原样交给宿主，网格
+   完整。背景色必须写死不透明，否则滚动时下层内容会从格子里透上来。 */
 .mosaic-data-table thead th {
 	position: sticky;
 	top: 0;
 	z-index: 1;
+	/* 下边线换成 inset。collapse 下边框由表格绘制，表头钉住不动而表格往上跑，那条
+	   border-bottom 就跟着表格走了——表头与数据之间出现一条会上下滑的缝。 */
+	border-bottom: none;
+	box-shadow: inset 0 -1px 0 var(--background-modifier-border);
 }
 .mosaic-data-table th:first-child,
 .mosaic-data-table td:first-child {
@@ -504,8 +493,15 @@
 	   首列右缘外侧 1px 上最顶层的是已经滚走的第三列，首列的外投影被整条盖掉。 */
 	z-index: 1;
 	background: var(--background-primary);
-	/* inset 而不是外投影：外投影画在盒子外侧那 1px，那 1px 归相邻单元格，谁后画谁赢。
-	   inset 画在自己盒子里，没人能盖。 */
+	/* 左边框必须去掉，这是首列半像素抖动的根源：collapse 把合并后的 1px 边框由相邻
+	   两个单元格各分担一半，首列的内容盒因此往右挪 0.5px。sticky 的 left: 0 把单元格
+	   钉在容器左缘，那半格却还在——devicePixelRatio 为 1 时无法整数对齐，滚动中被舍入
+	   到 0 或 1，看上去就是左右抖。真机实测：有左边框时首列相对容器恒偏 0.5px，去掉后
+	   恒为 0。首列贴着容器左缘，本来也没有左邻居要跟它合并这条边。 */
+	border-left: none;
+	/* 右分隔线用 inset 而不是 border-right：collapse 下边框由表格绘制，首列横向滚走时
+	   border 会留在原地；inset 画在单元格自己盒内，跟着一起走。外投影同样不行——它画在
+	   盒外那 1px，那 1px 归相邻单元格，谁后画谁赢。 */
 	box-shadow: inset -1px 0 0 var(--background-modifier-border);
 }
 /* 左上角那一格同时属于表头和首列，两个方向都要钉住，层级必须压过另外两组——
