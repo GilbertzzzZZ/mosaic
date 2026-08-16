@@ -92,6 +92,18 @@ DecisionBox **不支持 `dataset`**。若在标签上写 `dataset="..."`，会�
 | `default` | 其他任意非空值 |
 | `""`（不渲染徽章） | 未设置或空字符串 |
 
+**归一化结果决定左边框的颜色**（跟随主题的扩展色板）：
+
+| 状态 | 左边框 |
+| --- | --- |
+| `accepted` | 绿 |
+| `rejected` | 红 |
+| `proposed` | 主题强调色（与 Timeline 的 `active` 同义：提议中，还没定） |
+| `superseded` | 灰（已被后来的决定取代——不是失败，只是过期） |
+| `default` / 未设置 | 不染色，保持中性 |
+
+**徽章上的文字是属性原样取值，不是归一化结果**：写 `status="done"` 徽章显示 `done`，而左边框按 `accepted` 染成绿色。归一化只影响颜色。
+
 固定文案：区块头部左上角有一个不可配置的 kicker 标签，内容固定为 `Decision`（CSS 控制为大写显示），不是数据字段，永远显示。
 
 ## Payload 契约
@@ -131,8 +143,12 @@ fenced json 围栏内是不合法 JSON
 ## 渲染效果
 
 > 示例截图一律使用模拟假数据（dark 主题实拍）。
+>
+> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
 
-结构化 label/value 两列布局 + status / owner / source 徽标（accepted 与 proposed 两种状态）：
+结构化 label/value 两列布局 + status / owner / source 徽标（accepted 与 proposed 两种状态）。
+
+> **<待补全>**：这张图拍摄于状态色加入之前，图中两个框都没有左边框颜色。现在 accepted 是绿、proposed 是主题强调色。
 
 ![DecisionBox records](../_assets/decision-box.png)
 

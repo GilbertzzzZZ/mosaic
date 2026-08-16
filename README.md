@@ -10,6 +10,8 @@ Declarative content blocks for your notes: write a plain-text declaration, get r
 
 ![MetricGrid and Timeline blocks](docs/_assets/readme-blocks.png)
 
+> **\<pending\>** — both screenshots predate this round's frame unification (the six block types now share one border rule). They will be retaken.
+
 ## Quick example
 
 Paste this into a note and switch to reading view:

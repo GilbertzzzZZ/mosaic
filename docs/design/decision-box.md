@@ -2,6 +2,16 @@
 
 > DecisionBox 把一条决策渲染成带状态徽标的卡片，正文既可以是结构化的「条目：内容」清单，也可以是自由散文。它是六类区块中唯一空数据不报错的一个——这不是疏漏，而是它的核心设计。用法见 [../guides/decision-box.md](../guides/decision-box.md)。
 
+## 状态为什么染左边框
+
+`status` 归一化后决定左边框的颜色：accepted 绿、rejected 红、proposed 主题强调色、superseded 灰，词表外的值与不写一律不染。
+
+染左边框而不是 MetricGrid 那样的顶边：决策框是整段叙述性内容，左边框是这类内容的通行标记，也与顶边的指标卡在视觉上分得开。
+
+这条曾经缺席很久——`DecisionBoxView` 一直在产出 `is-accepted` / `is-rejected` 这几个 class，但样式表里一条规则都没有，于是状态算出来了、没上色，`accepted` 与 `rejected` 肉眼完全一样。对照组三类都有：MetricGrid 的顶边、Timeline 的圆点、FlowDiagram 的节点填充。
+
+**徽章文字与颜色取的不是同一个值**：徽章用属性原样取值（写 `done` 就显示 `done`），颜色用归一化结果（`done` → `accepted` → 绿）。这是刻意的——徽章保留用户写下的词，颜色表达系统的理解。
+
 ## 双路径设计：结构化 label/value 与富文本回退
 
 决策记录在真实笔记里有两种同样合法的形态：整理过的（「决策：采用方案 A / 代价：迁移两周 / 复审：下季度」）与没整理过的（一段说明加几条要点）。DecisionBox 不强迫作者二选一，而是按内容自动走两条渲染路径：

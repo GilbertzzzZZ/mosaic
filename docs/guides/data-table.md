@@ -139,8 +139,12 @@ dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where
 ## 渲染效果
 
 > 示例截图一律使用模拟假数据（dark 主题实拍）。三种内联 payload（CSV / JSON / Markdown 表格）渲染效果一致，不分开截图。
+>
+> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
 
-上：内联 CSV；下：dataset 模式（month/quarter 粒度按钮组，表头显示 manifest label）。**截图待重拍**——上半张里的工具栏（搜索 / 冻结首列 / 复制 CSV）已经删除，现在两种模式的表格本体一模一样，只有 dataset 模式多一组粒度按钮和一行脚注：
+上：内联 CSV；下：dataset 模式（month/quarter 粒度按钮组，表头显示 manifest label）。
+
+> **<待补全>**：这张图拍摄于工具栏删除之前，上半张里的搜索框 / 冻结首列 / 复制 CSV 都已不存在。现在两种模式的表格本体一模一样，只有 dataset 模式多一组粒度按钮和一行脚注。
 
 ![DataTable inline and dataset modes](../_assets/data-table.png)
 
