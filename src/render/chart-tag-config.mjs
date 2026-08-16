@@ -101,32 +101,29 @@ function legendConfig(lineLabels = []) {
 		},
 	};
 }
-// 数值标签防碰撞，三段，顺序不可换：
-//   exceedAdjust    把越界标签平移回绘图区（首尾数据点贴着边缘，缺这步会被后面整个隐藏）
-//   overlapDodgeY   迭代把碰撞的标签上下错开，从不隐藏——这一段是「错开优先」的本体
-//   overlapHide     错不开的兜底隐藏
-// 三个变换的实现都以「先把全部标签设为可见」开头，而变换从左到右复合，所以后一个
-// 隐藏型会撤销前一个的隐藏结果：隐藏型只能有一个，且必须排在最后。
-// overlapHide 的取舍口径：它按数组顺序「先到先得」，谁排在前面谁保得住。不传
-// priority 的话，那个顺序就是绘制次序——等于按数据在 CSV 里的先后决定谁被牺牲，
-// 与重要性无关。这里按数值绝对值从大到小排，让大数先占位。
+// 数值标签防碰撞：**暂时清空，先看引擎不加干预的原样**。
 //
-// 值从标签自己的文字里读，不从坐标推：坐标只反映高低，负值（亏损）画在下方、
-// y 坐标最大，按坐标排会让最该看见的亏损数字第一个被抹掉。
-// 清洗只留数字、小数点、正负号与科学计数法字符——千分位逗号、货币前缀、百分号
-// 都会被剥掉，`¥1,234` → 1234、`-45.6%` → 45.6。读不出数的（空标签、纯文本）
-// 排到最后，让它们先被牺牲。
-function labelMagnitude(node) {
-	const text = node?.attributes?.text ?? node?.style?.text ?? "";
-	const n = Number.parseFloat(String(text).replace(/[^0-9.eE+-]/g, ""));
-	return Number.isFinite(n) ? Math.abs(n) : Number.NEGATIVE_INFINITY;
-}
-const LABEL_PRIORITY = (a, b) => labelMagnitude(b) - labelMagnitude(a);
-const LABEL_TRANSFORM = [
-	{ type: "exceedAdjust", bounds: "main" },
-	{ type: "overlapDodgeY", padding: 0, maxIterations: 10 },
-	{ type: "overlapHide", priority: LABEL_PRIORITY },
-];
+// 引擎一共提供六种变换，算法全在引擎里，我们能做的只是选哪几种、按什么顺序排、
+// 各传什么参数。重新配置时从这张表里挑：
+//
+//   exceedAdjust     把越界的标签平移回绘图区。参数 bounds('view'|'main')、offsetX、offsetY
+//   overlapDodgeY    迭代把碰撞的标签上下错开，从不隐藏。参数 maxIterations(默认10)、
+//                    padding(默认1)、maxError(默认0.1)。**只有 Y 方向，引擎没有 X 方向的对应品**
+//   overlapHide      重叠就隐藏。参数 priority——一个排序函数，决定谁保得住；
+//                    不传就是按绘制次序先到先得，即由 CSV 行序决定谁被牺牲
+//   overflowHide     装不下自己那个图形就隐藏
+//   overflowStroke   压在图形上时自动描边。参数 palette、threshold(默认2)
+//   contrastReverse  对比度低于阈值时自动反色。参数 threshold(默认4.5)、palette
+//
+// 两条排列上的硬约束（读过实现，不是猜的）：
+//   1. 每个变换都以「先把全部标签设为可见」开头，而变换从左到右复合，所以后一个
+//      隐藏型会撤销前一个的成果——**隐藏型只能有一个，且必须排在最后**。
+//   2. exceedAdjust 要排在隐藏型之前：首尾数据点贴着绘图区边缘，不先平移回来
+//      就会被隐藏型整个抹掉。
+//
+// 变换之外还有一个开关：label.selector 可以在碰撞发生**之前**就筛掉一部分，
+// 取 'first' | 'last' | 自定义函数。主动筛的结果可控，被动隐藏的结果看运气。
+const LABEL_TRANSFORM = [];
 // 曾经还有一份视图级的 labelTransform（顶层 config.labelTransform），声称能跨 mark
 // 去重叠。它从未运行过：plots 的 transformOptions 把顶层 labelTransform 下发进每个
 // mark 并从顶层删除（它不在 VIEW_OPTIONS 白名单里），而 G2 只从 view 节点读这个键

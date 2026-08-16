@@ -722,89 +722,31 @@ test("currency units prefix formatted values", () => {
 	assert.equal(usd.config.axis.y.labelFormatter(1234.5), "$ 1,234.5");
 });
 
-test("labels dodge before they hide, and only ever hide last", () => {
-	// hiding was the whole complaint: the old chain went straight from "nudge the
-	// out-of-bounds ones back in" to "hide whatever still overlaps". overlapDodgeY
-	// pushes colliding labels apart instead and never hides anything.
-	// The order is not cosmetic: every transform starts by making all labels visible
-	// again, and they compose left to right, so a second hiding transform would undo
-	// the first one's work. There can be exactly one, and it has to come last.
-	// 断言的是链条的形状与顺序，不是 dodge 的两个数值——padding 与 maxIterations
-	// 是要按真机效果反复调的旋钮，把它们钉死会让每次调参都要改一次测试，而这条
-	// 测试真正要守的东西（谁在前、谁在后、隐藏型只有一个）与取值无关。
-	const chain = ["exceedAdjust", "overlapDodgeY", "overlapHide"];
-	const hiders = chain.filter((t) => t.endsWith("Hide"));
-	assert.equal(hiders.length, 1);
-	assert.equal(chain.at(-1), "overlapHide");
-	const shape = (transform) => {
-		assert.deepEqual(
-			transform.map((t) => t.type),
-			chain,
-		);
-		// dodge 必须真的带着参数下发，否则等于用了引擎默认值
-		const dodge = transform.find((t) => t.type === "overlapDodgeY");
-		assert.equal(typeof dodge.padding, "number");
-		assert.equal(typeof dodge.maxIterations, "number");
-		assert.equal(dodge.maxIterations >= 1, true);
-		assert.equal(transform[0].bounds, "main");
-		// 隐藏必须带排序函数：不带的话牺牲谁由绘制次序决定，与重要性无关
-		assert.equal(typeof transform.at(-1).priority, "function");
-	};
-	const line = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: {
-			...base,
-			type: "line",
-			series: "Total",
-			labels: "all",
-			granularity: "month",
-		},
-	});
-	shape(line.config.label.transform);
-	const combo = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: {
-			...base,
-			type: "combo",
-			bars: "Split",
-			lines: "Total",
-			labels: "all",
-			granularity: "month",
-		},
-	});
-	for (const child of combo.config.children) {
-		if (!child.label) continue; // the point mark carries no labels
-		shape(child.label.transform);
+test("the collision chain is deliberately empty right now", () => {
+	// 防碰撞链暂时清空，为的是先看清引擎不加干预的原样，再从零配起。
+	// 这条测试守的是「空是有意的」——谁加回变换，这里就会红，逼他连同
+	// chart-tag-config.mjs 里那段选型说明一起更新，而不是悄悄塞进去。
+	//
+	// 重新配置时，两条排列约束仍然成立（读过引擎实现，不是猜的）：
+	//   1. 每个变换都以「先把全部标签设为可见」开头且从左到右复合，所以隐藏型
+	//      只能有一个、且必须排在最后，否则后一个会撤销前一个的成果。
+	//   2. exceedAdjust 必须排在隐藏型之前：首尾数据点贴着绘图区边缘，不先平移
+	//      回来就会被隐藏型整个抹掉。
+	for (const [name, attrs] of [
+		["line", { type: "line", series: "Total" }],
+		["bar", { type: "bar", series: "Total" }],
+		["combo", { type: "combo", bars: "Split", lines: "Total" }],
+	]) {
+		const built = buildChartFromTag({
+			manifest,
+			rows,
+			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
+		});
+		const marks = [built.config, ...(built.config.children ?? [])];
+		for (const mark of marks.filter((m) => m.label)) {
+			assert.deepEqual(mark.label.transform, [], `${name}/${mark.type}`);
+		}
 	}
-});
-
-test("the big numbers survive the cull, whichever way they are formatted", () => {
-	// priority 是我们自己写的逻辑，不是选个引擎参数，所以要测它排出来的次序。
-	// 引擎拿到的是排好序的数组，然后先到先得：排在前面的保住，后面重叠的被隐藏。
-	const built = buildChartFromTag({
-		manifest,
-		rows,
-		attributes: { ...base, type: "line", series: "Total", labels: "all", granularity: "month" },
-	});
-	const priority = built.config.label.transform.at(-1).priority;
-	// 引擎读节点属性走 node.attributes，替身按同一形状造
-	const node = (text) => ({ attributes: { text } });
-	const order = (texts) =>
-		texts.map(node).sort(priority).map((n) => n.attributes.text);
-
-	// 大数在前
-	assert.deepEqual(order(["1", "300", "20"]), ["300", "20", "1"]);
-	// 千分位、货币前缀、百分号都不能干扰取值
-	assert.deepEqual(order(["¥1,234", "56", "7.8%"]), ["¥1,234", "56", "7.8%"]);
-	// 负数按绝对值算——亏损同样是大数，不该因为画在下方就先被牺牲
-	assert.deepEqual(order(["-980", "12"]), ["-980", "12"]);
-	assert.deepEqual(order(["5", "-900", "40"]), ["-900", "40", "5"]);
-	// 小数比得对，不是按字符串
-	assert.deepEqual(order(["9.5", "10.2"]), ["10.2", "9.5"]);
-	// 读不出数的排最后，先牺牲它们
-	assert.deepEqual(order(["N/A", "3", ""]), ["3", "N/A", ""]);
 });
 
 test("a stacked bar centres its numbers inside each segment and never hides one", () => {
@@ -862,7 +804,6 @@ test("a stacked bar centres its numbers inside each segment and never hides one"
 		for (const mark of marks.filter((m) => m.label)) {
 			assert.equal(typeof mark.label.position, "function", `${name}/${mark.type}`);
 			assert.equal(mark.label.position({ value: 1, barValue: 1, lineValue: 1 }), "top");
-			assert.notEqual(mark.label.transform.length, 0, `${name}/${mark.type}`);
 		}
 	}
 });
@@ -1582,11 +1523,11 @@ test("the transforms we do write survive down to the mark that reads them", () =
 	const labelled = marksOf(spec).filter((mark) => mark.labels?.length);
 	assert.equal(labelled.length, 2, "bar and line both keep their labels");
 	for (const mark of labelled) {
-		assert.deepEqual(
-			mark.labels[0].transform.map((t) => t.type),
-			["exceedAdjust", "overlapDodgeY", "overlapHide"],
-			mark.type,
-		);
+		// 链条现在是空的，但这条守护不能撤——Task 0 那个坑正是「配置下发到了错误的
+		// 层级，而测试只看配置对象上有没有这个键」。这里断言的是 transform 确实活到
+		// 了引擎真正读它的那一层，重新配置时它会原地接住新内容。
+		assert.equal(Array.isArray(mark.labels[0].transform), true, mark.type);
+		assert.deepEqual(mark.labels[0].transform, [], mark.type);
 	}
 });
 
