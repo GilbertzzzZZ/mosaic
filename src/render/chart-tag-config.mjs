@@ -194,12 +194,12 @@ function labelPriority(a, b) {
 	return ra - rb || labelMagnitude(b) - labelMagnitude(a);
 }
 
+// 链上只有隐藏这一段。exceedAdjust（把越界标签平移回绘图区）与 overlapDodgeY
+// （上下错开）都会挪动标签的位置——实测顶部那几个数字会被 exceedAdjust 从数据点
+// 上方压回边界内，看起来像贴在了折线上。位置保持不动是当前的取舍，要加回去得先
+// 单独确认那个位移可以接受。
 function labelTransform() {
-	return [
-		{ type: "exceedAdjust", bounds: "main" },
-		{ type: "overlapDodgeY", padding: 0, maxIterations: 10 },
-		{ type: "overlapHide", priority: labelPriority },
-	];
+	return [{ type: "overlapHide", priority: labelPriority }];
 }
 // 曾经还有一份视图级的 labelTransform（顶层 config.labelTransform），声称能跨 mark
 // 去重叠。它从未运行过：plots 的 transformOptions 把顶层 labelTransform 下发进每个

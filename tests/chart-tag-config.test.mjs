@@ -722,23 +722,11 @@ test("currency units prefix formatted values", () => {
 	assert.equal(usd.config.axis.y.labelFormatter(1234.5), "$ 1,234.5");
 });
 
-test("the chain dodges, then hides the least important labels last", () => {
-	// 两条排列约束（读过引擎实现）：每个变换都以「先把全部标签设为可见」开头且从左
-	// 到右复合，所以隐藏型只能有一个、必须最后；exceedAdjust 必须在隐藏型之前，
-	// 否则贴着绘图区边缘的首尾标签会被整个抹掉。
-	// 断言链条的形状与顺序，不钉 dodge 的两个数值——那是要按真机效果反复调的旋钮。
-	const chain = ["exceedAdjust", "overlapDodgeY", "overlapHide"];
-	assert.equal(chain.filter((t) => t.endsWith("Hide")).length, 1);
-	assert.equal(chain.at(-1), "overlapHide");
-	const shape = (transform, label) => {
-		assert.deepEqual(transform.map((t) => t.type), chain, label);
-		assert.equal(transform[0].bounds, "main", label);
-		const dodge = transform.find((t) => t.type === "overlapDodgeY");
-		assert.equal(typeof dodge.padding, "number", label);
-		assert.equal(dodge.maxIterations >= 1, true, label);
-		// 隐藏必须带排序函数：不带的话牺牲谁由 CSV 行序决定，与重要性无关
-		assert.equal(typeof transform.at(-1).priority, "function", label);
-	};
+test("the chain only hides — nothing moves a label off its data point", () => {
+	// 链上刻意只有 overlapHide。另外两个会挪位置：exceedAdjust 把越界标签平移回
+	// 绘图区（实测顶部数字会被从数据点上方压回边界内，看着像贴在折线上），
+	// overlapDodgeY 把碰撞的标签上下推开。位置保持不动是当前的取舍。
+	// 若要加回去，这条会红——那时得连同「位移可接受」的判断一起记进来。
 	for (const [name, attrs] of [
 		["line", { type: "line", series: "Total" }],
 		["bar", { type: "bar", series: "Total" }],
@@ -750,7 +738,10 @@ test("the chain dodges, then hides the least important labels last", () => {
 			attributes: { ...base, ...attrs, labels: "all", granularity: "month" },
 		});
 		for (const mark of [built.config, ...(built.config.children ?? [])].filter((m) => m.label)) {
-			shape(mark.label.transform, `${name}/${mark.type}`);
+			const at = `${name}/${mark.type}`;
+			assert.deepEqual(mark.label.transform.map((t) => t.type), ["overlapHide"], at);
+			// 隐藏必须带排序函数：不带的话牺牲谁由 CSV 行序决定，与重要性无关
+			assert.equal(typeof mark.label.transform[0].priority, "function", at);
 		}
 	}
 });
@@ -1646,7 +1637,7 @@ test("the transforms we do write survive down to the mark that reads them", () =
 		// 键」。这里断言链条确实活到了引擎真正读它的那一层。
 		assert.deepEqual(
 			mark.labels[0].transform.map((t) => t.type),
-			["exceedAdjust", "overlapDodgeY", "overlapHide"],
+			["overlapHide"],
 			mark.type,
 		);
 		// 分级回调也必须一路活到这里，否则 priority 读不到 rank，四级形同虚设
