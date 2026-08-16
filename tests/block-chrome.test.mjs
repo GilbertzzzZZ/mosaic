@@ -155,18 +155,18 @@ test("DataTable folds its granularity buttons into the same single group", async
 
 // --- Task 8：unit 由 DOM 呈现，不再是 y 轴标题 ---
 
-test("a single-axis unit sits inside the plot area, on the legend's row", async () => {
+test("a single-axis unit follows the title on the heading row", async () => {
 	const host = chartFigure({ builtExtra: { unit: "万元" } });
 	await flush();
 	const line = query(host, "span.mosaic-figure-unit");
 	assert.notEqual(line, null);
 	assert.equal(line.textContent, "万元");
-	// 位置：在画布区里（图例由引擎画在画布顶部，unit 靠 CSS 定位与之同行），
-	// 不再是 figure 下面独占一行。
-	const body = query(host, "div.mosaic-figure-body");
-	assert.notEqual(body, null);
-	assert.equal(line.parentNode, body);
-	assert.equal(body.childNodes[0], line);
+	// 位置：紧跟标题，同处标题行左半边——不进画布，所以不受图例布局摆布
+	const heading = query(host, "div.mosaic-figure-heading");
+	assert.notEqual(heading, null);
+	assert.equal(line.parentNode, heading);
+	assert.equal(heading.childNodes[0].className, "mosaic-figure-title");
+	assert.equal(heading.childNodes[1], line);
 });
 
 test("a dual-axis chart writes both units on one line as 左 / 右", async () => {
@@ -175,14 +175,22 @@ test("a dual-axis chart writes both units on one line as 左 / 右", async () =>
 	assert.equal(query(host, "span.mosaic-figure-unit").textContent, "万元 / %");
 });
 
-test("the unit gets out of the way when the source is showing", async () => {
+test("a unit with no title still gets its heading slot", async () => {
+	const host = chartFigure({ title: undefined, builtExtra: { unit: "万元" } });
+	await flush();
+	const heading = query(host, "div.mosaic-figure-heading");
+	assert.notEqual(heading, null);
+	assert.equal(query(host, "figcaption.mosaic-figure-title"), null);
+	assert.equal(heading.childNodes[0].textContent, "万元");
+});
+
+test("the unit stays put when the source is showing", async () => {
 	const host = chartFigure({ builtExtra: { unit: "万元" } });
 	await flush();
-	assert.notEqual(query(host, "span.mosaic-figure-unit"), null);
 	query(host, '[aria-label="Show source"]').click();
 	await flush();
-	// 原文视图里没有图例，浮在左上角的 unit 会压住第一行源码。
-	assert.equal(query(host, "span.mosaic-figure-unit"), null);
+	// 标题行不随内容切换而改变——unit 在画布之外，没有要让开的东西
+	assert.equal(query(host, "span.mosaic-figure-unit").textContent, "万元");
 });
 
 test("unit= travels from the tag all the way to the DOM line", async () => {

@@ -38,26 +38,24 @@
    而且横排后按文字真实宽度占位，`CNY` 比 `%` 更贵；双轴图更是只有一个位置放得下
    两个单位。搬到 DOM 之后字号、颜色、明暗主题全部跟宿主的变量走，绘图区也拿回了
    那 28/56px。双轴写成 `左 / 右` 一行。 */
-/* 画布区。unit 要浮在里面，所以它是定位上下文。 */
-.mosaic-figure-body {
-	position: relative;
+/* 标题行的左半边：标题 + unit。baseline 对齐，两者字号不同也不会一高一低。 */
+.mosaic-figure-heading {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
 }
-/* unit 与图例同处一行：图例由引擎画在画布顶部居中，unit 是 DOM，两者不可能排进
-   同一个 flex 行，只能把 unit 定位到画布左上角，再把基线对齐图例那一行。
-   把 unit 交给引擎当图例标题（legend.color.title + titlePosition:'left'）这条路
-   实测走不通：标题占走水平空间后图例项被迫换行，一行变两行，绘图区跟着变矮、
-   y 轴刻度从 5 档掉到 3 档；flexWrap:'nowrap' 对它无效。
-   top 取 4px 是无头实测值——叠了 0/4/8/12/16 五档与图例文字比对，4px 基线齐平。
-   改图例标记尺寸（LEGEND_MARKER_SIZE）或字号时要重新量。 */
+/* unit 跟在标题后面，由 DOM 呈现，不进画布。
+   曾试过两条「画进图里」的路，都放弃了，别再走一遍：
+   (1) 当图例标题（legend.color.title + titlePosition:'left'）——标题占走水平空间后
+       图例项被迫换行，一行变两行，绘图区跟着变矮、y 轴刻度从 5 档掉到 3 档；
+       flexWrap:'nowrap' 对它无效。
+   (2) 绝对定位到画布左上角与图例同行——对得上，但对齐点要逐版本重新量，
+       图例标记尺寸或字号一改就得返工。 */
 .mosaic-figure-unit {
-	position: absolute;
-	top: 4px;
-	left: 0;
-	z-index: 1;
 	font-size: 0.85em;
-	line-height: 1;
 	color: var(--text-muted);
-	pointer-events: none;
+	white-space: nowrap;
 }
 .mosaic-figure-note {
 	font-size: 0.85em;

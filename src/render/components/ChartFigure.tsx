@@ -146,8 +146,15 @@ export const ChartFigure = ({
 	return (
 		<figure className="mosaic-figure" ref={figureRef}>
 			<div className="mosaic-figure-header">
-				{title && (
-					<figcaption className="mosaic-figure-title">{title}</figcaption>
+				{/* 标题与 unit 同处一行的左半边。unit 不再交给引擎画——当图例标题会把
+				    图例项挤成两行，绝对定位到画布上又得逐版本重量对齐点。 */}
+				{(title || unit) && (
+					<div className="mosaic-figure-heading">
+						{title && (
+							<figcaption className="mosaic-figure-title">{title}</figcaption>
+						)}
+						{unit && <span className="mosaic-figure-unit">{unit}</span>}
+					</div>
 				)}
 				{/* 一组控件，不是两组：粒度按钮和三个图标按钮并排在同一个容器里。 */}
 				<div className="mosaic-control-group">
@@ -184,12 +191,7 @@ export const ChartFigure = ({
 					onCopy={() => copyToClipboard(report({ status: "error", error }))}
 				/>
 			)}
-			{/* unit 绝对定位进画布区左上角，和 canvas 里居中的图例同处一行——两者一个是
-			    DOM 一个是 canvas，没法排进同一个 flex 行，只能靠定位对齐。 */}
 			<div ref={contentRef} className="mosaic-figure-body">
-				{unit && !showSource && (
-					<span className="mosaic-figure-unit">{unit}</span>
-				)}
 				{showSource ? (
 					<SourceView raw={context.raw} height={sourceHeight} />
 				) : (
