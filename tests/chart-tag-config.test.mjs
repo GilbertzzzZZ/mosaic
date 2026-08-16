@@ -747,6 +747,8 @@ test("labels dodge before they hide, and only ever hide last", () => {
 		assert.equal(typeof dodge.maxIterations, "number");
 		assert.equal(dodge.maxIterations >= 1, true);
 		assert.equal(transform[0].bounds, "main");
+		// 隐藏必须带排序函数：不带的话牺牲谁由绘制次序决定，与重要性无关
+		assert.equal(typeof transform.at(-1).priority, "function");
 	};
 	const line = buildChartFromTag({
 		manifest,
@@ -776,6 +778,33 @@ test("labels dodge before they hide, and only ever hide last", () => {
 		if (!child.label) continue; // the point mark carries no labels
 		shape(child.label.transform);
 	}
+});
+
+test("the big numbers survive the cull, whichever way they are formatted", () => {
+	// priority 是我们自己写的逻辑，不是选个引擎参数，所以要测它排出来的次序。
+	// 引擎拿到的是排好序的数组，然后先到先得：排在前面的保住，后面重叠的被隐藏。
+	const built = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "line", series: "Total", labels: "all", granularity: "month" },
+	});
+	const priority = built.config.label.transform.at(-1).priority;
+	// 引擎读节点属性走 node.attributes，替身按同一形状造
+	const node = (text) => ({ attributes: { text } });
+	const order = (texts) =>
+		texts.map(node).sort(priority).map((n) => n.attributes.text);
+
+	// 大数在前
+	assert.deepEqual(order(["1", "300", "20"]), ["300", "20", "1"]);
+	// 千分位、货币前缀、百分号都不能干扰取值
+	assert.deepEqual(order(["¥1,234", "56", "7.8%"]), ["¥1,234", "56", "7.8%"]);
+	// 负数按绝对值算——亏损同样是大数，不该因为画在下方就先被牺牲
+	assert.deepEqual(order(["-980", "12"]), ["-980", "12"]);
+	assert.deepEqual(order(["5", "-900", "40"]), ["-900", "40", "5"]);
+	// 小数比得对，不是按字符串
+	assert.deepEqual(order(["9.5", "10.2"]), ["10.2", "9.5"]);
+	// 读不出数的排最后，先牺牲它们
+	assert.deepEqual(order(["N/A", "3", ""]), ["3", "N/A", ""]);
 });
 
 test("a stacked bar centres its numbers inside each segment and never hides one", () => {

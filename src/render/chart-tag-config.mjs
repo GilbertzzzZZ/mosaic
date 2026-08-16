@@ -107,10 +107,25 @@ function legendConfig(lineLabels = []) {
 //   overlapHide     错不开的兜底隐藏
 // 三个变换的实现都以「先把全部标签设为可见」开头，而变换从左到右复合，所以后一个
 // 隐藏型会撤销前一个的隐藏结果：隐藏型只能有一个，且必须排在最后。
+// overlapHide 的取舍口径：它按数组顺序「先到先得」，谁排在前面谁保得住。不传
+// priority 的话，那个顺序就是绘制次序——等于按数据在 CSV 里的先后决定谁被牺牲，
+// 与重要性无关。这里按数值绝对值从大到小排，让大数先占位。
+//
+// 值从标签自己的文字里读，不从坐标推：坐标只反映高低，负值（亏损）画在下方、
+// y 坐标最大，按坐标排会让最该看见的亏损数字第一个被抹掉。
+// 清洗只留数字、小数点、正负号与科学计数法字符——千分位逗号、货币前缀、百分号
+// 都会被剥掉，`¥1,234` → 1234、`-45.6%` → 45.6。读不出数的（空标签、纯文本）
+// 排到最后，让它们先被牺牲。
+function labelMagnitude(node) {
+	const text = node?.attributes?.text ?? node?.style?.text ?? "";
+	const n = Number.parseFloat(String(text).replace(/[^0-9.eE+-]/g, ""));
+	return Number.isFinite(n) ? Math.abs(n) : Number.NEGATIVE_INFINITY;
+}
+const LABEL_PRIORITY = (a, b) => labelMagnitude(b) - labelMagnitude(a);
 const LABEL_TRANSFORM = [
 	{ type: "exceedAdjust", bounds: "main" },
-	{ type: "overlapDodgeY", padding: 0, maxIterations: 5 },
-	{ type: "overlapHide" },
+	{ type: "overlapDodgeY", padding: 0, maxIterations: 10 },
+	{ type: "overlapHide", priority: LABEL_PRIORITY },
 ];
 // 曾经还有一份视图级的 labelTransform（顶层 config.labelTransform），声称能跨 mark
 // 去重叠。它从未运行过：plots 的 transformOptions 把顶层 labelTransform 下发进每个
