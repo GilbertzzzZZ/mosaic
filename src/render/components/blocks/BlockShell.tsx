@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { setIcon } from "obsidian";
+import { formatBlockReport } from "../../block-report.mjs";
 
-// 共享卡片外壳 + 标题 / kicker / 统一错误渲染，供五类内容块视图复用。
-// 外壳、标题、kicker 三层的 class 一律走 `mosaic-` 前缀，与 styles.css 对应。
-// 本模块同时是「区块外围件」的共同住处：工具栏插槽、原文视图、错误框、提示条——
-// Chart 与其余五类共用同一套，只是挂载位置不同（Chart 挂在 figure header 里，
-// 其余五类挂在卡片右上角）。
+// 五类非 Chart 内容块的统一外框（BlockFrame）+ 共用外围件（原文视图、错误框、提示条、
+// 图标按钮）。所有 class 一律走 `mosaic-` 前缀，与 styles.css 对应。
+// 头部只有这一处画：根节点、标题、kicker、按钮组全部由 BlockFrame 产出，View 组件只
+// 负责内容。Chart 不走这里——ChartFigure 早就是这个形状（.mosaic-figure-header 里
+// 放 .mosaic-figure-heading + .mosaic-control-group），本模块是它在五类上的对应物。
 
 export type BlockName =
 	"data-table" | "metric-grid" | "timeline" | "decision-box" | "flow-diagram";
@@ -30,49 +31,6 @@ export interface BlockContext {
 	dataset?: string;
 	datasetStatus?: string;
 }
-
-// 工具栏走 context 而不是逐层传 prop：五类视图的外壳结构各不相同（三类用
-// BlockShell、DataTable 与 FlowDiagram 各有自己的根节点），而 DataTable 的 dataset
-// 模式中间还隔着 DataTableFigure。用 context，插槽的提供方只有一处（renderComponentInto
-// 的 BlockFrame），消费方各自决定放在哪，中间那几层一行都不用改。
-export const BlockToolbarContext = createContext<React.ReactNode>(null);
-
-export const useBlockToolbar = (): React.ReactNode => useContext(BlockToolbarContext);
-
-export interface BlockShellProps {
-	block: BlockName;
-	variant?: string;
-	className?: string;
-	children?: React.ReactNode;
-}
-
-export const BlockShell = ({
-	block,
-	variant,
-	className,
-	children,
-}: BlockShellProps) => {
-	const classes = ["mosaic-block", `mosaic-${block}`, variant, className]
-		.filter(Boolean)
-		.join(" ");
-	const toolbar = useBlockToolbar();
-	return (
-		<section className={classes} data-mosaic-block={block}>
-			{toolbar && (
-				<div className="mosaic-block-toolbar mosaic-control-group">{toolbar}</div>
-			)}
-			{children}
-		</section>
-	);
-};
-
-export const BlockTitle = ({ children }: { children: React.ReactNode }) => (
-	<h3 className="mosaic-block-title">{children}</h3>
-);
-
-export const BlockKicker = ({ children }: { children: React.ReactNode }) => (
-	<span className="mosaic-block-kicker">{children}</span>
-);
 
 // clickable-icon 是 Obsidian 自己的图标按钮类（视图头部那些按钮用的就是它）：尺寸、
 // 悬停底色、focus ring、随主题变色全由宿主提供，这里不写一行样式。图标同样用宿主
@@ -205,4 +163,85 @@ export const BlockNotice = ({
 /** 剪贴板写入的唯一出口：宿主是 Chromium，navigator.clipboard 恒在，仍按可选调用。 */
 export function copyToClipboard(text: string): void {
 	navigator.clipboard?.writeText(text);
+}
+
+// 区块自有的头部零件。五类里只有 DecisionBox 用得上（kicker + 徽章 + 状态 class），
+// 其余四类整份缺省——所以这三样是可选项，而不是每个 View 各画一份的理由。
+export interface BlockChrome {
+	/** 追加到根节点的状态 class，如 DecisionBox 的 `is-accepted`。 */
+	variant?: string;
+	/** 标题上方那行小字（DecisionBox 的 `DECISION`）。必须在标题之上，不能倒过来。 */
+	kicker?: string;
+	/** 标题右侧的区块自有头部内容（DecisionBox 的徽章）。 */
+	headerExtra?: React.ReactNode;
+}
+
+export interface BlockFrameProps extends BlockChrome {
+	block: BlockName;
+	context: BlockContext;
+	/** 五类共用 `title=` 属性；空缺时头部只剩按钮组。 */
+	title?: string;
+	/** 排在图标按钮之前、同处一个 .mosaic-control-group 的区块自有控件
+	 *  （DataTable 的粒度按钮）。右上角因此只有一组按钮，不是两组挨着的小块。 */
+	controls?: React.ReactNode;
+	notice?: string;
+	children?: React.ReactNode;
+}
+
+// 五类非 Chart 的统一外框：根节点 + 头部（标题 / kicker / 按钮组）画一次，切原文时
+// 只换内容区。这正是原先那个 bug 的解法——此前切换是把整个区块换成一个只有工具栏的
+// 空壳，标题（各 View 自己画的）跟着消失，根节点也从 <div>/<figure> 变成 <section>，
+// 边框圆角随之全变。现在根节点与头部在两种状态下是同一棵子树，不可能不一致。
+// 导出按钮不做：那五类是纯 DOM，转 PNG 的两条路（foreignObject 内联全量计算样式 /
+// 引第三方库重实现 CSS 布局）对 flex/grid 卡片和 CJK 都不可靠，宿主也没暴露截图 API。
+export function BlockFrame({
+	block,
+	context,
+	title,
+	kicker,
+	headerExtra,
+	controls,
+	variant,
+	notice,
+	children,
+}: BlockFrameProps) {
+	const [showSource, setShowSource] = useState(false);
+	const report = (extra: { status?: string; notice?: string }) =>
+		formatBlockReport({ context, ...extra });
+	const classes = ["mosaic-block", `mosaic-${block}`, variant].filter(Boolean).join(" ");
+	const heading = kicker || title || headerExtra;
+	return (
+		<>
+			<section className={classes} data-mosaic-block={block}>
+				<div className="mosaic-block-header">
+					{heading && (
+						<div className="mosaic-block-heading">
+							{kicker && <span className="mosaic-block-kicker">{kicker}</span>}
+							{title && <h3 className="mosaic-block-title">{title}</h3>}
+							{headerExtra}
+						</div>
+					)}
+					<div className="mosaic-control-group">
+						{controls}
+						<BlockToolbar
+							showingSource={showSource}
+							onToggleSource={() => setShowSource(!showSource)}
+							onCopy={() =>
+								copyToClipboard(
+									report({ status: notice ? "notice" : "ok", notice }),
+								)
+							}
+						/>
+					</div>
+				</div>
+				{showSource ? <SourceView raw={context.raw} /> : children}
+			</section>
+			{notice && (
+				<BlockNotice
+					text={notice}
+					onCopy={() => copyToClipboard(report({ status: "notice", notice }))}
+				/>
+			)}
+		</>
+	);
 }

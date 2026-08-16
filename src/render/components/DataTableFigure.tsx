@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { DataTableView } from "./blocks/DataTableView";
-import { BlockErrorBox } from "./blocks/BlockShell";
+import { BlockContext, BlockErrorBox, BlockFrame } from "./blocks/BlockShell";
+import { GranularityButtons } from "./GranularityButtons";
 import { buildFootnote } from "../chart-tag-config.mjs";
 
 export interface DataTableQueryResult {
@@ -15,6 +16,11 @@ interface DataTableFigureProps {
 	options: string[];
 	initial: DataTableQueryResult;
 	build: (granularity: string) => DataTableQueryResult;
+	// 外框由这里渲染而不是由调用方包在外面：粒度状态在本组件，而粒度按钮必须和三个
+	// 图标按钮同处头部的那一个 .mosaic-control-group（一组按钮，不是两组挨着的小块），
+	// 所以持有状态的这一层就得是持有头部的那一层。
+	context: BlockContext;
+	notice?: string;
 	// 粒度重建失败时，让报错框也能复制定位上下文——与其余五处报错同一套。
 	onCopyError?: (message: string) => void;
 }
@@ -27,7 +33,16 @@ interface DataTableFigureProps {
 // `Field "X" needs a rollup before it can be shown in … view.`——与 ChartFigure
 // 同款处理：保留上一次成功渲染的表格，把错误文案就地显示在图内，下一次切换
 // 成功时清空。
-export function DataTableFigure({ attributes, body, options, initial, build, onCopyError }: DataTableFigureProps) {
+export function DataTableFigure({
+	attributes,
+	body,
+	options,
+	initial,
+	build,
+	context,
+	notice,
+	onCopyError,
+}: DataTableFigureProps) {
 	const [result, setResult] = useState(initial);
 	const [error, setError] = useState<string | undefined>(undefined);
 	const onGranularity = (granularity: string) => {
@@ -40,16 +55,25 @@ export function DataTableFigure({ attributes, body, options, initial, build, onC
 		}
 	};
 	return (
-		<>
+		<BlockFrame
+			block="data-table"
+			context={context}
+			title={attributes.title}
+			notice={notice}
+			controls={
+				<GranularityButtons
+					options={options}
+					active={result.meta.granularity}
+					onSelect={onGranularity}
+				/>
+			}
+		>
 			<DataTableView
 				attributes={{ ...attributes, columns: result.attributes.columns }}
 				body={body}
 				rows={result.rows}
 				columnLabels={result.attributes.columnLabels}
 				meta={buildFootnote(result.meta)}
-				options={options}
-				granularity={result.meta.granularity}
-				onGranularity={onGranularity}
 			/>
 			{error && (
 				<BlockErrorBox
@@ -57,6 +81,6 @@ export function DataTableFigure({ attributes, body, options, initial, build, onC
 					onCopy={onCopyError && (() => onCopyError(error))}
 				/>
 			)}
-		</>
+		</BlockFrame>
 	);
 }

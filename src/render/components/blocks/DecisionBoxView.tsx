@@ -1,5 +1,5 @@
 import React from "react";
-import { BlockShell, BlockTitle, BlockKicker } from "./BlockShell";
+import { BlockChrome } from "./BlockShell";
 import {
 	extractRows,
 	decisionItems,
@@ -8,6 +8,8 @@ import {
 	parseInlineText,
 } from "../../../parse/blocks/payload.mjs";
 
+// 只画内容：根节点、标题、kicker、徽章、按钮组由 BlockFrame 统一产出
+// （头部零件见下方 decisionBoxChrome）。
 export interface DecisionBoxViewProps {
 	attributes: Record<string, string>;
 	body: string;
@@ -42,24 +44,20 @@ function renderInline(text: string | number, keyPrefix: string): React.ReactNode
 	});
 }
 
-// DecisionBox 永不报错：label/value 行为空时静默回退到富文本
-// （parseRichBlocks 对空 body 返回空数组，渲染出一个空的 .mosaic-decision-body）。
-export const DecisionBoxView = ({ attributes, body }: DecisionBoxViewProps) => {
+// 五类里唯一有自己头部零件的区块：kicker、徽章、状态 class。它们仍然是 DecisionBox
+// 的知识（状态别名、徽章取哪三个属性都在这儿），只是交给 BlockFrame 去画——头部一处
+// 画完，切原文时整个头部原样不动。kicker 排在标题之前，`DECISION` 因此仍在标题上方。
+export function decisionBoxChrome(attributes: Record<string, string>): BlockChrome {
 	const statusAttr = attributes.status ?? attributes.decisionStatus;
 	const status: string = normalizeDecisionStatus(statusAttr) ?? "";
-
-	const rows: Record<string, string | number>[] = extractRows(body) ?? [];
-	const items: DecisionItem[] = decisionItems(rows) ?? [];
-
 	const badges = [statusAttr, attributes.owner, attributes.source].filter(
 		(value): value is string => Boolean(value)
 	);
-
-	const header = (
-		<div className="mosaic-decision-header">
-			<BlockKicker>Decision</BlockKicker>
-			{attributes.title && <BlockTitle>{attributes.title}</BlockTitle>}
-			{badges.length > 0 && (
+	return {
+		variant: `is-${status || "default"}`,
+		kicker: "Decision",
+		headerExtra:
+			badges.length > 0 ? (
 				<div className="mosaic-decision-badges">
 					{badges.map((badge, index) => (
 						<span key={index} className="mosaic-decision-badge">
@@ -67,44 +65,44 @@ export const DecisionBoxView = ({ attributes, body }: DecisionBoxViewProps) => {
 						</span>
 					))}
 				</div>
-			)}
-		</div>
-	);
+			) : undefined,
+	};
+}
+
+// DecisionBox 永不报错：label/value 行为空时静默回退到富文本
+// （parseRichBlocks 对空 body 返回空数组，渲染出一个空的 .mosaic-decision-body）。
+export const DecisionBoxView = ({ body }: DecisionBoxViewProps) => {
+	const rows: Record<string, string | number>[] = extractRows(body) ?? [];
+	const items: DecisionItem[] = decisionItems(rows) ?? [];
 
 	if (items.length > 0) {
 		return (
-			<BlockShell block="decision-box" variant={`is-${status || "default"}`}>
-				{header}
-				<dl className="mosaic-decision-list">
-					{items.map((item, index) => (
-						<div key={index}>
-							<dt>{item.label}</dt>
-							<dd>{renderInline(item.value, `dd-${index}`)}</dd>
-						</div>
-					))}
-				</dl>
-			</BlockShell>
+			<dl className="mosaic-decision-list">
+				{items.map((item, index) => (
+					<div key={index}>
+						<dt>{item.label}</dt>
+						<dd>{renderInline(item.value, `dd-${index}`)}</dd>
+					</div>
+				))}
+			</dl>
 		);
 	}
 
 	const blocks: RichBlock[] = parseRichBlocks(body) ?? [];
 
 	return (
-		<BlockShell block="decision-box" variant={`is-${status || "default"}`}>
-			{header}
-			<div className="mosaic-decision-body">
-				{blocks.map((block, index) =>
-					block.type === "ul" ? (
-						<ul key={index}>
-							{block.lines.map((line, lineIndex) => (
-								<li key={lineIndex}>{renderInline(line, `ul-${index}-${lineIndex}`)}</li>
-							))}
-						</ul>
-					) : (
-						<p key={index}>{renderInline(block.lines.join(" "), `p-${index}`)}</p>
-					)
-				)}
-			</div>
-		</BlockShell>
+		<div className="mosaic-decision-body">
+			{blocks.map((block, index) =>
+				block.type === "ul" ? (
+					<ul key={index}>
+						{block.lines.map((line, lineIndex) => (
+							<li key={lineIndex}>{renderInline(line, `ul-${index}-${lineIndex}`)}</li>
+						))}
+					</ul>
+				) : (
+					<p key={index}>{renderInline(block.lines.join(" "), `p-${index}`)}</p>
+				)
+			)}
+		</div>
 	);
 };

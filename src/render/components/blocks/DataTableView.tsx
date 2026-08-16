@@ -2,20 +2,17 @@ import React, { useMemo, useState } from "react";
 import { extractRows, listAttribute, uniqueStrings } from "../../../parse/blocks/payload.mjs";
 import { tableComplexityAttributes } from "../../../parse/blocks/table-complexity.mjs";
 import { tableLayout } from "../../../parse/blocks/table-layout.mjs";
-import { GranularityButtons } from "../GranularityButtons";
-import { useBlockToolbar } from "./BlockShell";
 
+// 只画内容：根节点、标题、按钮组（含 dataset 模式的粒度按钮）由 BlockFrame 统一产出。
+// 粒度状态仍归 DataTableFigure，它把按钮作为 controls 交给 BlockFrame，因此粒度按钮
+// 和三个图标按钮落在同一个 .mosaic-control-group 里。
 export interface DataTableViewProps {
 	attributes: Record<string, string>;
 	body: string;
-	// dataset 模式（由集成层 Task 6 注入）：预取的行、程序生成的表头显示名、脚注文案、
-	// 以及粒度切换的受控 props（DataTableView 自身不管理粒度状态，切换由调用方重渲）。
+	// dataset 模式（由集成层 Task 6 注入）：预取的行、程序生成的表头显示名、脚注文案。
 	rows?: Record<string, string | number>[];
 	columnLabels?: Record<string, string>;
 	meta?: string;
-	options?: string[];
-	granularity?: string;
-	onGranularity?: (granularity: string) => void;
 }
 
 interface TableComplexity {
@@ -70,9 +67,6 @@ export const DataTableView = ({
 	rows: rowsProp,
 	columnLabels,
 	meta,
-	options = [],
-	granularity,
-	onGranularity,
 }: DataTableViewProps) => {
 	const rows: Record<string, string | number>[] = useMemo(
 		() => rowsProp ?? extractRows(body) ?? [],
@@ -91,9 +85,6 @@ export const DataTableView = ({
 
 	const [search, setSearch] = useState("");
 	const [frozen, setFrozen] = useState(false);
-	// 切换/复制两个按钮并入粒度按钮那一组，右上角因此只有一组按钮。DataTable 的这一组
-	// 走正常文档流（在卡片上方），不像其余四类那样绝对定位——绝对定位会盖住表头。
-	const toolbar = useBlockToolbar();
 
 	// throw 必须位于全部 hooks 之后（rules-of-hooks）：上面的纯函数对空输入
 	// 均安全返回，这里再拒绝空表。
@@ -131,17 +122,7 @@ export const DataTableView = ({
 	};
 
 	return (
-		<div className="mosaic-block mosaic-data-table" data-mosaic-block="data-table">
-			{(toolbar || options.length > 1) && (
-				<div className="mosaic-control-group">
-					<GranularityButtons
-						options={options}
-						active={granularity}
-						onSelect={onGranularity}
-					/>
-					{toolbar}
-				</div>
-			)}
+		<>
 			<div
 				className={cardClass}
 				data-table-layout={layout.mode}
@@ -184,7 +165,8 @@ export const DataTableView = ({
 								<col key={col} style={{ width: layout.columnWidths[index] }} />
 							))}
 						</colgroup>
-						{attributes.title && <caption>{attributes.title}</caption>}
+						{/* title= 现在画在 BlockFrame 的头部（与其余四类一致），表内不再
+						    重复一份 <caption>——两处同名标题只会让人以为渲染错了。 */}
 						<thead>
 							<tr>
 								{columns.map((col) => (
@@ -205,6 +187,6 @@ export const DataTableView = ({
 				</div>
 			</div>
 			{meta && <p className="mosaic-table-meta">{meta}</p>}
-		</div>
+		</>
 	);
 };

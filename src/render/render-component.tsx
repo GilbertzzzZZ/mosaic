@@ -2,7 +2,7 @@
 // 五类内容块（DataTable/Timeline/DecisionBox/MetricGrid/FlowDiagram）共享分发。
 // 与 Chart 不同：这五类是纯 DOM/React，无 AntV/主题/宽度重建基建；渲染失败（含
 // dataset 查询失败）就地捕获，落地统一的 mosaic-error DOM，不向调用方抛出。
-import React, { useState } from "react";
+import React from "react";
 import MosaicPlugin from "../main";
 import { loadDatasetForNote } from "../parse/obsidian-dataset";
 import { queryDataset } from "../parse/dataset-query.mjs";
@@ -14,19 +14,16 @@ import { whenHostReady } from "./host-ready";
 import { renderInto, unmountRoot } from "./react-root";
 import { DataTableFigure, DataTableQueryResult } from "./components/DataTableFigure";
 import {
+	BlockChrome,
 	BlockContext,
 	BlockErrorBox,
+	BlockFrame,
 	BlockName,
-	BlockNotice,
-	BlockShell,
-	BlockToolbar,
-	BlockToolbarContext,
-	SourceView,
 	copyToClipboard,
 } from "./components/blocks/BlockShell";
 import { DataTableView } from "./components/blocks/DataTableView";
 import { TimelineView } from "./components/blocks/TimelineView";
-import { DecisionBoxView } from "./components/blocks/DecisionBoxView";
+import { DecisionBoxView, decisionBoxChrome } from "./components/blocks/DecisionBoxView";
 import { MetricGridView } from "./components/blocks/MetricGridView";
 import { FlowDiagramView } from "./components/blocks/FlowDiagramView";
 
@@ -38,71 +35,24 @@ export interface ComponentSource {
 	unrecognized?: string[];
 }
 
-const PLAIN_VIEWS: Record<
-	string,
-	React.ComponentType<{ attributes: Record<string, string>; body: string }>
-> = {
-	DataTable: DataTableView,
-	Timeline: TimelineView,
-	DecisionBox: DecisionBoxView,
-	MetricGrid: MetricGridView,
-	FlowDiagram: FlowDiagramView,
-};
-
-// 组件名 → 外壳 class 词根。原文视图借用同一个外壳，切过去时卡片的边框/圆角/内边距
-// 与渲染态一致，框体不跳。
-const BLOCK_NAMES: Record<string, BlockName> = {
-	DataTable: "data-table",
-	Timeline: "timeline",
-	DecisionBox: "decision-box",
-	MetricGrid: "metric-grid",
-	FlowDiagram: "flow-diagram",
-};
-
-interface BlockFrameProps {
+interface BlockDefinition {
+	/** 外壳 class 词根，也是 data-mosaic-block 的值。 */
 	block: BlockName;
-	context: BlockContext;
-	notice?: string;
-	children?: React.ReactNode;
+	/** 只负责内容；标题、kicker、按钮组、根节点都归 BlockFrame。 */
+	View: React.ComponentType<{ attributes: Record<string, string>; body: string }>;
+	/** 区块自有的头部零件；五类里只有 DecisionBox 有。 */
+	chrome?: (attributes: Record<string, string>) => BlockChrome;
 }
 
-// 五类非 Chart 的外围件：工具栏（切换 / 复制，无导出）、原文视图、提示条。
-// 工具栏经 BlockToolbarContext 下发而不是逐层传 prop——五类视图的外壳结构各不相同，
-// DataTable 的 dataset 模式中间还隔着 DataTableFigure，用 context 中间那几层一行都
-// 不用改（消费点见 BlockShell / DataTableView / FlowDiagramView）。
-// 导出按钮不做：那五类是纯 DOM，转 PNG 的两条路（foreignObject 内联全量计算样式 /
-// 引第三方库重实现 CSS 布局）对 flex/grid 卡片和 CJK 都不可靠，宿主也没暴露截图 API。
-function BlockFrame({ block, context, notice, children }: BlockFrameProps) {
-	const [showSource, setShowSource] = useState(false);
-	const report = (extra: { status?: string; notice?: string }) =>
-		formatBlockReport({ context, ...extra });
-	const toolbar = (
-		<BlockToolbar
-			showingSource={showSource}
-			onToggleSource={() => setShowSource(!showSource)}
-			onCopy={() =>
-				copyToClipboard(report({ status: notice ? "notice" : "ok", notice }))
-			}
-		/>
-	);
-	return (
-		<BlockToolbarContext.Provider value={toolbar}>
-			{showSource ? (
-				<BlockShell block={block}>
-					<SourceView raw={context.raw} />
-				</BlockShell>
-			) : (
-				children
-			)}
-			{notice && (
-				<BlockNotice
-					text={notice}
-					onCopy={() => copyToClipboard(report({ status: "notice", notice }))}
-				/>
-			)}
-		</BlockToolbarContext.Provider>
-	);
-}
+// 五类非 Chart 的注册表。此前这里是两张按组件名索引的表（视图 + class 词根），
+// 合成一张之后「加一类区块要动几处」变成了一处。
+const BLOCKS: Record<string, BlockDefinition> = {
+	DataTable: { block: "data-table", View: DataTableView },
+	Timeline: { block: "timeline", View: TimelineView },
+	DecisionBox: { block: "decision-box", View: DecisionBoxView, chrome: decisionBoxChrome },
+	MetricGrid: { block: "metric-grid", View: MetricGridView },
+	FlowDiagram: { block: "flow-diagram", View: FlowDiagramView },
+};
 
 // 错误框的正确性依赖 unmount 的同步语义：unmountRoot 返回时 host 内的树已
 // 拆完、hook cleanup 已跑完，随后的 empty() 才不会与卸载竞态，错误框也才是
@@ -195,22 +145,24 @@ async function renderDataTableDataset(
 		initial.meta.availableGranularities.includes(g),
 	);
 	if (stale()) return;
+	// dataset 模式下外框由 DataTableFigure 自己渲染：粒度状态在它手里，而粒度按钮要和
+	// 三个图标按钮同处头部那一个按钮组。
 	renderInto(
 		host,
-		<BlockFrame block="data-table" context={loadedContext} notice={notice}>
-			<DataTableFigure
-				attributes={attributes}
-				body={body}
-				options={options}
-				initial={initial}
-				build={build}
-				onCopyError={(message) =>
-					copyToClipboard(
-						formatBlockReport({ context: loadedContext, status: "error", error: message }),
-					)
-				}
-			/>
-		</BlockFrame>,
+		<DataTableFigure
+			attributes={attributes}
+			body={body}
+			options={options}
+			initial={initial}
+			build={build}
+			context={loadedContext}
+			notice={notice}
+			onCopyError={(message) =>
+				copyToClipboard(
+					formatBlockReport({ context: loadedContext, status: "error", error: message }),
+				)
+			}
+		/>,
 	);
 }
 
@@ -243,14 +195,21 @@ export async function renderComponentInto(
 			);
 			return;
 		}
-		const View = PLAIN_VIEWS[name];
-		if (!View) {
+		const definition = BLOCKS[name];
+		if (!definition) {
 			throw new Error(`Unsupported component: ${name}.`);
 		}
 		if (stale()) return;
+		const { View } = definition;
 		renderInto(
 			host,
-			<BlockFrame block={BLOCK_NAMES[name]} context={context} notice={notice}>
+			<BlockFrame
+				block={definition.block}
+				context={context}
+				title={attributes.title}
+				notice={notice}
+				{...definition.chrome?.(attributes)}
+			>
 				<View attributes={attributes} body={bodyText} />
 			</BlockFrame>,
 		);

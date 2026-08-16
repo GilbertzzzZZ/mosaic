@@ -212,12 +212,26 @@ const CONSUMERS = {
 	FlowDiagram: ["../src/render/components/blocks/FlowDiagramView.tsx"],
 };
 
-// 每一类的消费点条数下限：正则哪天抓空了，这条测试不能假绿。
+// 五类共用的消费点：标题不再由各 View 自己画，BlockFrame 从 attributes.title 取一次，
+// 五类共走这一条。所以 title 从 Timeline / MetricGrid / DecisionBox / DataTable 的
+// 自有扫描结果里消失了——那不是漂移，是「头部一处画」的直接后果。下面 SHARED_ATTRS
+// 把它补回每一类的消费集合，再由紧随其后的那条测试钉住共用层真的消费了它，免得这个
+// 常量与代码脱节。
+const SHARED_CONSUMERS = [
+	"../src/render/render-component.tsx",
+	"../src/render/components/DataTableFigure.tsx",
+];
+const SHARED_ATTRS = ["title"];
+
+// 每一类**自有**消费点的条数下限：正则哪天抓空了，这条测试不能假绿。
+// Timeline 与 MetricGrid 是 0：标题搬走之后，这两个 View 一个属性都不读了（它们仍
+// 收下 attributes，只为让五类 View 保持同一个签名）。这两类的守卫由 SHARED_ATTRS
+// 那条测试承担。
 const MIN_CONSUMERS = {
 	DataTable: 20,
-	Timeline: 1,
-	DecisionBox: 5,
-	MetricGrid: 1,
+	Timeline: 0,
+	DecisionBox: 4,
+	MetricGrid: 0,
 	FlowDiagram: 2,
 };
 
@@ -236,15 +250,47 @@ function consumedBy(files) {
 
 test("the five whitelists cover every attribute their own code consumes", () => {
 	for (const [name, files] of Object.entries(CONSUMERS)) {
-		const consumed = consumedBy(files);
+		const own = consumedBy(files);
 		assert.ok(
-			consumed.length >= MIN_CONSUMERS[name],
-			`${name}: only found ${consumed.length} consumers`,
+			own.length >= MIN_CONSUMERS[name],
+			`${name}: only found ${own.length} consumers`,
 		);
+		const consumed = [...new Set([...own, ...SHARED_ATTRS])];
 		const notice = componentFieldNotice(
 			name,
 			Object.fromEntries(consumed.map((key) => [key, "x"])),
 		);
 		assert.equal(notice, undefined, `${name} whitelist is missing: ${notice}`);
 	}
+});
+
+test("title= is consumed once, in the shared frame layer, and nowhere in the views", () => {
+	// 正向：共用层真的读了 SHARED_ATTRS 里的每一个名字。这条不成立时，上面那条测试
+	// 就是在替一个凭空写死的常量背书。
+	const shared = consumedBy(SHARED_CONSUMERS);
+	for (const key of SHARED_ATTRS) {
+		assert.ok(shared.includes(key), `the shared frame no longer consumes ${key}`);
+	}
+	// 反向：五个 View 里不再有自己的 title 消费点。这就是「头部一处画」的机器可验
+	// 形式——哪个 View 又开始自己画标题，这里先红。
+	for (const file of [
+		"../src/render/components/blocks/DataTableView.tsx",
+		"../src/render/components/blocks/TimelineView.tsx",
+		"../src/render/components/blocks/DecisionBoxView.tsx",
+		"../src/render/components/blocks/MetricGridView.tsx",
+	]) {
+		assert.equal(
+			consumedBy([file]).includes("title"),
+			false,
+			`${file} draws its own title again`,
+		);
+	}
+	// FlowDiagramView 是唯一的例外，而且不是画标题：它把 title 喂给 SVG 的
+	// aria-label，屏幕阅读器要靠它认出这张图是什么。
+	const flow = readFileSync(
+		new URL("../src/render/components/blocks/FlowDiagramView.tsx", import.meta.url),
+		"utf8",
+	);
+	assert.equal(flow.includes('aria-label={attributes.title || "Flow diagram"}'), true);
+	assert.equal(flow.includes("mosaic-block-title"), false);
 });

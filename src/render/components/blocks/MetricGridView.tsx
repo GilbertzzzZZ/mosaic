@@ -1,7 +1,7 @@
 import React from "react";
-import { BlockShell, BlockTitle } from "./BlockShell";
 import { extractRows, metricItem } from "../../../parse/blocks/payload.mjs";
 
+// 只画内容：根节点、标题、按钮组由 BlockFrame 统一产出。
 export interface MetricGridViewProps {
 	attributes: Record<string, string>;
 	body: string;
@@ -17,7 +17,7 @@ interface MetricItem {
 	status: string;
 }
 
-export const MetricGridView = ({ attributes, body }: MetricGridViewProps) => {
+export const MetricGridView = ({ body }: MetricGridViewProps) => {
 	const rows: Record<string, string | number>[] = extractRows(body) ?? [];
 
 	if (rows.length === 0) {
@@ -31,25 +31,22 @@ export const MetricGridView = ({ attributes, body }: MetricGridViewProps) => {
 		.filter((item) => item.label || item.value !== "");
 
 	return (
-		<BlockShell block="metric-grid">
-			{attributes.title && <BlockTitle>{attributes.title}</BlockTitle>}
-			<div className="mosaic-metric-grid-items">
-				{items.map((item, index) => (
-					<article
-						key={index}
-						className={`mosaic-metric-item is-${item.status ?? "neutral"}`}
-					>
-						{item.label && <span className="mosaic-metric-label">{item.label}</span>}
-						{item.value !== "" && (
-							<strong>{item.value}</strong>
-						)}
-						{item.delta !== undefined && item.delta !== "" && (
-							<span className="mosaic-metric-delta">{item.delta}</span>
-						)}
-						{item.note && <p>{item.note}</p>}
-					</article>
-				))}
-			</div>
-		</BlockShell>
+		<div className="mosaic-metric-grid-items">
+			{items.map((item, index) => (
+				<article
+					key={index}
+					className={`mosaic-metric-item is-${item.status ?? "neutral"}`}
+				>
+					{item.label && <span className="mosaic-metric-label">{item.label}</span>}
+					{item.value !== "" && (
+						<strong>{item.value}</strong>
+					)}
+					{item.delta !== undefined && item.delta !== "" && (
+						<span className="mosaic-metric-delta">{item.delta}</span>
+					)}
+					{item.note && <p>{item.note}</p>}
+				</article>
+			))}
+		</div>
 	);
 };

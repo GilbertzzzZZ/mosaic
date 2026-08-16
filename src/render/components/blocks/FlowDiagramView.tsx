@@ -1,7 +1,9 @@
 import React, { useMemo } from "react";
 import { extractFlowDiagram, layoutFlowDiagram } from "../../../parse/blocks/flow.mjs";
-import { useBlockToolbar } from "./BlockShell";
 
+// 只画内容：根节点、标题、按钮组由 BlockFrame 统一产出。此前这里自己渲染了一份工具栏
+// （因为根节点是 <figure> 而不是共享外壳），统一之后那份撤掉了。
+// title 仍然读得到，因为 SVG 的 aria-label 要用它——但它不再画成 <figcaption>。
 export interface FlowDiagramViewProps {
 	attributes: Record<string, string>;
 	body: string;
@@ -50,23 +52,13 @@ export const FlowDiagramView = ({ attributes, body }: FlowDiagramViewProps) => {
 		() => `mosaic-flow-arrow-${Math.random().toString(36).slice(2)}`,
 		[]
 	);
-	// FlowDiagram 的根是 <figure> 而不是 BlockShell 的 <section>，所以工具栏插槽自己
-	// 渲染一份，class 与 BlockShell 那份一致（绝对定位在卡片右上角）。
-	const toolbar = useBlockToolbar();
-
 	// throw 位于全部 hooks 之后（rules-of-hooks）。
 	if (!valid || !layout) {
 		throw new Error("FlowDiagram requires nodes.");
 	}
 
 	return (
-		<figure className="mosaic-block mosaic-flow-diagram" data-mosaic-block="flow-diagram">
-			{toolbar && (
-				<div className="mosaic-block-toolbar mosaic-control-group">{toolbar}</div>
-			)}
-			{attributes.title && (
-				<figcaption className="mosaic-block-title">{attributes.title}</figcaption>
-			)}
+		<>
 			<div className="mosaic-flow-scroll">
 				<svg
 					viewBox={`0 0 ${layout.width} ${layout.height}`}
@@ -126,6 +118,6 @@ export const FlowDiagramView = ({ attributes, body }: FlowDiagramViewProps) => {
 				</svg>
 			</div>
 			{attributes.note && <p className="mosaic-flow-note">{attributes.note}</p>}
-		</figure>
+		</>
 	);
 };

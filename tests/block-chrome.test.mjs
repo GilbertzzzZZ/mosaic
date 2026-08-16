@@ -6,6 +6,7 @@
 // 宿主 API 与图表引擎换成替身；DOM 是 tests/helpers/dom.mjs 那份最小实现。
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
 	document,
 	domDefaults,
@@ -22,6 +23,7 @@ const clipboard = installGlobals();
 const { loadComponents } = await import("./helpers/bundle.mjs");
 const {
 	React,
+	TFile,
 	ChartFigure,
 	createChartBlockProcessor,
 	createChartTagProcessor,
@@ -85,6 +87,58 @@ function chartFigure(props = {}) {
 
 const actions = (host) =>
 	queryAll(host, "button.clickable-icon").map((b) => b.getAttribute("aria-label"));
+
+// 五类非 Chart 区块的最小可渲染样本：外壳 class 词根 + 一份 body + 「内容区里那件
+// 只有渲染态才有的东西」的选择器。头部统一到一层之后，这五类走的是同一条路，所以
+// 关于框体 / 标题 / 按钮组的断言都在这张表上遍历，而不是各写五遍。
+const FIVE_BLOCKS = [
+	{
+		name: "Timeline",
+		block: "timeline",
+		body: "```csv\ndate,title\n2026-01,a\n```",
+		content: ".mosaic-timeline-item",
+	},
+	{
+		name: "MetricGrid",
+		block: "metric-grid",
+		body: "```csv\nlabel,value\na,1\n```",
+		content: ".mosaic-metric-item",
+	},
+	{
+		name: "DecisionBox",
+		block: "decision-box",
+		body: "```csv\nlabel,value\na,1\n```",
+		content: ".mosaic-decision-list",
+	},
+	{
+		name: "DataTable",
+		block: "data-table",
+		body: "```csv\na,b\n1,2\n```",
+		content: "table",
+	},
+	{
+		name: "FlowDiagram",
+		block: "flow-diagram",
+		body: '```json\n{"nodes":[{"id":"a","label":"A"}]}\n```',
+		content: "svg",
+	},
+];
+
+const TITLE = "Quarterly review";
+
+async function mountBlock({ name, body }, attributes = { title: TITLE }) {
+	const host = mountHost();
+	await renderComponentInto(
+		fakePlugin(),
+		host,
+		{ ...CONTEXT, raw: `<${name} title="${TITLE}" />`, syntax: "self-closing tag" },
+		{ name, attributes, body },
+	);
+	await flush();
+	return host;
+}
+
+const toggle = (host, label) => query(host, `[aria-label="${label}"]`).click();
 
 // --- 按钮 ---
 
@@ -336,6 +390,274 @@ test("a non-Chart block toggles to source and back inside the same shell", async
 	await flush();
 	assert.equal(queryAll(host, ".mosaic-timeline-item").length, 1);
 	assert.equal(query(host, "pre.mosaic-source-view"), null);
+});
+
+// --- 头部统一到一层：标题 + 工具栏一处画，切换只换内容区 ---
+
+test("all five non-Chart blocks still show their title in source view", async () => {
+	for (const fixture of FIVE_BLOCKS) {
+		const host = await mountBlock(fixture);
+		const title = () => query(host, "h3.mosaic-block-title");
+		assert.equal(title()?.textContent, TITLE, `${fixture.name} has no title to begin with`);
+
+		toggle(host, "Show source");
+		await flush();
+		// bug 的正面反向断言。此前五类的标题各由自己的 View 画，切原文时整个区块被换成
+		// 一个只有工具栏的空壳（BlockShell 没有 title 参数），标题跟着内容一起消失。
+		// 现在标题在 BlockFrame 的头部里，与切换的那一层无关。
+		assert.notEqual(query(host, "pre.mosaic-source-view"), null, fixture.name);
+		assert.equal(title()?.textContent, TITLE, `${fixture.name} lost its title in source view`);
+
+		toggle(host, "Show rendered block");
+		await flush();
+		assert.equal(title()?.textContent, TITLE, `${fixture.name} lost its title coming back`);
+		// 标题只有一份：DataTable 的表内 <caption>、FlowDiagram 的 <figcaption> 都并进
+		// 了这一个 h3，两处同名标题只会让人以为渲染错了。
+		assert.equal(queryAll(host, ".mosaic-block-title").length, 1, fixture.name);
+		assert.equal(serialize(host).includes("<caption"), false, fixture.name);
+		assert.equal(serialize(host).includes("<figcaption"), false, fixture.name);
+	}
+});
+
+test("the frame element and its classes are identical either side of the toggle", async () => {
+	for (const fixture of FIVE_BLOCKS) {
+		const host = await mountBlock(fixture);
+		// 框体「一致」的机器可验形式：根节点的标签名、class、data 属性三样都不许变。
+		// 此前根节点在切换时会从 <div>/<figure> 变成 BlockShell 的 <section>，边框、
+		// 圆角、内边距随之全变。
+		const shape = () => {
+			const roots = queryAll(host, ".mosaic-block");
+			assert.equal(roots.length, 1, `${fixture.name} should have exactly one frame`);
+			return [
+				roots[0].localName,
+				roots[0].className,
+				roots[0].getAttribute("data-mosaic-block"),
+			];
+		};
+		const before = shape();
+		assert.equal(before[0], "section", fixture.name);
+		assert.equal(before[1].includes(`mosaic-${fixture.block}`), true, fixture.name);
+		assert.equal(before[2], fixture.block, fixture.name);
+
+		toggle(host, "Show source");
+		await flush();
+		assert.deepEqual(shape(), before, `${fixture.name} changed its frame in source view`);
+
+		toggle(host, "Show rendered block");
+		await flush();
+		assert.deepEqual(shape(), before, `${fixture.name} changed its frame coming back`);
+	}
+});
+
+test("all five keep their content, lose it to the source view, and get it back", async () => {
+	for (const fixture of FIVE_BLOCKS) {
+		const host = await mountBlock(fixture);
+		const content = () => queryAll(host, fixture.content).length;
+		// 统一头部不能把内容弄丢：五类各自那件东西照常渲染
+		assert.equal(content(), 1, `${fixture.name} renders no content`);
+
+		toggle(host, "Show source");
+		await flush();
+		assert.equal(content(), 0, `${fixture.name} still shows content under the source`);
+
+		toggle(host, "Show rendered block");
+		await flush();
+		assert.equal(content(), 1, `${fixture.name} did not come back`);
+	}
+});
+
+test("the toolbar sits in the one header row, not floated over the card", async () => {
+	for (const fixture of FIVE_BLOCKS) {
+		const host = await mountBlock(fixture);
+		const groups = queryAll(host, ".mosaic-control-group");
+		assert.equal(groups.length, 1, fixture.name);
+		// 按钮组是头部的孩子，头部是根节点的第一个孩子——正常文档流，不是绝对定位到
+		// 卡片右上角的浮层（那条路正是 DataTable 当年不得不当例外的原因：会盖住表头）。
+		assert.equal(groups[0].parentNode.className, "mosaic-block-header", fixture.name);
+		const root = query(host, ".mosaic-block");
+		assert.equal(root.childNodes[0].className, "mosaic-block-header", fixture.name);
+		assert.equal(queryAll(host, ".mosaic-block-toolbar").length, 0, fixture.name);
+	}
+});
+
+test("DecisionBox keeps its kicker above the title and its badges beside it", async () => {
+	const host = await mountBlock(FIVE_BLOCKS[2], {
+		title: TITLE,
+		status: "accepted",
+		owner: "me",
+	});
+	const heading = query(host, ".mosaic-block-heading");
+	assert.notEqual(heading, null);
+	// 顺序是 kicker → 标题 → 徽章。kicker 独占一整行（styles.css 的 flex-basis:100%），
+	// 所以 DOM 上排在标题之前就等于视觉上在标题之上；倒过来写就会跑到标题下面。
+	assert.equal(heading.childNodes[0].className, "mosaic-block-kicker");
+	assert.equal(heading.childNodes[0].textContent, "Decision");
+	assert.equal(heading.childNodes[1].className, "mosaic-block-title");
+	assert.equal(heading.childNodes[2].className, "mosaic-decision-badges");
+	assert.deepEqual(
+		queryAll(host, ".mosaic-decision-badge").map((b) => b.textContent),
+		["accepted", "me"],
+	);
+	// 状态 class 仍在根节点上，切到原文视图也不变
+	assert.equal(query(host, ".mosaic-block").className.includes("is-accepted"), true);
+	toggle(host, "Show source");
+	await flush();
+	assert.equal(query(host, ".mosaic-block").className.includes("is-accepted"), true);
+	assert.equal(query(host, ".mosaic-block-kicker").textContent, "Decision");
+});
+
+test("a block without a title still gets its header and its buttons", async () => {
+	const host = await mountBlock(FIVE_BLOCKS[0], {});
+	assert.equal(query(host, ".mosaic-block-title"), null);
+	assert.equal(query(host, ".mosaic-block-heading"), null);
+	// 没有标题不等于没有头部：按钮组还在，还是那一组
+	assert.deepEqual(actions(host), ["Show source", "Copy block report"]);
+	assert.equal(queryAll(host, ".mosaic-control-group").length, 1);
+});
+
+// --- DataTable 的 dataset 模式：粒度按钮与图标按钮同处一组 ---
+
+const DATASET_MANIFEST = JSON.stringify({
+	schemaVersion: 1,
+	id: "daily",
+	data: "./daily.csv",
+	grain: ["date"],
+	primaryKey: ["date"],
+	time: { field: "date", sourceGranularity: "day" },
+	fields: [
+		{ name: "date", type: "date", required: true },
+		{ name: "revenue", type: "integer", required: true, rollup: "sum" },
+	],
+});
+
+// 跨月跨季跨年：availableGranularities 才会给出多于一档，粒度按钮才渲染得出来。
+// 头两行落在同一个月，所以 day 是 4 行、month 是 3 行——粒度按钮真的改了表格内容，
+// 而不是点了跟没点一样。
+const DATASET_CSV = [
+	"date,revenue",
+	"2026-01-05,1",
+	"2026-01-20,2",
+	"2026-05-11,3",
+	"2027-01-04,4",
+].join("\n");
+
+function datasetPlugin() {
+	const files = {
+		"notes/daily.dataset.json": DATASET_MANIFEST,
+		"notes/daily.csv": DATASET_CSV,
+	};
+	return fakePlugin({
+		app: {
+			vault: {
+				getAbstractFileByPath: (path) =>
+					path in files ? Object.assign(new TFile(), { path }) : null,
+				cachedRead: (file) => Promise.resolve(files[file.path]),
+			},
+		},
+	});
+}
+
+async function mountDataset(attributes = {}) {
+	const host = mountHost();
+	await renderComponentInto(
+		datasetPlugin(),
+		host,
+		{ ...CONTEXT, sourcePath: "notes/report.md", syntax: "self-closing tag" },
+		{
+			name: "DataTable",
+			attributes: { title: TITLE, dataset: "./daily.dataset.json", ...attributes },
+			body: "",
+		},
+	);
+	await flush();
+	return host;
+}
+
+test("dataset mode folds the granularity buttons into the same single group", async () => {
+	const host = await mountDataset();
+	const groups = queryAll(host, ".mosaic-control-group");
+	// 一组按钮，不是两组挨着的小块——粒度状态在 DataTableFigure 手里，所以外框也归它
+	// 渲染，否则粒度按钮又会被迫单独开一个容器。
+	assert.equal(groups.length, 1);
+	assert.equal(groups[0].parentNode.className, "mosaic-block-header");
+	const inGroup = queryAll(groups[0], "button");
+	assert.deepEqual(
+		inGroup.filter((b) => b.className.includes("mosaic-granularity-btn")).map((b) => b.textContent),
+		["day", "week", "month", "quarter"],
+	);
+	assert.equal(queryAll(groups[0], "button.clickable-icon").length, 2);
+	// 粒度按钮排在图标按钮之前
+	assert.equal(inGroup[0].className.includes("mosaic-granularity-btn"), true);
+	assert.equal(inGroup[inGroup.length - 1].className.includes("clickable-icon"), true);
+	// 表格与标题都在
+	assert.equal(queryAll(host, "table").length, 1);
+	assert.equal(query(host, "h3.mosaic-block-title").textContent, TITLE);
+});
+
+test("dataset mode still switches granularity, and keeps the header while showing source", async () => {
+	const host = await mountDataset();
+	// dom.mjs 的选择器没有后代组合子，先拿 tbody 再数它的行。
+	const rowCount = () => queryAll(query(host, "tbody"), "tr").length;
+	assert.equal(rowCount(), 4); // day: 一行一天
+
+	const month = queryAll(host, ".mosaic-granularity-btn").find(
+		(b) => b.textContent === "month",
+	);
+	month.click();
+	await flush();
+	assert.equal(month.className.includes("mod-cta"), true);
+	assert.equal(rowCount(), 3); // 前两行并进同一个月
+	assert.equal(queryAll(host, ".mosaic-control-group").length, 1);
+
+	toggle(host, "Show source");
+	await flush();
+	// 切原文时头部整份不动：标题、粒度按钮、图标按钮都还在，框体也还是同一个 section
+	assert.equal(query(host, "h3.mosaic-block-title").textContent, TITLE);
+	assert.equal(queryAll(host, ".mosaic-granularity-btn").length, 4);
+	assert.equal(queryAll(host, "table").length, 0);
+	assert.equal(queryAll(host, "section.mosaic-data-table").length, 1);
+});
+
+// --- 原文视图的字号（问题 ③）---
+
+function fontSizeIn(css, selector) {
+	const at = css.indexOf(`${selector} {`);
+	assert.notEqual(at, -1, `${selector} rule missing from styles.css`);
+	const body = css.slice(at, css.indexOf("}", at));
+	return /font-size:\s*([^;]+);/.exec(body)?.[1].trim();
+}
+
+test("the source view follows the body text size instead of being shrunk", () => {
+	// 字号是纯 CSS 的事，node 侧没有排版引擎可问，所以这里断言样式表本身。
+	const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+	const size = fontSizeIn(css, ".mosaic-source-view");
+	// 关键是不再自己乘一个小于 1 的系数：等宽字体在同一 px 下已经比正文视觉小一号，
+	// 再打八折就到了读不动的地步。
+	const multiplier = /^([\d.]+)(em|rem)$/.exec(size ?? "");
+	assert.equal(
+		multiplier === null || Number(multiplier[1]) >= 1,
+		true,
+		`the source view is still shrunk to ${size}`,
+	);
+	// 跟随正文：宿主「正文字号」设置项的那个变量，读者调大字号时原文视图跟着变大。
+	assert.equal(size.includes("--font-text-size"), true, size);
+	// 内层 <code> 也得跟着走，否则宿主的 .markdown-rendered code 会把它压回 --code-size。
+	assert.equal(fontSizeIn(css, ".mosaic-source-view code"), "inherit");
+});
+
+test("the per-block chrome that was deleted leaves no orphan rules behind", () => {
+	const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+	// 三条规则各自服务于一个已经不存在的结构：绝对定位的工具栏、DecisionBox 自己的
+	// 头部、DataTable 表内的 <caption>。留着就是死代码，下一个人会照着它猜结构。
+	// 只匹配行首，注释里提到这些名字（解释它们为什么没了）不算。
+	for (const selector of [
+		".mosaic-block-toolbar",
+		".mosaic-decision-header",
+		".mosaic-data-table caption",
+	]) {
+		const anchored = new RegExp(`^${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "m");
+		assert.equal(anchored.test(css), false, `orphan rule: ${selector}`);
+	}
 });
 
 // --- 复制 ---

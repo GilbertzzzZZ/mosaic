@@ -96,48 +96,61 @@
 }
 /* 原文视图：框体高宽不变，内容换成标签原文。高度由切换那一刻量到的渲染高度锁定
    （内联 style），量不到时回落到这里的上限；两种情况都由这条规则负责滚动。 */
+/* 字号跟随正文，不再乘 0.8：等宽字体在同一 px 下本来就比正文视觉小一号，再打八折
+   就到了读不动的地步。--font-text-size 是宿主「正文字号」设置项的那个变量，读者调
+   大字号时原文视图跟着变大。 */
 .mosaic-source-view {
 	max-height: 420px;
 	overflow: auto;
 	margin: 0;
-	font-size: 0.8em;
+	font-size: var(--font-text-size);
 	white-space: pre;
 	tab-size: 2;
+}
+/* 内层 <code> 单列一条：宿主的 .markdown-rendered code 会把它压到 --code-size
+   （实测约 0.875em），不写这条的话上面那行等于没生效。两者具体度相同 (0,1,1)，
+   插件样式表排在 app.css 之后，平局由后来者赢。 */
+.mosaic-source-view code {
+	font-size: inherit;
 }
 
 /* block types */
 
 .mosaic-block {
 	margin: 18px 0;
-	/* 工具栏插槽的定位基准。五类区块的内部结构各不相同（有的以标题起头、有的以
-	   kicker 起头），绝对定位到右上角比在每种结构里各插一行 header 都省事，也不会
-	   把已有排版推位移。DataTable 例外：它的那一组走正常文档流，见下方。 */
-	position: relative;
 }
-/* 切换 / 复制两个按钮：与粒度按钮同处一个 .mosaic-control-group，用宿主原生的
-   clickable-icon，本身不带任何样式规则——这里只管把这一组摆到卡片右上角。 */
-.mosaic-block-toolbar {
-	position: absolute;
-	top: 10px;
-	right: 12px;
-	z-index: 1;
+/* 五类共用的头部，与 Chart 的 .mosaic-figure-header 同构：左边标题、右边那一组按钮，
+   都走正常文档流。曾经是绝对定位到卡片右上角的 .mosaic-block-toolbar，删掉了——那条
+   路要求每类区块自己画标题（于是切到原文视图时标题会跟着内容一起消失），还得给标题
+   留 64px 的让位内边距，而 DataTable 又因为会盖住表头不得不例外。
+   margin-left:auto 而不是 justify-content:space-between：无标题的区块头部里只有按钮
+   组一个孩子，space-between 会把它顶到左边。 */
+.mosaic-block-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
 }
-/* 标题给这一组按钮让出位置。两条选择器分别对应「标题是插槽的兄弟」（Timeline /
-   MetricGrid / FlowDiagram）与「标题裹在兄弟里」（DecisionBox 的 header）两种结构，
-   都只在插槽真的渲染出来时才生效——没有工具栏的场合标题仍占满整行。 */
-.mosaic-block-toolbar ~ .mosaic-block-title,
-.mosaic-block-toolbar ~ * .mosaic-block-title {
-	padding-right: 64px;
+.mosaic-block-header > .mosaic-control-group {
+	margin-left: auto;
+}
+/* 标题行的左半边：kicker（整行独占，因此排在标题上方）+ 标题 + 区块自有的头部内容
+   （DecisionBox 的徽章）。 */
+.mosaic-block-heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 10px;
+	min-width: 0;
 }
 .mosaic-block-title {
-	margin: 0 0 10px;
+	margin: 0;
 	font-size: 15px;
 	font-weight: 700;
 	color: var(--text-normal);
 }
 .mosaic-block-kicker {
-	display: block;
-	margin-bottom: 4px;
+	flex-basis: 100%;
 	font-size: 11px;
 	font-weight: 700;
 	text-transform: uppercase;
@@ -281,21 +294,9 @@
 }
 
 /* DecisionBox */
-.mosaic-decision-header {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	gap: 8px 10px;
-	margin-bottom: 10px;
-}
-.mosaic-decision-header .mosaic-block-title {
-	margin: 0;
-	flex: 1 1 auto;
-}
-.mosaic-decision-header .mosaic-block-kicker {
-	margin-bottom: 0;
-	flex-basis: 100%;
-}
+/* 曾经有一份 .mosaic-decision-header：kicker / 标题 / 徽章由 DecisionBoxView 自己画。
+   现在这三样都交给 BlockFrame 的 .mosaic-block-heading（结构一模一样，只是搬到了
+   五类共用的那一层），只剩徽章本身的样式留在这里。 */
 .mosaic-decision-badges {
 	display: flex;
 	flex-wrap: wrap;
@@ -351,13 +352,9 @@
 }
 
 /* DataTable */
-/* 这一组按钮走正常文档流（卡片上方）而不是绝对定位到右上角：DataTable 的卡片顶部
-   就是表头/工具条，浮上去会盖住它们。粒度按钮与切换/复制按钮并入同一组，右对齐。 */
-.mosaic-data-table > .mosaic-control-group {
-	margin-bottom: 6px;
-	display: flex;
-	justify-content: flex-end;
-}
+/* 这里曾有一条 .mosaic-data-table > .mosaic-control-group：DataTable 的按钮组当年是
+   五类里唯一走正常文档流的一个（绝对定位会盖住表头）。现在五类都走 .mosaic-block-header，
+   那条例外规则连同它的例外理由一起没了。 */
 .mosaic-data-table .table-card {
 	position: relative;
 	border: 1px solid var(--background-modifier-border);
@@ -410,14 +407,9 @@
 	min-width: var(--table-min-width);
 	max-width: none;
 }
-.mosaic-data-table caption {
-	caption-side: top;
-	text-align: left;
-	font-weight: 700;
-	font-size: 13px;
-	padding: 10px 10px 0;
-	color: var(--text-normal);
-}
+/* 这里曾有一条 .mosaic-data-table caption：title= 当年画在表格内部的 <caption> 里，
+   是五类里唯一不画 .mosaic-block-title 的一个。标题统一到头部之后表内不再有 caption，
+   规则一并删掉。 */
 .mosaic-data-table th,
 .mosaic-data-table td {
 	padding: 6px 10px;
