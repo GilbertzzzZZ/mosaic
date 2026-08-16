@@ -1,7 +1,8 @@
 import { MarkdownView, Plugin, WorkspaceLeaf } from 'obsidian';
 import { MosaicPluginSettings, MosaicSettingTab, DEFAULT_SETTINGS } from './settings';
 import { createChartTagProcessor } from './entry/chart-tag-processor';
-import { createChartBlockProcessor } from './entry/chart-block-processor';
+import { createBlockProcessor } from './entry/block-processor';
+import { BLOCK_LANGUAGES } from './parse/chart-tag.mjs';
 
 export default class MosaicPlugin extends Plugin {
 	declare settings: MosaicPluginSettings;
@@ -49,7 +50,15 @@ export default class MosaicPlugin extends Plugin {
 		this.isUnloading = false;
 		await this.loadSettings();
 		this.addSettingTab(new MosaicSettingTab(this.app, this));
-		this.registerMarkdownCodeBlockProcessor("chartview", createChartBlockProcessor(this));
+		// 六个语言名（组件名转小写）+ 历史别名 chartview，映射表由 BLOCK_LANGUAGES
+		// 唯一持有：加一类内容块只改 COMPONENT_NAMES 一处，这里跟着长出来。
+		const languages: Record<string, string> = BLOCK_LANGUAGES;
+		for (const language of Object.keys(languages)) {
+			this.registerMarkdownCodeBlockProcessor(
+				language,
+				createBlockProcessor(this, languages[language], language),
+			);
+		}
 		this.registerMarkdownPostProcessor(createChartTagProcessor(this));
 
 		// Sections rendered while this plugin was disabled keep their vanilla

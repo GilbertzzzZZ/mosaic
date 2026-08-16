@@ -6,7 +6,8 @@ import React from "react";
 // 判文件，测试要造 vault 就得拿到打包产物里的那一个类，不能自己 new 一个同名的。
 import { TFile } from "obsidian";
 import { createChartTagProcessor } from "../../src/entry/chart-tag-processor";
-import { createChartBlockProcessor } from "../../src/entry/chart-block-processor";
+import { createBlockProcessor } from "../../src/entry/block-processor";
+import { BLOCK_LANGUAGES } from "../../src/parse/chart-tag.mjs";
 import { renderInto, unmountRoot } from "../../src/render/react-root";
 import { renderComponentInto } from "../../src/render/render-component";
 import { ChartFigure } from "../../src/render/components/ChartFigure";
@@ -15,8 +16,9 @@ import { renders } from "@ant-design/plots";
 export {
 	React,
 	TFile,
+	BLOCK_LANGUAGES,
 	createChartTagProcessor,
-	createChartBlockProcessor,
+	createBlockProcessor,
 	renderInto,
 	unmountRoot,
 	renderComponentInto,

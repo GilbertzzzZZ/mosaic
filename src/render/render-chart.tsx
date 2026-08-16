@@ -1,5 +1,5 @@
 // src/render/render-chart.tsx
-// 三入口共享的 Chart 渲染层：{attributes, csv} → ChartFigure。csv 非空走内联
+// 三入口共享的 Chart 渲染层：{attributes, body} → ChartFigure。body 非空走内联
 // 模式，否则走 dataset 模式。抛错由各入口调用方就地渲染错误框。
 import React from "react";
 import MosaicPlugin from "../main";
@@ -18,11 +18,13 @@ import { withTheme } from "./chart-theme";
 
 export interface ChartSource {
 	attributes: Record<string, string>;
-	csv: string | null;
-	// 解析层收集的未归属片段（`零售业务Label="零售业务"` 这类整条认不出的写法）。
-	// 曾经挂在 attributes 上的一个不可枚举 symbol 键上——那要靠「谁也别复制这张表」
-	// 的口头约定才成立。现在是并列的显式字段，透传路径与 attributes 完全一样。
-	// 代码块入口没有这一类片段（frontmatter 写错直接抛错），省略即可。
+	// 内联数据原文。与 ComponentSource.body 同名同义——两个入口交给渲染层的结构必须
+	// 一致，渲染层不该知道内容来自代码块还是标签。
+	body: string | null;
+	// 解析层收集的未归属片段（`零售业务Label="零售业务"` 这类整条认不出的写法，以及
+	// 代码块属性区里写歪的那几行）。曾经挂在属性表上的一个不可枚举 symbol 键上——那要
+	// 靠「谁也别复制这张表」的口头约定才成立。现在是并列的显式字段，透传路径与属性表
+	// 完全一样。没有片段时省略即可。
 	unrecognized?: string[];
 }
 
@@ -30,16 +32,18 @@ export async function renderChartInto(
 	plugin: MosaicPlugin,
 	host: HTMLElement,
 	context: BlockContext,
-	{ attributes, csv, unrecognized }: ChartSource,
+	{ attributes, body, unrecognized }: ChartSource,
 	stale: () => boolean = () => false,
 ): Promise<void> {
-	if (csv != null && "dataset" in attributes) {
+	if (body != null && "dataset" in attributes) {
 		throw new Error("Provide either dataset= or an inline CSV body, not both.");
 	}
 	if (!(await whenHostReady(host, stale))) return;
-	if (csv != null) {
+	if (body != null) {
 		const build = () => {
-			const built = withTheme(buildChartFromInline({ attributes, csv }));
+			// chart-tag-config 的入参仍叫 csv：Chart 的内联 body 本来就是 CSV，那一层
+			// 只服务 Chart，不共用给另外五类。
+			const built = withTheme(buildChartFromInline({ attributes, csv: body }));
 			applyFieldNotice(built, attributes, unrecognized);
 			return built;
 		};

@@ -18,8 +18,10 @@ type ChartTagRun = { hosts: HTMLElement[] };
 // 每个 section el 的当前渲染代（WeakMap 随 el 回收，无泄漏）。
 const ACTIVE_RUNS = new WeakMap<HTMLElement, ChartTagRun>();
 
-// 两个解析器（findChartTags / findComponentTags）产出的标签统一形态：
-// Chart 带 csv（fence 已剥出），其余五类只带 body 原文。
+// 两个解析器（findChartTags / findComponentTags）产出的标签统一形态。body 一个字段
+// 装内联数据：Chart 那份是 fence 已剥出的 CSV，其余五类是 body 原文。字段名与代码块
+// 入口（parseBlockSource）和渲染层（ChartSource / ComponentSource）一致——渲染层不
+// 该知道内容来自哪种写法。
 type RenderableTag = {
 	name: string;
 	start: number;
@@ -27,7 +29,6 @@ type RenderableTag = {
 	attributes: Record<string, string>;
 	unrecognized: string[];
 	body: string | null;
-	csv: string | null;
 };
 
 // 廉价预筛：section 里连候选开标签都没有就直接返回，避免逐段跑完整解析。
@@ -57,12 +58,11 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 			end: t.end,
 			attributes: t.attributes,
 			unrecognized: t.unrecognized,
-			body: null,
-			csv: t.csv,
+			body: t.csv,
 		}));
-		const otherTags: RenderableTag[] = findComponentTags(section)
-			.filter((t) => t.name !== "Chart")
-			.map((t) => ({ ...t, csv: null }));
+		const otherTags: RenderableTag[] = findComponentTags(section).filter(
+			(t) => t.name !== "Chart",
+		);
 		const tags = [...chartTags, ...otherTags].sort((a, b) => a.start - b.start);
 		if (tags.length === 0 || !isOnlyComponentTags(section, tags)) return;
 
@@ -123,7 +123,7 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 						context,
 						{
 							attributes: tag.attributes,
-							csv: tag.csv,
+							body: tag.body,
 							unrecognized: tag.unrecognized,
 						},
 						stale,

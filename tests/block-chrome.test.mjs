@@ -25,7 +25,7 @@ const {
 	React,
 	TFile,
 	ChartFigure,
-	createChartBlockProcessor,
+	createBlockProcessor,
 	createChartTagProcessor,
 	renderComponentInto,
 	renderInto,
@@ -872,7 +872,7 @@ test("the code-block entry takes the section before the unbounded await, not in 
 	// 宿主还没布局：renderChartInto 的第一件事是 await whenHostReady()，而它明确
 	// 不设超时。这一段就是那个「等回来之后 section 早已被回收」的窗口。
 	domDefaults.clientWidth = 0;
-	const pending = createChartBlockProcessor(fakePlugin())(
+	const pending = createBlockProcessor(fakePlugin(), "Chart", "chartview")(
 		"---\ntype: line\n---",
 		el,
 		ctx,
@@ -912,7 +912,11 @@ test("without a section info the code block rebuilds the fence and says it did",
 	};
 	const el = document.createElement("div");
 	document.body.appendChild(el);
-	await createChartBlockProcessor(fakePlugin())("---\ntype: line\n---", el, ctx);
+	await createBlockProcessor(fakePlugin(), "Chart", "chartview")(
+		"---\ntype: line\n---",
+		el,
+		ctx,
+	);
 	await flush();
 	query(el, '[aria-label="Copy error report"]').click();
 	assert.equal(clipboard.text.includes("- syntax: code block (source reconstructed)"), true);

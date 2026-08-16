@@ -10,6 +10,17 @@ export const COMPONENT_NAMES = [
 	"FlowDiagram",
 ];
 
+// 代码块语言名 ↔ 组件名的唯一映射，由 COMPONENT_NAMES 派生：组件名转小写即语言名。
+// `chartview` 是唯一的例外条目——历史别名，用户现有文档大量在用，行为与 `chart`
+// 完全一致，不加弃用警告。
+// 加一类内容块仍然只改 COMPONENT_NAMES 一处：这张表跟着长出对应的语言名。
+/** @type {Record<string, string>} */
+const LANGUAGES = { chartview: "Chart" };
+for (const componentName of COMPONENT_NAMES) {
+	LANGUAGES[componentName.toLowerCase()] = componentName;
+}
+export const BLOCK_LANGUAGES = LANGUAGES;
+
 const OPEN_TAG = new RegExp(`<(${COMPONENT_NAMES.join("|")})(?=[\\s/>])`, "g");
 // 属性名必须从行首或空白之后起头（第 1 组），否则 `零售业务Label="x"` 会被从中间
 // 切开、错认成一个没人写过的 `Label` 属性。左边界写成捕获组而不是 lookbehind：
@@ -223,9 +234,9 @@ const DERIVED_ATTRIBUTE = /^.+(?:Label|Color)$/;
 /**
  * @param {{ warning?: string }} built
  * @param {Record<string, string>} attributes
- * @param {string[]} [unrecognized] 解析层收集的未归属片段（findComponentTags 的
- *   tag.unrecognized）。代码块入口没有这一类片段（frontmatter 写错直接抛错），
- *   省略即可。
+ * @param {string[]} [unrecognized] 解析层收集的未归属片段。两个入口同名同义：标签
+ *   入口来自 findComponentTags（标签内认不出的原文片段），代码块入口来自
+ *   parseBlockSource（属性区里写歪的那几行）。没有片段时省略即可。
  */
 export function applyFieldNotice(built, attributes, unrecognized) {
 	const parts = [];
