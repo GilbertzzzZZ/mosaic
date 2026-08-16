@@ -725,13 +725,15 @@ test("a long table scrolls inside its own frame, with the header and first colum
 		"左上角那格会被表头盖住",
 	);
 
-	// 分隔线必须是 inset box-shadow 而不是 border：border-collapse 下边框归表格绘制，
-	// sticky 的格子滚走时线会留在原地。
-	const table = ruleOf(".mosaic-data-table table");
-	assert.ok(table.includes("border-collapse: separate"), "collapse 下 sticky 的边框会掉队");
-	const cell = ruleOf(".mosaic-data-table th,\n.mosaic-data-table td");
-	assert.ok(cell.includes("inset 0 -1px 0"), "行分隔线该用 inset box-shadow");
-	assert.equal(/border-bottom:/.test(cell), false, "还留着 border-bottom");
+	// 首列的右侧分隔线用 box-shadow 而不是 border-right：border-collapse: collapse 下
+	// 边框由表格绘制，首列横向滚走时 border 会留在原地。这一条被删的那版就做对了。
+	const firstColumn = ruleOf(
+		".mosaic-data-table th:first-child,\n.mosaic-data-table td:first-child",
+	);
+	assert.ok(firstColumn.includes("box-shadow"), "首列的分隔线该用 box-shadow");
+	assert.equal(/border-right:/.test(firstColumn), false, "首列用了 border-right，横滚会掉队");
+	// 钉住的格子必须有不透明背景，否则数据行从底下穿过时会看到叠影
+	assert.ok(firstColumn.includes("background:"), "首列没有不透明背景");
 });
 
 test("the source view follows the body text size instead of being shrunk", () => {
