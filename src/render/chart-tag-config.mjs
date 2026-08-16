@@ -109,7 +109,7 @@ function legendConfig(lineLabels = []) {
 // 隐藏型会撤销前一个的隐藏结果：隐藏型只能有一个，且必须排在最后。
 const LABEL_TRANSFORM = [
 	{ type: "exceedAdjust", bounds: "main" },
-	{ type: "overlapDodgeY", padding: 2, maxIterations: 20 },
+	{ type: "overlapDodgeY", padding: 0, maxIterations: 5 },
 	{ type: "overlapHide" },
 ];
 // 曾经还有一份视图级的 labelTransform（顶层 config.labelTransform），声称能跨 mark

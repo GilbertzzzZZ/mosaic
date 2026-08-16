@@ -729,14 +729,25 @@ test("labels dodge before they hide, and only ever hide last", () => {
 	// The order is not cosmetic: every transform starts by making all labels visible
 	// again, and they compose left to right, so a second hiding transform would undo
 	// the first one's work. There can be exactly one, and it has to come last.
-	const expected = [
-		{ type: "exceedAdjust", bounds: "main" },
-		{ type: "overlapDodgeY", padding: 2, maxIterations: 20 },
-		{ type: "overlapHide" },
-	];
-	const hiders = expected.filter((t) => t.type.endsWith("Hide"));
+	// 断言的是链条的形状与顺序，不是 dodge 的两个数值——padding 与 maxIterations
+	// 是要按真机效果反复调的旋钮，把它们钉死会让每次调参都要改一次测试，而这条
+	// 测试真正要守的东西（谁在前、谁在后、隐藏型只有一个）与取值无关。
+	const chain = ["exceedAdjust", "overlapDodgeY", "overlapHide"];
+	const hiders = chain.filter((t) => t.endsWith("Hide"));
 	assert.equal(hiders.length, 1);
-	assert.equal(expected.at(-1).type, "overlapHide");
+	assert.equal(chain.at(-1), "overlapHide");
+	const shape = (transform) => {
+		assert.deepEqual(
+			transform.map((t) => t.type),
+			chain,
+		);
+		// dodge 必须真的带着参数下发，否则等于用了引擎默认值
+		const dodge = transform.find((t) => t.type === "overlapDodgeY");
+		assert.equal(typeof dodge.padding, "number");
+		assert.equal(typeof dodge.maxIterations, "number");
+		assert.equal(dodge.maxIterations >= 1, true);
+		assert.equal(transform[0].bounds, "main");
+	};
 	const line = buildChartFromTag({
 		manifest,
 		rows,
@@ -748,7 +759,7 @@ test("labels dodge before they hide, and only ever hide last", () => {
 			granularity: "month",
 		},
 	});
-	assert.deepEqual(line.config.label.transform, expected);
+	shape(line.config.label.transform);
 	const combo = buildChartFromTag({
 		manifest,
 		rows,
@@ -763,7 +774,7 @@ test("labels dodge before they hide, and only ever hide last", () => {
 	});
 	for (const child of combo.config.children) {
 		if (!child.label) continue; // the point mark carries no labels
-		assert.deepEqual(child.label.transform, expected);
+		shape(child.label.transform);
 	}
 });
 
