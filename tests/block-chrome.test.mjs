@@ -743,8 +743,18 @@ test("a long table scrolls inside its own frame, with the header and first colum
 
 	// 表头的下边线同理：border-collapse: collapse 下边框由表格绘制，表头钉住不动而
 	// 表格往上跑，那条线就跟着表格走了——表头与数据之间出现一条会上下滑的缝。
-	assert.ok(head.includes("inset 0 -1px 0"), "表头下边线不是 inset，滚动时会掉队");
-	assert.ok(head.includes("border-bottom: none"), "表头还留着会掉队的 border-bottom");
+	// 整表已经是 separate + inset 分隔线，表头不需要再单独关掉 border-bottom——
+	// 它跟其余单元格共用同一条 inset 规则。这里改为守住那条共用规则本身。
+	const cell = ruleOf(".mosaic-data-table th,\n.mosaic-data-table td");
+	assert.ok(cell.includes("inset 0 -1px 0"), "行分隔线不是 inset，滚动时会掉队");
+	assert.equal(/border-bottom:/.test(cell), false, "还留着 border-bottom");
+
+	// separate + spacing 0 是消掉首列半像素的唯一办法（真机实测：collapse 下首列相对
+	// 容器恒偏 0.5px，separate 下为 0）。它必须与 inset 分隔线同时成立，否则行高会
+	// 涨 1px——边框变粗就是这么来的。
+	const table = ruleOf(".mosaic-data-table table");
+	assert.ok(table.includes("border-collapse: separate"), "collapse 会让首列偏 0.5px");
+	assert.ok(table.includes("border-spacing: 0"), "separate 少了 border-spacing: 0");
 
 	// 左上角同属表头与首列，两条线都要
 	assert.ok(
