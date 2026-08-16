@@ -311,6 +311,26 @@
 /* 曾经有一份 .mosaic-decision-header：kicker / 标题 / 徽章由 DecisionBoxView 自己画。
    现在这三样都交给 BlockFrame 的 .mosaic-block-heading（结构一模一样，只是搬到了
    五类共用的那一层），只剩徽章本身的样式留在这里。 */
+
+/* 状态染左边框。DecisionBoxView 一直在产出 is-accepted / is-rejected 这几个 class，
+   但这里长期一条规则都没有——状态算出来了、没上色，accepted 与 rejected 肉眼一模一样。
+   染左边框而不是 MetricGrid 那样的顶边：决策框是整段叙述性内容，左边框是这类内容的
+   通行标记，同时与顶边的指标卡在视觉上分得开。
+   色值走 Obsidian 的扩展色板，跟随主题；词表外的值与不写 status 一律不染，保持中性。 */
+.mosaic-decision-box.is-accepted {
+	border-left: 3px solid var(--color-green, #16a34a);
+}
+.mosaic-decision-box.is-rejected {
+	border-left: 3px solid var(--color-red, #dc2626);
+}
+/* proposed 是「提议中，还没定」，与 Timeline 的 is-active 同义，共用主题强调色。 */
+.mosaic-decision-box.is-proposed {
+	border-left: 3px solid var(--interactive-accent);
+}
+/* superseded 是「已被后来的决定取代」——不是失败，只是过期，所以用最弱的灰。 */
+.mosaic-decision-box.is-superseded {
+	border-left: 3px solid var(--text-faint);
+}
 .mosaic-decision-badges {
 	display: flex;
 	flex-wrap: wrap;
