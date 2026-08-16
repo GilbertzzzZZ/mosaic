@@ -1,7 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { setIcon } from "obsidian";
 import { Chart, ConfigProps, PlotInstance } from "./Chart";
 import { GranularityButtons } from "./GranularityButtons";
+import {
+	BlockContext,
+	BlockErrorBox,
+	BlockNotice,
+	BlockToolbar,
+	IconButton,
+	SourceView,
+	copyToClipboard,
+} from "./blocks/BlockShell";
+import { formatBlockReport } from "../block-report.mjs";
 
 export interface BuiltChart {
 	chartType: string;
@@ -10,6 +19,12 @@ export interface BuiltChart {
 	warning?: string;
 	granularity: string;
 	availableGranularities: string[];
+	// unit 不再是 y 轴标题（轴标题横排后仍按文字真实宽度占位，且双轴图只有一个位置
+	// 放得下），改由这里的 DOM 呈现：字号、颜色、明暗主题全部跟宿主的 CSS 变量走，
+	// 也不再受 canvas 文字测量影响。单轴图只有 unit，双轴图只有 leftUnit/rightUnit。
+	unit?: string;
+	leftUnit?: string;
+	rightUnit?: string;
 }
 
 export interface ChartFigureProps {
@@ -19,6 +34,15 @@ export interface ChartFigureProps {
 	initial: BuiltChart;
 	build: (granularity: string) => BuiltChart;
 	showExportBtn: boolean;
+	context: BlockContext;
+}
+
+// 双轴图的两个单位并排写成一行 `左 / 右`（用户确认）。读者要自己对应哪个是左轴、
+// 哪个是右轴，但双轴图本来就只有两个单位、顺序固定，认知负担很小。
+function unitLine(built: BuiltChart): string | undefined {
+	const pair = [built.leftUnit, built.rightUnit].filter(Boolean);
+	if (pair.length > 0) return pair.join(" / ");
+	return built.unit || undefined;
 }
 
 export const ChartFigure = ({
@@ -28,20 +52,20 @@ export const ChartFigure = ({
 	initial,
 	build,
 	showExportBtn,
+	context,
 }: ChartFigureProps) => {
 	const [granularity, setGranularity] = useState(initial.granularity);
-	// 就地重建的两个触发器，均不重渲染 markdown（与阅读视图虚拟化竞态会丢图）：
+	// 就地重建的三个触发器，均不重渲染 markdown（与阅读视图虚拟化竞态会丢图）：
 	// 1) 主题切换事件（main.tsx 广播），用 build 闭包按当前主题重建配置；
 	// 2) 宿主宽度变化——打开文件时首渲可能发生在过渡宽度上，标签防碰撞会按
 	//    错误几何取舍并被缓存视图固化；安定后按真实宽度重建一次即恢复。
+	// 3) 从原文视图切回图表——见下方 toggleSource 的说明。
 	const [rebuildEpoch, setRebuildEpoch] = useState(0);
+	const [showSource, setShowSource] = useState(false);
+	const [sourceHeight, setSourceHeight] = useState<number | undefined>(undefined);
 	const figureRef = useRef<HTMLElement | null>(null);
+	const contentRef = useRef<HTMLDivElement | null>(null);
 	const plotRef = useRef<PlotInstance | null>(null);
-	const exportRef = useRef<HTMLButtonElement | null>(null);
-	// 图标用 Obsidian 内置的 lucide 库注入，不自带 svg 资源。
-	useEffect(() => {
-		if (exportRef.current) setIcon(exportRef.current, "image-down");
-	}, [showExportBtn]);
 	useEffect(() => {
 		const onThemeChange = () => setRebuildEpoch((e) => e + 1);
 		window.addEventListener("mosaic:theme-change", onThemeChange);
@@ -95,48 +119,103 @@ export const ChartFigure = ({
 		}
 	}, [granularity, rebuildEpoch]);
 
+	// 切到原文视图时 <Chart> 被卸载，切回来必须拿一份全新的配置——useMemo 的缓存值
+	// 是刚刚交给过 plots 的那一个，再渲染一遍数值标签会永久消失（同上）。所以切回
+	// 的那一下推进 rebuildEpoch，让 useMemo 重算。
+	const toggleSource = () => {
+		if (showSource) {
+			setRebuildEpoch((e) => e + 1);
+		} else {
+			// 框体高宽不变：切换前量一次当前内容高度，锁给原文视图。
+			const measured = contentRef.current?.offsetHeight;
+			setSourceHeight(measured && measured > 0 ? measured : undefined);
+		}
+		setShowSource(!showSource);
+	};
+
+	const status = error ? "error" : built.warning ? "notice" : "ok";
+	const report = (extra: { status?: string; error?: string; notice?: string }) =>
+		formatBlockReport({
+			context,
+			granularity: built.granularity,
+			availableGranularities: built.availableGranularities,
+			...extra,
+		});
+	const unit = unitLine(built);
+
 	return (
 		<figure className="mosaic-figure" ref={figureRef}>
-			{(title || options.length > 1 || showExportBtn) && (
-				<div className="mosaic-figure-header">
-					{title && (
-						<figcaption className="mosaic-figure-title">{title}</figcaption>
-					)}
-					{/* 一组控件，不是两组：粒度按钮和导出按钮并排在同一个容器里。 */}
-					<div className="mosaic-control-group">
-						<GranularityButtons
-							options={options}
-							active={granularity}
-							onSelect={setGranularity}
-						/>
-						{showExportBtn && (
-							<button
-								type="button"
-								ref={exportRef}
-								// clickable-icon 是 Obsidian 自己的图标按钮类（视图头部
-								// 那些按钮用的就是它），尺寸、悬停底色、focus ring 全由
-								// 宿主提供，这里不再写一行样式。
-								className="clickable-icon"
-								aria-label="Export to PNG"
-								onClick={() =>
-									plotRef.current?.downloadImage?.(`${built.chartType}.png`)
+			<div className="mosaic-figure-header">
+				{title && (
+					<figcaption className="mosaic-figure-title">{title}</figcaption>
+				)}
+				{/* 一组控件，不是两组：粒度按钮和三个图标按钮并排在同一个容器里。 */}
+				<div className="mosaic-control-group">
+					<GranularityButtons
+						options={options}
+						active={granularity}
+						onSelect={setGranularity}
+					/>
+					<BlockToolbar
+						showingSource={showSource}
+						onToggleSource={toggleSource}
+						onCopy={() =>
+							copyToClipboard(
+								report({ status, error, notice: built.warning }),
+							)
+						}
+						extra={
+							showExportBtn ? (
+								<IconButton
+									icon="image-down"
+									label="Export to PNG"
+									onClick={() =>
+										plotRef.current?.downloadImage?.(`${built.chartType}.png`)
+									}
+								/>
+							) : null
+						}
+					/>
+				</div>
+			</div>
+			{unit && <p className="mosaic-figure-unit">{unit}</p>}
+			{error && (
+				<BlockErrorBox
+					message={error}
+					onCopy={() => copyToClipboard(report({ status: "error", error }))}
+				/>
+			)}
+			<div ref={contentRef}>
+				{showSource ? (
+					<SourceView raw={context.raw} height={sourceHeight} />
+				) : (
+					<Chart
+						type={built.chartType}
+						config={built.config as ConfigProps}
+						onInstance={(instance) => {
+							plotRef.current = instance;
+						}}
+						// 引擎崩了也要带得走定位上下文：边界只有 message，文件/行号/原文
+						// 在这一层。
+						renderError={(message) => (
+							<BlockErrorBox
+								message={message}
+								onCopy={() =>
+									copyToClipboard(report({ status: "error", error: message }))
 								}
 							/>
 						)}
-					</div>
-				</div>
-			)}
-			{error && <div className="mosaic-error">{error}</div>}
-			<Chart
-				type={built.chartType}
-				config={built.config as ConfigProps}
-				onInstance={(instance) => {
-					plotRef.current = instance;
-				}}
-			/>
+					/>
+				)}
+			</div>
 			{note && <p className="mosaic-figure-note">{note}</p>}
 			{built.warning && (
-				<p className="mosaic-figure-warning">{built.warning}</p>
+				<BlockNotice
+					text={built.warning}
+					onCopy={() =>
+						copyToClipboard(report({ status: "notice", notice: built.warning }))
+					}
+				/>
 			)}
 			{built.footnote && (
 				<p className="mosaic-figure-footnote">{built.footnote}</p>

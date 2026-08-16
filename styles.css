@@ -34,19 +34,34 @@
 .mosaic-granularity-btn {
 	text-transform: capitalize;
 }
+/* unit 从 y 轴左侧搬到这里：轴标题被旋转 90° 后恒占 28px 横向宽度（双轴 56px），
+   而且横排后按文字真实宽度占位，`CNY` 比 `%` 更贵；双轴图更是只有一个位置放得下
+   两个单位。搬到 DOM 之后字号、颜色、明暗主题全部跟宿主的变量走，绘图区也拿回了
+   那 28/56px。双轴写成 `左 / 右` 一行。 */
+.mosaic-figure-unit {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	margin: 0 0 4px;
+}
 .mosaic-figure-note {
 	font-size: 0.85em;
 	color: var(--text-muted);
 	margin: 4px 0 0;
 }
 /* 局部提示：图画出来了，只是其中一处写错了。用一道左边线与整体报错的红框区分开
-   ——红框意味着图根本没出来，橙线意味着图能看，但有一处不是你写的那个意思。 */
+   ——红框意味着图根本没出来，橙线意味着图能看，但有一处不是你写的那个意思。
+   提示条自己也带一个复制按钮，所以要给它一条 flex 轴；按钮本体仍是宿主的
+   clickable-icon，这里一行样式都不写。 */
 .mosaic-figure-warning {
 	font-size: 0.85em;
 	color: var(--text-warning, #d97706);
 	margin: 6px 0 0;
 	border-left: 2px solid currentColor;
 	padding-left: 8px;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
 }
 .mosaic-figure-footnote {
 	font-size: 0.75em;
@@ -59,12 +74,45 @@
 	border-radius: 4px;
 	padding: 6px 10px;
 	font-size: 0.85em;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+}
+/* 原文视图：框体高宽不变，内容换成标签原文。高度由切换那一刻量到的渲染高度锁定
+   （内联 style），量不到时回落到这里的上限；两种情况都由这条规则负责滚动。 */
+.mosaic-source-view {
+	max-height: 420px;
+	overflow: auto;
+	margin: 0;
+	font-size: 0.8em;
+	white-space: pre;
+	tab-size: 2;
 }
 
 /* block types */
 
 .mosaic-block {
 	margin: 18px 0;
+	/* 工具栏插槽的定位基准。五类区块的内部结构各不相同（有的以标题起头、有的以
+	   kicker 起头），绝对定位到右上角比在每种结构里各插一行 header 都省事，也不会
+	   把已有排版推位移。DataTable 例外：它的那一组走正常文档流，见下方。 */
+	position: relative;
+}
+/* 切换 / 复制两个按钮：与粒度按钮同处一个 .mosaic-control-group，用宿主原生的
+   clickable-icon，本身不带任何样式规则——这里只管把这一组摆到卡片右上角。 */
+.mosaic-block-toolbar {
+	position: absolute;
+	top: 10px;
+	right: 12px;
+	z-index: 1;
+}
+/* 标题给这一组按钮让出位置。两条选择器分别对应「标题是插槽的兄弟」（Timeline /
+   MetricGrid / FlowDiagram）与「标题裹在兄弟里」（DecisionBox 的 header）两种结构，
+   都只在插槽真的渲染出来时才生效——没有工具栏的场合标题仍占满整行。 */
+.mosaic-block-toolbar ~ .mosaic-block-title,
+.mosaic-block-toolbar ~ * .mosaic-block-title {
+	padding-right: 64px;
 }
 .mosaic-block-title {
 	margin: 0 0 10px;
@@ -288,8 +336,12 @@
 }
 
 /* DataTable */
+/* 这一组按钮走正常文档流（卡片上方）而不是绝对定位到右上角：DataTable 的卡片顶部
+   就是表头/工具条，浮上去会盖住它们。粒度按钮与切换/复制按钮并入同一组，右对齐。 */
 .mosaic-data-table > .mosaic-control-group {
 	margin-bottom: 6px;
+	display: flex;
+	justify-content: flex-end;
 }
 .mosaic-data-table .table-card {
 	position: relative;

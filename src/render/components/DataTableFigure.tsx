@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { DataTableView } from "./blocks/DataTableView";
+import { BlockErrorBox } from "./blocks/BlockShell";
 import { buildFootnote } from "../chart-tag-config.mjs";
 
 export interface DataTableQueryResult {
@@ -14,6 +15,8 @@ interface DataTableFigureProps {
 	options: string[];
 	initial: DataTableQueryResult;
 	build: (granularity: string) => DataTableQueryResult;
+	// 粒度重建失败时，让报错框也能复制定位上下文——与其余五处报错同一套。
+	onCopyError?: (message: string) => void;
 }
 
 // 粒度切换是受控组件：DataTableView 自身不管理粒度状态，这里以 build() 闭包
@@ -24,7 +27,7 @@ interface DataTableFigureProps {
 // `Field "X" needs a rollup before it can be shown in … view.`——与 ChartFigure
 // 同款处理：保留上一次成功渲染的表格，把错误文案就地显示在图内，下一次切换
 // 成功时清空。
-export function DataTableFigure({ attributes, body, options, initial, build }: DataTableFigureProps) {
+export function DataTableFigure({ attributes, body, options, initial, build, onCopyError }: DataTableFigureProps) {
 	const [result, setResult] = useState(initial);
 	const [error, setError] = useState<string | undefined>(undefined);
 	const onGranularity = (granularity: string) => {
@@ -48,7 +51,12 @@ export function DataTableFigure({ attributes, body, options, initial, build }: D
 				granularity={result.meta.granularity}
 				onGranularity={onGranularity}
 			/>
-			{error && <div className="mosaic-error">{error}</div>}
+			{error && (
+				<BlockErrorBox
+					message={error}
+					onCopy={onCopyError && (() => onCopyError(error))}
+				/>
+			)}
 		</>
 	);
 }

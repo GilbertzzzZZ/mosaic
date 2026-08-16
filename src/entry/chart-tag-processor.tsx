@@ -1,10 +1,17 @@
 // src/entry/chart-tag-processor.tsx
-import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
+import React from "react";
+import { MarkdownPostProcessorContext, MarkdownRenderChild, apiVersion } from "obsidian";
 import MosaicPlugin from "../main";
 import { findComponentTags, findChartTags, isOnlyComponentTags, COMPONENT_NAMES } from "../parse/chart-tag.mjs";
-import { unmountRoot } from "../render/react-root";
+import { formatBlockReport } from "../render/block-report.mjs";
+import { renderInto, unmountRoot } from "../render/react-root";
 import { renderChartInto } from "../render/render-chart";
 import { renderComponentInto } from "../render/render-component";
+import {
+	BlockContext,
+	BlockErrorBox,
+	copyToClipboard,
+} from "../render/components/blocks/BlockShell";
 
 type ChartTagRun = { hosts: HTMLElement[] };
 
@@ -18,6 +25,7 @@ type RenderableTag = {
 	start: number;
 	end: number;
 	attributes: Record<string, string>;
+	unrecognized: string[];
 	body: string | null;
 	csv: string | null;
 };
@@ -29,6 +37,10 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 	return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
 		// 插件正在卸载：保留原生 markdown，不再建 host / root / 轮询。
 		if (plugin.isUnloading) return;
+		// ⚠️ 时序：getSectionInfo 必须在 processor 的同步阶段取好并存进闭包。文档被
+		// 编辑后 section 会被回收替换，旧的 el 不再在 sections 数组里，那时再调返回
+		// null——而复制/切换按钮点下去的时刻恰恰是「那时」。这条路径本来就是先取
+		// 再判空，原文与行号顺带都在手里，切片即得。
 		const info = ctx.getSectionInfo(el);
 		if (!info) return;
 		const section = info.text
@@ -44,6 +56,7 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 			start: t.start,
 			end: t.end,
 			attributes: t.attributes,
+			unrecognized: t.unrecognized,
 			body: null,
 			csv: t.csv,
 		}));
@@ -86,13 +99,33 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 			if (stale()) return;
 			const host = el.createDiv({ cls: "mosaic-tag-host" });
 			run.hosts.push(host);
+			// 同段多标签时，本标签的行号 = section 起始行 + 该标签之前的换行数。
+			const before = section.slice(0, tag.start).split("\n").length - 1;
+			const raw = section.slice(tag.start, tag.end);
+			const context: BlockContext = {
+				sourcePath: ctx.sourcePath,
+				lineStart: info.lineStart + before,
+				lineEnd: info.lineStart + before + (raw.split("\n").length - 1),
+				// 标签入口握着 section 原文与标签偏移量，切片即得逐字原文（含开标签、
+				// fence body、闭标签），永远不需要拼回。
+				syntax: raw.endsWith("/>") ? "self-closing tag" : "paired tag",
+				raw,
+				rawIsReconstructed: false,
+				pluginVersion: plugin.manifest.version,
+				appVersion: apiVersion,
+				...(tag.attributes.dataset ? { dataset: tag.attributes.dataset } : {}),
+			};
 			try {
 				if (tag.name === "Chart") {
 					await renderChartInto(
 						plugin,
 						host,
-						ctx.sourcePath,
-						{ attributes: tag.attributes, csv: tag.csv },
+						context,
+						{
+							attributes: tag.attributes,
+							csv: tag.csv,
+							unrecognized: tag.unrecognized,
+						},
 						stale,
 					);
 				} else {
@@ -100,22 +133,38 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 					await renderComponentInto(
 						plugin,
 						host,
-						ctx.sourcePath,
+						context,
 						{
 							name: tag.name,
 							attributes: tag.attributes,
 							body: tag.body,
+							unrecognized: tag.unrecognized,
 						},
 						stale,
 					);
 				}
 			} catch (e) {
 				if (stale()) return;
-				host.createDiv({
-					cls: "mosaic-error",
-					text: `Mosaic: ${String((e as Error)?.message ?? e)}`,
-				});
+				renderTagError(host, context, e);
 			}
 		}
 	};
+}
+
+// 整体报错也带定位上下文：原文与行号是同步阶段就取好的，此刻即便 section 已被回收
+// 也拿得到。unmount → empty → 渲染，顺序不能换：unmountRoot 的同步语义保证错误框
+// 是 host 里唯一的内容。
+function renderTagError(host: HTMLElement, context: BlockContext, e: unknown): void {
+	unmountRoot(host);
+	host.empty();
+	const message = `Mosaic: ${String((e as Error)?.message ?? e)}`;
+	renderInto(
+		host,
+		<BlockErrorBox
+			message={message}
+			onCopy={() =>
+				copyToClipboard(formatBlockReport({ context, status: "error", error: message }))
+			}
+		/>,
+	);
 }

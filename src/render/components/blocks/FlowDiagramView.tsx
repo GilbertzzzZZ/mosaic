@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { extractFlowDiagram, layoutFlowDiagram } from "../../../parse/blocks/flow.mjs";
+import { useBlockToolbar } from "./BlockShell";
 
 export interface FlowDiagramViewProps {
 	attributes: Record<string, string>;
@@ -49,6 +50,9 @@ export const FlowDiagramView = ({ attributes, body }: FlowDiagramViewProps) => {
 		() => `mosaic-flow-arrow-${Math.random().toString(36).slice(2)}`,
 		[]
 	);
+	// FlowDiagram 的根是 <figure> 而不是 BlockShell 的 <section>，所以工具栏插槽自己
+	// 渲染一份，class 与 BlockShell 那份一致（绝对定位在卡片右上角）。
+	const toolbar = useBlockToolbar();
 
 	// throw 位于全部 hooks 之后（rules-of-hooks）。
 	if (!valid || !layout) {
@@ -57,6 +61,9 @@ export const FlowDiagramView = ({ attributes, body }: FlowDiagramViewProps) => {
 
 	return (
 		<figure className="mosaic-block mosaic-flow-diagram" data-mosaic-block="flow-diagram">
+			{toolbar && (
+				<div className="mosaic-block-toolbar mosaic-control-group">{toolbar}</div>
+			)}
 			{attributes.title && (
 				<figcaption className="mosaic-block-title">{attributes.title}</figcaption>
 			)}

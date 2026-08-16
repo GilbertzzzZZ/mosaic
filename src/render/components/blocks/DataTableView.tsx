@@ -3,6 +3,7 @@ import { extractRows, listAttribute, uniqueStrings } from "../../../parse/blocks
 import { tableComplexityAttributes } from "../../../parse/blocks/table-complexity.mjs";
 import { tableLayout } from "../../../parse/blocks/table-layout.mjs";
 import { GranularityButtons } from "../GranularityButtons";
+import { useBlockToolbar } from "./BlockShell";
 
 export interface DataTableViewProps {
 	attributes: Record<string, string>;
@@ -90,6 +91,9 @@ export const DataTableView = ({
 
 	const [search, setSearch] = useState("");
 	const [frozen, setFrozen] = useState(false);
+	// 切换/复制两个按钮并入粒度按钮那一组，右上角因此只有一组按钮。DataTable 的这一组
+	// 走正常文档流（在卡片上方），不像其余四类那样绝对定位——绝对定位会盖住表头。
+	const toolbar = useBlockToolbar();
 
 	// throw 必须位于全部 hooks 之后（rules-of-hooks）：上面的纯函数对空输入
 	// 均安全返回，这里再拒绝空表。
@@ -128,13 +132,14 @@ export const DataTableView = ({
 
 	return (
 		<div className="mosaic-block mosaic-data-table" data-mosaic-block="data-table">
-			{options.length > 1 && (
+			{(toolbar || options.length > 1) && (
 				<div className="mosaic-control-group">
 					<GranularityButtons
 						options={options}
 						active={granularity}
 						onSelect={onGranularity}
 					/>
+					{toolbar}
 				</div>
 			)}
 			<div

@@ -362,7 +362,7 @@ function renderPaired(text) {
 		attributes: tags[0].attributes,
 		csv: tags[0].csv,
 	});
-	applyFieldNotice(built, tags[0].attributes);
+	applyFieldNotice(built, tags[0].attributes, tags[0].unrecognized);
 	return { tags, built };
 }
 
@@ -495,18 +495,19 @@ test("Task 13: the notice appends to an existing warning instead of replacing it
 	assert.equal(built.warning.split("; ").length >= 2, true);
 });
 
-test("Task 13: the stray fragments never leak into the attribute table", () => {
-	// 片段挂在属性表的一个不可枚举 symbol 键上：Object.keys、展开运算符、
-	// JSON 序列化都看不见它——下游（queryDataset 的 renderAttributes、组合图的
-	// lines/bars 书写顺序判定）把属性表当纯 Record<string,string> 用。
+test("Task 13: the stray fragments ride beside the attribute table, not inside it", () => {
+	// 片段是标签上的一个显式并列字段 tag.unrecognized，不再挂在属性表上。属性表在
+	// 下游（queryDataset 的 renderAttributes、组合图的 lines/bars 书写顺序判定）被
+	// 当作纯 Record<string,string> 消费，键、展开、序列化三条路都必须看不见片段。
 	const [tag] = findChartTags(
 		paired(' type="line" x="month" series="revenue" 中文Label="营收"'),
 	);
-	// 片段确实收到了
+	// 片段确实收到了，而且是原文的完整一条
+	assert.deepEqual(tag.unrecognized, ['中文Label="营收"']);
 	const probe = {};
-	applyFieldNotice(probe, tag.attributes);
+	applyFieldNotice(probe, tag.attributes, tag.unrecognized);
 	assert.equal(probe.warning.includes('中文Label="营收"'), true);
-	// 但属性表对外仍是干净的 Record<string,string>：键、展开、序列化三条路都看不见它
+	// 属性表本身干净：键、展开、序列化三条路都看不见片段
 	assert.deepEqual(Object.keys(tag.attributes), ["type", "x", "series"]);
 	assert.deepEqual({ ...tag.attributes }, {
 		type: "line",
@@ -517,8 +518,27 @@ test("Task 13: the stray fragments never leak into the attribute table", () => {
 		JSON.stringify(tag.attributes),
 		'{"type":"line","x":"month","series":"revenue"}',
 	);
-	// 复制过一手的属性表就没有片段可挂了——提示只在原表上成立
+	// 关键差别：属性表被复制过一手也不影响提示——片段走的是另一条通道，不再依赖
+	// 「谁也别复制这张表」这条口头约定（symbol 侧信道正是靠它才成立的）。
 	const copied = {};
-	applyFieldNotice(copied, { ...tag.attributes });
-	assert.equal(copied.warning, undefined);
+	applyFieldNotice(copied, { ...tag.attributes }, tag.unrecognized);
+	assert.equal(copied.warning.includes('中文Label="营收"'), true);
+	// 没有片段的标签，unrecognized 是空数组而不是 undefined——调用方不必判空
+	const [clean] = findChartTags(paired(' type="line" x="month" series="revenue"'));
+	assert.deepEqual(clean.unrecognized, []);
+});
+
+test("Task 13: no symbol side channel survives anywhere in the parser", () => {
+	// 撤销确认：解析模块里不再有任何 symbol 键，也没有 defineProperty 藏东西。
+	const source = readFileSync(
+		new URL("../src/parse/chart-tag.mjs", import.meta.url),
+		"utf8",
+	);
+	assert.equal(/Symbol\s*\(/.test(source), false, "no Symbol() left");
+	assert.equal(/defineProperty/.test(source), false, "no hidden property left");
+	// 属性表上确实没有任何 symbol 键（不可枚举的 symbol 只有这一条路查得到）
+	const [tag] = findChartTags(
+		paired(' type="line" x="month" series="revenue" 中文Label="营收"'),
+	);
+	assert.deepEqual(Object.getOwnPropertySymbols(tag.attributes), []);
 });

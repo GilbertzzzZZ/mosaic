@@ -13,6 +13,9 @@ export interface ChartProps {
 	// 图表实例的出口。导出 PNG 的按钮和粒度按钮同属图注头部的一组控件，由
 	// ChartFigure 渲染，所以实例要交到它手里。
 	onInstance?: (instance: PlotInstance | null) => void;
+	// 渲染崩溃时的错误框。上下文（文件、行号、原文）只有 ChartFigure 握着，所以
+	// 错误框由它渲染，边界只负责把消息交回去。
+	renderError?: (message: string) => React.ReactNode;
 }
 
 // AntV 图表实例：出图组件依赖导出 PNG，以及 chart 上的两个尺寸相关能力
@@ -30,7 +33,7 @@ const PLOT_COMPONENTS = Plots as unknown as Record<
 	React.ComponentType<ConfigProps>
 >;
 
-export const Chart = ({ type, config, onInstance }: ChartProps) => {
+export const Chart = ({ type, config, onInstance, renderError }: ChartProps) => {
 	const PlotComponent = PLOT_COMPONENTS[type];
 	const sizeGuardRef = useRef<ResizeObserver | null>(null);
 	const { onReady } = config ?? {};
@@ -71,7 +74,7 @@ export const Chart = ({ type, config, onInstance }: ChartProps) => {
 	);
 
 	return (
-		<PlotErrorBoundary>
+		<PlotErrorBoundary fallback={renderError}>
 			<PlotComponent
 				{...config}
 				onReady={(instance: unknown) => {

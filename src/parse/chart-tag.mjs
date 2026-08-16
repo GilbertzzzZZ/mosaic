@@ -22,8 +22,9 @@ const PAIRED_BODY = /^\s*```(?:csv)?[ \t]*\n([\s\S]*?)\n```[ \t]*\s*$/;
 
 // 六名字通用识别：自闭合/成对标签边界 + 属性解析。body 原文透传，不做 fence 校验
 // （fence/payload 校验是解析层各消费方的职责，见 findChartTags 的兼容 wrapper）。
-// 每个标签无条件产出 name/start/end/attributes/body 五个字段（自闭合标签的 body
-// 为 null）；返回类型交给推断，改字段名时 chart-tag-processor 会编译期报错。
+// 每个标签无条件产出 name/start/end/attributes/unrecognized/body 六个字段（自闭合
+// 标签的 body 为 null，unrecognized 恒为数组、无未归属片段时为空数组）；
+// 返回类型交给推断，改字段名时 chart-tag-processor 会编译期报错。
 /**
  * @param {string} text
  */
@@ -50,9 +51,16 @@ function matchSelfClosing(source, start, name) {
 	const close = source.indexOf("/>", start);
 	if (close === -1) return null;
 	const inner = source.slice(start + tagLen, close);
-	const attributes = parseAttrs(inner, true);
-	if (!attributes) return null;
-	return { name, start, end: close + 2, attributes, body: null };
+	const parsed = parseAttrs(inner, true);
+	if (!parsed) return null;
+	return {
+		name,
+		start,
+		end: close + 2,
+		attributes: parsed.attributes,
+		unrecognized: parsed.unrecognized,
+		body: null,
+	};
 }
 
 // 成对：<Name ...> + body + </Name>。开标签的 ">" 用引号感知扫描定位，
@@ -71,8 +79,8 @@ function matchPaired(source, start, name) {
 	if (i >= source.length) return null;
 	const inner = source.slice(start + tagLen, i);
 	if (inner.trimEnd().endsWith("/")) return null; // 自闭合已在前一分支处理失败，弃
-	const attributes = parseAttrs(inner, false);
-	if (!attributes) return null;
+	const parsed = parseAttrs(inner, false);
+	if (!parsed) return null;
 	const closeTag = `</${name}>`;
 	const closeIdx = source.indexOf(closeTag, i + 1);
 	if (closeIdx === -1) return null;
@@ -81,7 +89,8 @@ function matchPaired(source, start, name) {
 		name,
 		start,
 		end: closeIdx + closeTag.length,
-		attributes,
+		attributes: parsed.attributes,
+		unrecognized: parsed.unrecognized,
 		body,
 	};
 }
@@ -114,14 +123,6 @@ export function scanAttrs(inner) {
 	return { attributes, remainder };
 }
 
-// 未归属片段挂在属性表上的私有键。取 symbol 且不可枚举，是因为属性表在下游被当作
-// 纯粹的 Record<string, string> 消费——queryDataset 用展开运算符拼 renderAttributes、
-// 组合图用 Object.keys 判 lines/bars 书写顺序——多一个可枚举的字符串键就会渗进那些
-// 地方。symbol 只有本模块拿得到，外面统一走 applyFieldNotice()。
-// 挂在属性表上而不是标签对象上，是因为属性表是唯一贯穿「解析 → 渲染」的那个引用：
-// 入口把 tag.attributes 原样交给渲染层，中途不复制。
-const UNRECOGNIZED = Symbol("mosaic.unrecognizedText");
-
 // 体量判据的倍数：未归属片段总长超过已解析属性文本总长的这个倍数时，整块退回。
 // 计划原稿写的是 1 倍。实测否决——测试库 cases/08-host-rules.mdx 那条真实笔记写法
 // （真实笔记库 的 2026-06-financial-report.mdx 原样搬来的）量出来是：已解析 69 字符
@@ -145,11 +146,16 @@ const STRAY_BUDGET = 2;
 //                               成对标签的 ">" 由引号感知扫描定位，本身可靠，不加这条。
 //   3. 体量判据              —— 未归属片段明显多于已解析属性文本时判为边界误判，仍然
 //                               整块退回。宁可不认，也不要画出一个面目全非的东西。
-// 三条都不触发时返回属性表；认不出的片段挂上 UNRECOGNIZED，渲染层据此出提示。
+// 三条都不触发时返回 { attributes, unrecognized }：认不出的片段是标签自己的一个
+// 显式字段，与属性表并列，不再挂在属性表上。属性表在下游被当作纯粹的
+// Record<string, string> 消费（queryDataset 用展开运算符拼 renderAttributes、
+// 组合图用 Object.keys 判 lines/bars 书写顺序），任何搭在它身上的额外键——哪怕是
+// 不可枚举的 symbol——都要靠「谁也别复制这张表」这条口头约定才成立，复制一次就无声
+// 丢失。片段升为并列字段后，透传路径与 attributes 完全一样，谁也不依赖引用同一性。
 /**
  * @param {string} inner
  * @param {boolean} selfClosing
- * @returns {Record<string, string> | null}
+ * @returns {{ attributes: Record<string, string>, unrecognized: string[] } | null}
  */
 function parseAttrs(inner, selfClosing) {
 	if (inner.includes("<")) return null;
@@ -158,14 +164,13 @@ function parseAttrs(inner, selfClosing) {
 	// （`零售业务Label="零售业务"` 整条，而不是光秃秃的 `零售业务`）。值里带空格的
 	// 片段会被切成两片——提示里字符不丢，只是分了行，不值得为此再写一个引号扫描器。
 	const stray = remainder.split(/\s+/).filter(Boolean);
-	if (stray.length === 0) return attributes;
+	if (stray.length === 0) return { attributes, unrecognized: [] };
 	if (selfClosing && remainder.includes(">")) return null;
 	// 已解析属性文本总长 = inner 减去未归属文本（含标签内的全部空白与换行）。
 	// 未归属片段总长不计空白：多行标签的空白量与写法有关，计进来会让判据随排版摇摆。
 	const strayLength = stray.reduce((total, piece) => total + piece.length, 0);
 	if (strayLength > STRAY_BUDGET * (inner.length - remainder.length)) return null;
-	Object.defineProperty(attributes, UNRECOGNIZED, { value: stray });
-	return attributes;
+	return { attributes, unrecognized: stray };
 }
 
 // 插件认得的 Chart 属性名。**清单取自代码里的属性消费点，不是文档**：
@@ -218,10 +223,13 @@ const DERIVED_ATTRIBUTE = /^.+(?:Label|Color)$/;
 /**
  * @param {{ warning?: string }} built
  * @param {Record<string, string>} attributes
+ * @param {string[]} [unrecognized] 解析层收集的未归属片段（findComponentTags 的
+ *   tag.unrecognized）。代码块入口没有这一类片段（frontmatter 写错直接抛错），
+ *   省略即可。
  */
-export function applyFieldNotice(built, attributes) {
+export function applyFieldNotice(built, attributes, unrecognized) {
 	const parts = [];
-	const stray = attributes[UNRECOGNIZED];
+	const stray = unrecognized;
 	if (stray?.length) {
 		parts.push(
 			`Unrecognized tag text: ${stray.join(", ")} — ignored` +
@@ -253,8 +261,8 @@ export function isOnlyComponentTags(text, tags) {
 
 // 兼容导出：Chart-only 过滤 + 现有 PAIRED_BODY csv-fence 校验，语义与改造前逐字一致
 // （非 csv fence 的成对候选照旧被丢弃，保证 Chart 渲染行为零变化）。
-// 每个结果无条件产出 start/end/attributes/csv 四个字段（自闭合标签的 csv 为 null）；
-// 返回类型交给推断，改字段名时 chart-tag-processor 会编译期报错。
+// 每个结果无条件产出 start/end/attributes/unrecognized/csv 五个字段（自闭合标签的
+// csv 为 null）；返回类型交给推断，改字段名时 chart-tag-processor 会编译期报错。
 /**
  * @param {string} text
  */
@@ -267,6 +275,7 @@ export function findChartTags(text) {
 				start: tag.start,
 				end: tag.end,
 				attributes: tag.attributes,
+				unrecognized: tag.unrecognized,
 				csv: null,
 			});
 			continue;
@@ -277,6 +286,7 @@ export function findChartTags(text) {
 			start: tag.start,
 			end: tag.end,
 			attributes: tag.attributes,
+			unrecognized: tag.unrecognized,
 			csv: m[1],
 		});
 	}
