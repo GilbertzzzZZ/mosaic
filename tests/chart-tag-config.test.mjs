@@ -860,11 +860,47 @@ test("the cull spares the highlighted, the edges and the extremes, in that order
 		{ period: "s4", value: 60 },
 	];
 	assert.equal(rank(sparse[2], 2, sparse), 2, "30 是真实最小值，判极值");
-	assert.equal(rank(sparse[1], 1, sparse), 3, "null 不是数值，不该冒充极值");
-	assert.equal(rank(sparse[3], 3, sparse), 3, "空串同理");
-	// 首尾仍按周期名判，与有没有值无关
+	assert.equal(rank(sparse[1], 1, sparse), 4, "null 不是数值，判空值档");
+	assert.equal(rank(sparse[3], 3, sparse), 4, "空串同理");
+	// 有值的首尾按周期名判
 	assert.equal(rank(sparse[0], 0, sparse), 1);
 	assert.equal(rank(sparse[4], 4, sparse), 1);
+
+	// 真正的坑不在极值那条，而在它**前面**两条：highlight 命中与首尾判定只看周期、
+	// 不看值。空单元格只要落在那些月份就能拿到 rank 0/1，而 rank 0 在 overlapHide
+	// 里永不被隐藏——它的标签是空串，看不见，却照样占位参与碰撞，把同期另一条系列
+	// 的真实数字挤掉。互斥系列（每月只填一列）必然撞上：一半格子是空的。
+	// 所以「没有数值」必须第一个判，排在 highlight 与首尾之前。
+	// 这张图的 highlight 点名了 e0 与 e2，正是下面两个空格所在的周期。
+	const exclusiveChart = buildChartFromInline({
+		attributes: {
+			title: "exclusive",
+			type: "grouped-bar",
+			x: "month",
+			series: "profit,loss",
+			highlight: "e0,e2",
+		},
+		csv: "month,profit,loss\ne0,,-1\ne1,42,\ne2,,-3",
+	});
+	const rankMarked = exclusiveChart.config.label.mosaicLabelRank;
+	const exclusive = [
+		{ period: "e0", value: null }, // 空 + 在 highlight 里 + 还是首期
+		{ period: "e1", value: 42 },
+		{ period: "e2", value: null }, // 空 + 在 highlight 里 + 还是末期
+	];
+	assert.equal(
+		rankMarked(exclusive[0], 0, exclusive),
+		4,
+		"空值即使被 highlight 点名、又在首期，也不能压过真实数字",
+	);
+	assert.equal(
+		rankMarked(exclusive[2], 2, exclusive),
+		4,
+		"末期的空值同理",
+	);
+	// 42 是这三行里唯一的真实值，既是 min 也是 max，所以判极值而不是普通——
+	// 空值出局之后极值判定只在真实数字之间进行，这正是想要的。
+	assert.equal(rankMarked(exclusive[1], 1, exclusive), 2, "中间那个真实值判极值");
 	// 排序侧同样不能把空值当 0：它该排在所有真实数值之后，先被牺牲
 	const emptyNode = {
 		attributes: {

@@ -137,6 +137,7 @@ const RANK_HIGHLIGHTED = 0; // highlight= 点名的周期：用户已明说这�
 const RANK_EDGE = 1; // 首尾两期：缺了读不出「从多少到多少」
 const RANK_EXTREME = 2; // 最大 / 最小：趋势的转折点
 const RANK_PLAIN = 3; // 其余
+const RANK_EMPTY = 4; // 没有数值：标签是空串，第一个该让位
 const RANK_KEY = "mosaicLabelRank";
 
 // 「有数值吗」的唯一判据。**不要写成 Number(x) 再 isFinite**：`Number(null)` 是 0
@@ -195,16 +196,21 @@ function edgesOf(data, xKey) {
 // 所以首尾和极值都能就地算出来，不用在外面预先展开一遍数据。
 function labelRank(marked, xKey, field) {
 	return (datum, index, data) => {
+		// 没有数值的先出局，且必须放在最前面判。下面三条里有两条**只看周期、不看值**
+		// （highlight 命中、首尾两期），空单元格只要落在那些月份就能拿到 rank 0，
+		// 而 rank 0 在 overlapHide 里永不被隐藏。它的标签文字是空串（formatter 对
+		// null 给 ""），看不见，却照样占着一个位置参与碰撞，把真有数字的标签挤掉。
+		// 互斥系列（盈利/亏损，每月只填一列）最容易撞上：一半的格子是空的，其中落在
+		// highlight 或首尾的那几个，会稳稳压住同期另一条系列的真实数字。
+		if (numericValue(datum?.[field]) === null) return RANK_EMPTY;
 		const period = String(datum?.[xKey]);
 		if (marked.size && marked.has(period)) return RANK_HIGHLIGHTED;
 		if (Array.isArray(data)) {
 			const { first, last } = edgesOf(data, xKey);
 			if (period === first || period === last) return RANK_EDGE;
+			const { min, max } = extremesOf(data, field);
 			const v = numericValue(datum?.[field]);
-			if (v !== null) {
-				const { min, max } = extremesOf(data, field);
-				if (v === min || v === max) return RANK_EXTREME;
-			}
+			if (v === min || v === max) return RANK_EXTREME;
 		}
 		return RANK_PLAIN;
 	};
