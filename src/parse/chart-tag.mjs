@@ -242,10 +242,11 @@ export function applyFieldNotice(built, attributes, unrecognized) {
 	const parts = [];
 	const stray = unrecognized;
 	if (stray?.length) {
-		parts.push(
-			`Unrecognized tag text: ${stray.join(", ")} — ignored` +
-				` (attribute names must be ASCII letters, digits, "_" or "-").`,
-		);
+		// 文案对两个入口都要成立，所以不写「为什么没认出来」——两边的原因根本不同
+		// （标签是属性名不合 ASCII，代码块是行缩进 / 不是 key: value / 值为空）。
+		// 写死其中一边的原因，另一边的用户就会照着错的方向去改。片段原样列出来，
+		// 用户一眼认得出是哪一段，具体规则由各 guide 讲。
+		parts.push(`Unrecognized text: ${stray.join(", ")} — ignored (not a recognized attribute).`);
 	}
 	const unknown = Object.keys(attributes).filter(
 		(name) => !CHART_ATTRIBUTES.has(name) && !DERIVED_ATTRIBUTE.test(name),

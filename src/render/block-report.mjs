@@ -188,10 +188,9 @@ export function componentFieldNotice(name, attributes, unrecognized) {
 	if (!known) return undefined;
 	const parts = [];
 	if (unrecognized?.length) {
-		parts.push(
-			`Unrecognized tag text: ${unrecognized.join(", ")} — ignored` +
-				` (attribute names must be ASCII letters, digits, "_" or "-").`,
-		);
+		// 与 applyFieldNotice 逐字一致，理由见那一处：原因因入口而异，写死一边会
+		// 把另一边的用户引向错的修法。
+		parts.push(`Unrecognized text: ${unrecognized.join(", ")} — ignored (not a recognized attribute).`);
 	}
 	const unknown = Object.keys(attributes ?? {}).filter((key) => !known.has(key));
 	if (unknown.length > 0) {
