@@ -123,7 +123,6 @@ export function formatBlockReport({
 // 非 Chart 五类各自认得的属性名。**清单取自代码里的属性消费点，不是文档**——每一项
 // 都能在下面这些文件里找到一处 `attributes.X` / `overrides.X`：
 //   DataTable   src/render/components/blocks/DataTableView.tsx
-//               src/parse/blocks/table-complexity.mjs（overrides.* 就是属性表本身）
 //               src/parse/dataset-query.mjs（dataset 模式与 Chart 共用同一份查询属性）
 //               src/render/render-component.tsx（dataset / granularity / granularityOptions）
 //   Timeline / MetricGrid / FlowDiagram / DecisionBox  各自的 View
@@ -153,15 +152,6 @@ const DATA_TABLE_ATTRIBUTES = [
 	"right",
 	"rightAxis",
 	"rightY",
-	// 复杂度覆盖项（table-complexity.mjs 的 overrides.*）
-	"complexity",
-	"search",
-	"freeze",
-	"freezeFirstColumn",
-	"copy",
-	"copyCsv",
-	"sticky",
-	"stickyHeader",
 ];
 
 /** @type {Record<string, Set<string>>} */

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tableComplexityAttributes } from "../src/parse/blocks/table-complexity.mjs";
 import { tableLayout } from "../src/parse/blocks/table-layout.mjs";
 
 function rowsOf(count, columns) {
@@ -9,106 +8,6 @@ function rowsOf(count, columns) {
 		Object.fromEntries(columns.map((column) => [column, `${column}-${index}`])),
 	);
 }
-
-// --- table-complexity.mjs -------------------------------------------------
-
-test("complex judgement: rows > 20 alone marks the table complex", () => {
-	const columns = ["a", "b"];
-	const result = tableComplexityAttributes(rowsOf(21, columns), columns, {});
-	assert.equal(result.complexity, "complex");
-});
-
-test("complex judgement: columns >= 8 alone marks the table complex", () => {
-	const columns = Array.from({ length: 8 }, (_, index) => `c${index}`);
-	const result = tableComplexityAttributes(rowsOf(2, columns), columns, {});
-	assert.equal(result.complexity, "complex");
-});
-
-test("complex judgement: rows*columns > 100 alone marks the table complex", () => {
-	const columns = Array.from({ length: 7 }, (_, index) => `c${index}`);
-	const rows = rowsOf(15, columns); // 15 rows, 7 columns, 15*7 = 105 > 100
-	assert.equal(rows.length <= 20, true);
-	assert.equal(columns.length < 8, true);
-	const result = tableComplexityAttributes(rows, columns, {});
-	assert.equal(result.complexity, "complex");
-});
-
-test("complex judgement: longest cell >= 120 chars alone marks the table complex", () => {
-	const columns = ["a", "b"];
-	const rows = [
-		{ a: "short", b: "x".repeat(120) },
-		{ a: "short", b: "y" },
-	];
-	const result = tableComplexityAttributes(rows, columns, {});
-	assert.equal(result.complexity, "complex");
-});
-
-test("complex judgement: stays simple when no density condition is met", () => {
-	const columns = ["a", "b"];
-	const rows = rowsOf(3, columns);
-	const result = tableComplexityAttributes(rows, columns, {});
-	assert.equal(result.complexity, "simple");
-});
-
-test("attributes.complexity forces the outcome regardless of density", () => {
-	const denseColumns = Array.from({ length: 8 }, (_, index) => `c${index}`);
-	const forcedSimple = tableComplexityAttributes(rowsOf(2, denseColumns), denseColumns, {
-		complexity: "simple",
-	});
-	assert.equal(forcedSimple.complexity, "simple");
-
-	const sparseColumns = ["a", "b"];
-	const forcedComplex = tableComplexityAttributes(rowsOf(2, sparseColumns), sparseColumns, {
-		complexity: "complex",
-	});
-	assert.equal(forcedComplex.complexity, "complex");
-});
-
-test("booleanOverride recognizes the full true/false vocabulary case-insensitively", () => {
-	const columns = ["a", "b"];
-	const rows = rowsOf(3, columns); // simple table: default search is false
-
-	for (const truthy of ["true", "1", "yes", "on", "TRUE", "On"]) {
-		const result = tableComplexityAttributes(rows, columns, { search: truthy });
-		assert.equal(result.search, true, `expected "${truthy}" to override to true`);
-	}
-	for (const falsy of ["false", "0", "no", "off", "FALSE", "No"]) {
-		const result = tableComplexityAttributes(rows, columns, { search: falsy });
-		assert.equal(result.search, false, `expected "${falsy}" to override to false`);
-	}
-	// Unrecognized strings fall back to the computed default instead of coercing.
-	const fallback = tableComplexityAttributes(rows, columns, { search: "maybe" });
-	assert.equal(fallback.search, false);
-});
-
-test("toolbar is derived from search || freezeFirstColumn || copyCsv", () => {
-	const columns = ["a", "b"];
-	const rows = rowsOf(3, columns);
-
-	const none = tableComplexityAttributes(rows, columns, {
-		search: false,
-		freezeFirstColumn: false,
-		copyCsv: false,
-	});
-	assert.equal(none.toolbar, false);
-
-	const searchOnly = tableComplexityAttributes(rows, columns, {
-		search: true,
-		freezeFirstColumn: false,
-		copyCsv: false,
-	});
-	assert.equal(searchOnly.toolbar, true);
-
-	const freezeAlias = tableComplexityAttributes(rows, columns, {
-		freeze: true,
-	});
-	assert.equal(freezeAlias.toolbar, true);
-	assert.equal(freezeAlias.freezeFirstColumn, true);
-
-	const copyAlias = tableComplexityAttributes(rows, columns, { copy: true });
-	assert.equal(copyAlias.toolbar, true);
-	assert.equal(copyAlias.copyCsv, true);
-});
 
 // --- table-layout.mjs ------------------------------------------------------
 

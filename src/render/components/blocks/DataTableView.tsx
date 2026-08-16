@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { extractRows, listAttribute, uniqueStrings } from "../../../parse/blocks/payload.mjs";
-import { tableComplexityAttributes } from "../../../parse/blocks/table-complexity.mjs";
 import { tableLayout } from "../../../parse/blocks/table-layout.mjs";
 
 // 只画内容：根节点、标题、按钮组（含 dataset 模式的粒度按钮）由 BlockFrame 统一产出。
@@ -13,15 +12,6 @@ export interface DataTableViewProps {
 	rows?: Record<string, string | number>[];
 	columnLabels?: Record<string, string>;
 	meta?: string;
-}
-
-interface TableComplexity {
-	complexity: "simple" | "complex";
-	search: boolean;
-	freezeFirstColumn: boolean;
-	copyCsv: boolean;
-	stickyHeader: boolean;
-	toolbar: boolean;
 }
 
 // tableLayout() 无条件产出这四个字段，required 才能让 tsc 在 .mjs 侧改字段名时
@@ -44,23 +34,6 @@ function columnsForRows(
 	return uniqueStrings(keys) ?? [];
 }
 
-function csvEscape(value: string): string {
-	if (/["\n,]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-	return value;
-}
-
-function buildCsv(
-	columns: string[],
-	displayColumn: (col: string) => string,
-	rows: Record<string, string | number>[]
-): string {
-	const lines = [columns.map((col) => csvEscape(displayColumn(col))).join(",")];
-	rows.forEach((row) => {
-		lines.push(columns.map((col) => csvEscape(String(row[col] ?? ""))).join(","));
-	});
-	return lines.join("\n");
-}
-
 export const DataTableView = ({
 	attributes,
 	body,
@@ -74,17 +47,10 @@ export const DataTableView = ({
 	);
 	const columns: string[] = useMemo(() => columnsForRows(rows, attributes), [rows, attributes]);
 
-	const complexity: TableComplexity = useMemo(
-		() => tableComplexityAttributes(rows, columns, attributes),
-		[rows, columns, attributes]
-	);
 	const layout: TableLayout = useMemo(
 		() => tableLayout(rows, columns),
 		[rows, columns]
 	);
-
-	const [search, setSearch] = useState("");
-	const [frozen, setFrozen] = useState(false);
 
 	// throw 必须位于全部 hooks 之后（rules-of-hooks）：上面的纯函数对空输入
 	// 均安全返回，这里再拒绝空表。
@@ -93,27 +59,6 @@ export const DataTableView = ({
 	}
 
 	const displayColumn = (col: string) => columnLabels?.[col] ?? col;
-
-	const needle = search.trim().toLowerCase();
-	const rowVisible = rows.map((row) => {
-		if (!needle) return true;
-		const text = columns.map((col) => String(row[col] ?? "")).join(" ").toLowerCase();
-		return text.includes(needle);
-	});
-
-	const copyCsv = () => {
-		const visibleRows = rows.filter((_, index) => rowVisible[index]);
-		const csv = buildCsv(columns, displayColumn, visibleRows);
-		navigator.clipboard?.writeText(csv);
-	};
-
-	const cardClass = [
-		"table-card",
-		complexity.stickyHeader ? "is-sticky-header" : "",
-		frozen ? "is-first-column-frozen" : "",
-	]
-		.filter(Boolean)
-		.join(" ");
 
 	// 变量挂在卡片上，供 scroll 模式的 table 宽度规则（styles.css）消费。
 	const cardStyle: React.CSSProperties & Record<string, string> = {
@@ -124,40 +69,10 @@ export const DataTableView = ({
 	return (
 		<>
 			<div
-				className={cardClass}
+				className="table-card"
 				data-table-layout={layout.mode}
 				style={cardStyle}
 			>
-				{complexity.toolbar && (
-					<div className="table-toolbar">
-						{complexity.search && (
-							<label className="table-search">
-								<input
-									type="search"
-									aria-label="Filter this table"
-									placeholder="Filter…"
-									value={search}
-									onChange={(event) => setSearch(event.currentTarget.value)}
-								/>
-							</label>
-						)}
-						{complexity.freezeFirstColumn && (
-							<label className="table-toggle">
-								<input
-									type="checkbox"
-									checked={frozen}
-									onChange={(event) => setFrozen(event.currentTarget.checked)}
-								/>
-								Freeze first column
-							</label>
-						)}
-						{complexity.copyCsv && (
-							<button type="button" onClick={copyCsv}>
-								Copy CSV
-							</button>
-						)}
-					</div>
-				)}
 				<div className="table-scroll" data-table-layout={layout.mode}>
 					<table>
 						<colgroup>
@@ -176,7 +91,7 @@ export const DataTableView = ({
 						</thead>
 						<tbody>
 							{rows.map((row, rowIndex) => (
-								<tr key={rowIndex} hidden={!rowVisible[rowIndex]}>
+								<tr key={rowIndex}>
 									{columns.map((col) => (
 										<td key={col}>{row[col] ?? ""}</td>
 									))}

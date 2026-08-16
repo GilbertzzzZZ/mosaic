@@ -400,28 +400,6 @@
 	width: 100%;
 	max-width: 100%;
 }
-/* 工具栏自己不再留左右内边距：外框已经给了 16px，再加 10px 只是把它往里推，
-   工具栏就和头部的标题对不齐了。上方留白同样删掉——头部的 margin-bottom 已经
-   隔开了这一段，8px 只留在分隔线之上。 */
-.mosaic-data-table .table-toolbar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	/* Same 8px it always was, taken from the host's spacing scale so it tracks
-	   the reader's own density setting. */
-	gap: var(--size-4-2);
-	padding: 0 0 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-/* 过滤输入框同样不写样式：它是 input[type="search"]，Obsidian 对这个类型有完整的
-   原生样式（尺寸、底色、边框、focus ring），手写那一套只是把它们又抄了一遍。 */
-.mosaic-data-table .table-toggle {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	font-size: 12px;
-	color: var(--text-muted);
-}
 /* The toolbar buttons carry no rules of their own: Obsidian's native button
    already supplies the size, colours, hover background, shadow and focus
    ring — more than the hand-written set did. */
@@ -471,26 +449,8 @@
    三列呈现「有 / 没有 / 有」（headless Chrome 实测 rgb(40,40,40) / rgba(0,0,0,0) /
    rgb(40,40,40)）。下面这条是 (0,2,4)，只多一个元素选择器就赢，不需要 !important。
    另：不要改用 var(--table-header-background)——它同样回落到 --table-background，
-   实测计算值也是 transparent，用了等于选择「表头不要背景」，与「三列统一有背景」相反。
-   首列另有一条 .is-first-column-frozen th:first-child (0,4,1) 覆盖在这条之上，
-   两者取的是同一个 --background-secondary，冻结与否三列都一致。 */
+   实测计算值也是 transparent，用了等于选择「表头不要背景」，与「三列统一有背景」相反。 */
 .mosaic-data-table .table-card table thead tr > th {
-	background: var(--background-secondary);
-}
-.mosaic-data-table .table-card.is-sticky-header th {
-	position: sticky;
-	top: 0;
-	z-index: 1;
-}
-.mosaic-data-table .table-card.is-first-column-frozen th:first-child,
-.mosaic-data-table .table-card.is-first-column-frozen td:first-child {
-	position: sticky;
-	left: 0;
-	background: var(--background-primary);
-	box-shadow: 1px 0 0 var(--background-modifier-border);
-}
-.mosaic-data-table .table-card.is-first-column-frozen th:first-child {
-	z-index: 2;
 	background: var(--background-secondary);
 }
 .mosaic-table-meta {

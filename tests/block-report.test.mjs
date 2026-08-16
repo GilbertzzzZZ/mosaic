@@ -202,7 +202,6 @@ const CONSUMERS = {
 	// DataTable 支持。
 	DataTable: [
 		"../src/render/components/blocks/DataTableView.tsx",
-		"../src/parse/blocks/table-complexity.mjs",
 		"../src/parse/dataset-query.mjs",
 		"../src/render/render-component.tsx",
 	],
@@ -228,7 +227,7 @@ const SHARED_ATTRS = ["title"];
 // 收下 attributes，只为让五类 View 保持同一个签名）。这两类的守卫由 SHARED_ATTRS
 // 那条测试承担。
 const MIN_CONSUMERS = {
-	DataTable: 20,
+	DataTable: 12,
 	Timeline: 0,
 	DecisionBox: 4,
 	MetricGrid: 0,
