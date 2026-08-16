@@ -160,16 +160,40 @@ function extremesOf(data, field) {
 	return found;
 }
 
+// 首末两期。**不能用数组下标判**：多系列图（含堆叠柱）的数据是长格式，同一期
+// 占了好几行，下标 0 只是「第一个系列的第一期」。按周期名判才对。
+// 取「出现顺序」的首末而不是排序后的极值：周期名不保证可比大小。
+const edgeCache = new WeakMap();
+function edgesOf(data, xKey) {
+	let found = edgeCache.get(data);
+	if (!found) {
+		const seen = [];
+		const known = new Set();
+		for (const row of data) {
+			const p = String(row?.[xKey]);
+			if (known.has(p)) continue;
+			known.add(p);
+			seen.push(p);
+		}
+		edgeCache.set(data, (found = { first: seen[0], last: seen[seen.length - 1] }));
+	}
+	return found;
+}
+
 // 返回一个按 datum 求值的回调：引擎的 valueOf 会以 (datum, index, data) 调用它，
 // 所以首尾和极值都能就地算出来，不用在外面预先展开一遍数据。
 function labelRank(marked, xKey, field) {
 	return (datum, index, data) => {
-		if (marked.size && marked.has(String(datum?.[xKey]))) return RANK_HIGHLIGHTED;
-		if (index === 0 || index === (data?.length ?? 0) - 1) return RANK_EDGE;
-		const v = Number(datum?.[field]);
-		if (Number.isFinite(v) && Array.isArray(data)) {
-			const { min, max } = extremesOf(data, field);
-			if (v === min || v === max) return RANK_EXTREME;
+		const period = String(datum?.[xKey]);
+		if (marked.size && marked.has(period)) return RANK_HIGHLIGHTED;
+		if (Array.isArray(data)) {
+			const { first, last } = edgesOf(data, xKey);
+			if (period === first || period === last) return RANK_EDGE;
+			const v = Number(datum?.[field]);
+			if (Number.isFinite(v)) {
+				const { min, max } = extremesOf(data, field);
+				if (v === min || v === max) return RANK_EXTREME;
+			}
 		}
 		return RANK_PLAIN;
 	};
@@ -520,10 +544,10 @@ function highlightMarks(periods, type) {
 // 每个 mark 要拿到独立的 label 对象：plots 会就地把 yField 写进 label.text，
 // 共用一个对象时后一个 mark 会沿用前一个的字段。
 // centered 是堆叠柱专用的段内居中口径，见 LABEL_CENTER。
-// marked/xKey 用来给每个标签评级（见 labelRank）。堆叠柱不参与——它的数字永远画，
-// 没有取舍可言，链条本来就是空的。
+// centered 只决定数字画在哪（段内居中 vs 图形外侧），不决定要不要隐藏——堆叠柱
+// 一样自适应：36 期的图上把每段数字都画出来，结果是糊成一片谁也读不了，比隐藏
+// 一部分更糟。
 function valueLabel(field, formatter, centered = false, marked = new Set(), xKey = "period") {
-	if (centered) return { text: field, formatter, transform: [], ...LABEL_CENTER };
 	return {
 		text: field,
 		formatter,
@@ -531,7 +555,7 @@ function valueLabel(field, formatter, centered = false, marked = new Set(), xKey
 		// 这两个键引擎不认识，会原样挂到标签节点上，供 priority 读取。
 		[RANK_KEY]: labelRank(marked, xKey, field),
 		[`${RANK_KEY}Field`]: field,
-		...LABEL_OUTSIDE,
+		...(centered ? LABEL_CENTER : LABEL_OUTSIDE),
 	};
 }
 

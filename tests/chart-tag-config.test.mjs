@@ -781,6 +781,24 @@ test("the cull spares the highlighted, the edges and the extremes, in that order
 	assert.equal(r(1), 2, "最大值");
 	assert.equal(r(2), 2, "最小值");
 	assert.equal(r(3), 3, "其余");
+
+	// 首尾按周期名判，不按数组下标。多系列图（含堆叠柱）的数据是长格式，同一期
+	// 占好几行，按下标判会把「第一个系列的第一期」当成唯一的首期，同期其余系列
+	// 全被降级；末期同理。这里每期两行，故意让下标与周期错开。
+	const long = [
+		{ period: "p0", series: "a", value: 3 },
+		{ period: "p0", series: "b", value: 4 },
+		{ period: "p1", series: "a", value: 1 },
+		{ period: "p1", series: "b", value: 2 },
+		{ period: "p2", series: "a", value: 8 },
+		{ period: "p2", series: "b", value: 5 },
+	];
+	assert.equal(rank(long[0], 0, long), 1, "首期第一行");
+	assert.equal(rank(long[1], 1, long), 1, "首期第二行也是首期");
+	assert.equal(rank(long[4], 4, long), 1, "末期第一行");
+	assert.equal(rank(long[5], 5, long), 1, "末期第二行也是末期");
+	assert.equal(rank(long[2], 2, long), 2, "中间那期的最小值");
+	assert.equal(rank(long[3], 3, long), 3, "中间那期的普通值");
 	// highlight 压过一切，连极值也让位——用户已明说这几期重要。
 	// 周期名从真实数据里取：highlight= 会先被「必须在数据里存在」那道过滤筛一遍，
 	// 编一个不存在的周期名进去，名单会是空的，这条断言就测了个寂寞。
@@ -855,16 +873,15 @@ test("the cull spares the highlighted, the edges and the extremes, in that order
 	);
 });
 
-test("a stacked bar centres its numbers inside each segment and never hides one", () => {
+test("a stacked bar centres its numbers inside each segment, and still culls", () => {
 	// Every segment of a stacked bar is its own shape, and its bounding box is that
 	// segment's rectangle rather than the whole column, so "inside" lands on the
-	// segment's own centre. Three things travel with that and all three are load
-	// bearing: dy has to go to zero or the text sits 4px off; the sign-based
-	// callbacks have to go, because "inside" is the same answer either way and a
-	// position of "bottom" would shove a negative segment's number onto its lower
-	// edge; and the chain has to be empty, because the user asked for the number to
-	// always be drawn — which rules out hiding AND rules out overlapDodgeY, since
-	// pushing labels up and down is precisely what "centred in the segment" is not.
+	// segment's own centre. Two things travel with that: dy has to go to zero or the
+	// text sits 4px off, and the sign-based callbacks have to go, because "inside" is
+	// the same answer either way and a position of "bottom" would shove a negative
+	// segment's number onto its lower edge.
+	// 隐藏这一段和别的图型一样挂着：36 期的堆叠柱把每段数字都画出来，横向糊成一片
+	// 谁也读不了——比隐藏一部分更糟。位置口径与要不要隐藏是两件事。
 	const built = buildChartFromTag({
 		manifest,
 		rows,
@@ -885,7 +902,8 @@ test("a stacked bar centres its numbers inside each segment and never hides one"
 	for (const key of ["position", "textBaseline", "dy"]) {
 		assert.notEqual(typeof label[key], "function", key);
 	}
-	assert.deepEqual(label.transform, []);
+	assert.deepEqual(label.transform.map((t) => t.type), ["overlapHide"]);
+	assert.equal(typeof label.transform[0].priority, "function");
 	// "inside" has to be a real member of the placement table — "middle"/"center" are
 	// not in it and throw rather than falling back
 	const PLACEMENTS = [
@@ -896,7 +914,7 @@ test("a stacked bar centres its numbers inside each segment and never hides one"
 	// and the placement has to survive down to the mark the engine draws
 	const drawn = marksOf(asEngineSees(built)).find((mark) => mark.labels?.length);
 	assert.equal(drawn.labels[0].position, "inside");
-	assert.deepEqual(drawn.labels[0].transform, []);
+	assert.deepEqual(drawn.labels[0].transform.map((t) => t.type), ["overlapHide"]);
 
 	// every other shape keeps the outside placement
 	for (const [name, attrs] of CHART_SHAPES) {
