@@ -459,11 +459,6 @@
 	color: var(--text-muted);
 	font-weight: 650;
 }
-/* 最后一行不画下边线：卡片自己的框没了之后，那条线会悬在离外框底边一个内边距的
-   地方，看着像表格没画完。表格到此为止由外框收口。 */
-.mosaic-data-table tbody tr:last-child td {
-	border-bottom: none;
-}
 /* 表头背景单独成一条，且刻意写得比宿主更具体——不是冗余，删了会退回「有、没有、有」。
    Obsidian app.css 里有一条列斑马纹（1.13.7 实测）：
        .markdown-rendered thead tr > th:nth-child(2n+2) {
