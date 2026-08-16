@@ -1,7 +1,7 @@
 # DataTable
 
 > DataTable 内容块的使用指导（how）：内联表格（CSV / JSON / Markdown 表）与外部数据集（`.dataset.json`）两种数据来源，共用一套渲染。
-> 只支持标签入口（成对标签为主，自闭合标签仅在 dataset 模式下才有意义）；不支持 `chartview` 代码块写法——代码块写法是 Chart 专属。
+> 两种物理写法：标签（成对标签为主，自闭合标签仅在 dataset 模式下才有意义）与 ```` ```datatable ```` 代码块。同一套属性契约，渲染结果完全一致。
 > 标签写法通则见 [tag-syntax.md](tag-syntax.md)；复杂度启发式与布局算法的设计动机见 [design/data-table.md](../design/data-table.md)。
 
 ## 写法
@@ -33,11 +33,42 @@ sample-b,5,watch
 
 - 五类组件的标签解析都支持自闭合语法，但 DataTable 之外的四类（MetricGrid / Timeline / DecisionBox / FlowDiagram）没有 payload 就没有数据可渲染——自闭合写它们要么直接报空数据错误，要么（仅 DecisionBox）渲染出一个空壳，通常没有实际意义。
 
+**代码块 · 内联数据**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。
+
+````text
+```datatable
+---
+title: "示例明细"
+columns: "item,amount,note"
+---
+item,amount,note
+sample-a,10,ok
+sample-b,5,watch
+```
+````
+
+**代码块 · dataset 模式**：只写属性区，不写 payload。
+
+````text
+```datatable
+---
+dataset: "demo.dataset.json"
+columns: "AnchorDate,营收"
+granularity: month
+granularityOptions: "month,quarter"
+---
+```
+````
+
+- **payload 裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```csv ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
+- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，表照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
+- 属性名与语义和写在哪里无关：下面这张表对两种写法同时成立。
+
 ## 属性表
 
 | 属性 | 说明 | 默认值 |
 | --- | --- | --- |
-| `title` | 表格标题，渲染在表格内部的 `<caption>` | 无标题则不渲染 |
+| `title` | 表格标题，渲染在区块头部（与另外四类同一个位置，切原文时不会跟着消失） | 无标题则不渲染 |
 | `columns` | 逗号分隔的列名列表，覆盖自动推断的列顺序 | 未设置时 = 所有行 key 的并集，按首次出现顺序 |
 | `complexity` | 强制表格复杂度，只接受 `simple` / `complex` | 按行数/列数/单元格数/最长单元格自动判定，其他值忽略、回退自动判定 |
 | `search` | 搜索框开关 | 复杂表格且行数 > 100 时默认开启 |

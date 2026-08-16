@@ -1,7 +1,8 @@
 # FlowDiagram
 
 > FlowDiagram 内容块的使用指导（how）：分层自动布局的流程图（SVG），两种互斥的 payload 形态——显式 graph JSON，或表格式行数据（`next` 列隐式生成边）。
-> 只支持成对标签入口，只支持内联 payload——不支持 `dataset` 属性、不支持自闭合（body 为空时直接报错）、不支持 `chartview` 代码块写法。
+> 两种物理写法：成对标签与 ```` ```flowdiagram ```` 代码块，同一套属性契约，渲染结果完全一致。
+> 只支持内联 payload——不支持 `dataset` 属性，也不支持自闭合标签（body 为空时直接报错）。
 > 标签写法通则见 [tag-syntax.md](tag-syntax.md)；分层布局与环退化的设计动机见 [design/flow-diagram.md](../design/flow-diagram.md)。
 
 ## 写法
@@ -43,11 +44,50 @@ c,结束,end,
 - **两种形态最终汇入同一套归一化**：即使走了形态 A（显式 JSON graph），节点上的 `next`/`to` 字段依然会**再次**被拿去生成隐式边并追加到显式 `edges` 数组后面，两者合并、不去重。所有引用不存在节点 id 的边（无论显式给的还是 `next` 派生的）都被静默过滤掉，不报错。
 - 写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
 
+**代码块写法**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。两种形态都写得了——**裸写的 JSON 以 `{` 开头，正好命中形态 A 的判据**：
+
+````text
+```flowdiagram
+---
+title: "示例流程"
+---
+{
+  "nodes": [
+    {"id": "a", "label": "开始", "type": "start"},
+    {"id": "b", "label": "判断条件", "type": "decision"},
+    {"id": "c", "label": "结束", "type": "end"}
+  ],
+  "edges": [
+    {"from": "a", "to": "b"},
+    {"from": "b", "to": "c", "label": "满足"}
+  ]
+}
+```
+````
+
+形态 B 同样裸写：
+
+````text
+```flowdiagram
+---
+title: "示例流程"
+---
+id,label,type,next
+a,开始,start,b
+b,判断条件,decision,c
+c,结束,end,
+```
+````
+
+- **payload 裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```json ` / ` ```csv ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
+- 少了围栏的语言标签，形态判定改由内容自己说话：以 `{` 开头且顶层 `nodes` 是数组 → 形态 A，否则形态 B。上面两个示例分别命中这两条。
+- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，流程图照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
+
 ## 属性表
 
 | 属性 | 说明 |
 | --- | --- |
-| `title` | 渲染为图注（`<figcaption>`），同时作为 SVG 的 `aria-label`；未设置时 `aria-label` 缺省为英文 `Flow diagram` |
+| `title` | 渲染在区块头部（与另外四类同一个位置），同时作为 SVG 的 `aria-label`；未设置时 `aria-label` 缺省为英文 `Flow diagram` |
 | `note` | 图下方附注文字 |
 
 FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。

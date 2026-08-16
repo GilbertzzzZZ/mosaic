@@ -39,9 +39,11 @@
 
 > 三种写法，均直接写在 md / mdx 正文中。
 
-- **代码块**——`chartview` 围栏，`---` frontmatter 属性区 + 可选内联 CSV 数据区（仅 Chart）。
+- **代码块**——以内容块命名的围栏（`chart`、`datatable`、`timeline`、`metricgrid`、`decisionbox`、`flowdiagram`），`---` frontmatter 属性区 + 可选内联 payload。`chartview` 保留为 `chart` 的别名。
 - **自闭合标签**——`<Chart ... />`，一行一个属性，数据来自外部数据集 manifest。
-- **成对标签**——属性写在开标签上，数据 payload 写在标签体内；`Chart` 与另外五类仅支持标签入口的内容块共用这一写法。
+- **成对标签**——属性写在开标签上，数据 payload 写在标签体内。
+
+六类内容块都接受这两种物理形式。入口层只识别形式、不识别别的：两种形式交给解析层的结构完全相同，因此属性契约与写在哪里无关。
 
 标签写法通则（宿主段落规则、属性语法、按原文渲染情形）见 [tag-syntax.md](guides/tag-syntax.md)；三种写法的完整示例见 [chart.md](guides/chart.md)。
 
@@ -57,10 +59,10 @@
 - 数据来自外部数据集 manifest，或直接写在声明体内的内联 CSV。
 - 完整属性契约见 [chart.md](guides/chart.md)；数据集 manifest 契约见 [dataset-guide.md](guides/dataset-guide.md)。
 
-**DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram**（只支持标签入口）
+**DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram**
 
-- 只支持标签入口（成对标签为主；`DataTable` 的 dataset 模式另支持自闭合）——这五类不支持 `chartview` 代码块写法。
-- `DataTable` 支持内联表格（CSV/JSON/Markdown）与外部数据集 manifest 两种数据来源，与 Chart 共用同一套查询层。
+- 成对标签或代码块，两种写法契约一致；`DataTable` 的 dataset 模式另支持自闭合标签。
+- `DataTable` 支持内联表格（CSV/JSON/Markdown）与外部数据集 manifest 两种数据来源，与 Chart 共用同一套查询层。外部数据只有 Chart 与 DataTable 支持。
 - `MetricGrid`、`Timeline`、`DecisionBox`、`FlowDiagram` 只支持内联 payload，各自有独立的字段别名与状态词表契约。
 - `DecisionBox` 是唯一在空/非结构化 payload 时不报错的类型：会回退为一段极简富文本（误用 `dataset` 或畸形 JSON 仍会报错）。
 - 完整契约见 [data-table.md](guides/data-table.md)、[metric-grid.md](guides/metric-grid.md)、[timeline.md](guides/timeline.md)、[decision-box.md](guides/decision-box.md)、[flow-diagram.md](guides/flow-diagram.md)。

@@ -39,9 +39,11 @@
 
 > Three ways to declare a block, all written directly in md / mdx content.
 
-- **Code block** — a `chartview` fence with `---` frontmatter attributes and an optional inline CSV section (Chart only).
+- **Code block** — a fence named after the block (`chart`, `datatable`, `timeline`, `metricgrid`, `decisionbox`, `flowdiagram`) with `---` frontmatter attributes and an optional inline payload. `chartview` stays as an alias of `chart`.
 - **Self-closing tag** — `<Chart ... />` with one attribute per line, data loaded from an external dataset manifest.
-- **Paired tag** — attributes on the opening tag, data payload in the body; shared by `Chart` and the five tag-only block types.
+- **Paired tag** — attributes on the opening tag, data payload in the body.
+
+All six block types accept both physical forms. The entry layer recognises the form and nothing else: both forms hand the parser the same structure, so the attribute contract is identical either way you write it.
 
 Shared tag-syntax rules (paragraph takeover, attribute forms, fall-back-to-source cases): [tag-syntax.md](guides/tag-syntax.md). Full syntax examples for all three entries: [chart.md](guides/chart.md).
 
@@ -57,10 +59,10 @@ Shared tag-syntax rules (paragraph takeover, attribute forms, fall-back-to-sourc
 - Data comes from an external dataset manifest, or inline CSV written directly in the declaration.
 - Full attribute contract: [chart.md](guides/chart.md); dataset manifest contract: [dataset-guide.md](guides/dataset-guide.md).
 
-**DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram** (tag entries only)
+**DataTable, MetricGrid, Timeline, DecisionBox, FlowDiagram**
 
-- Tag entries only (paired tag; `DataTable` also supports a self-closing form for its `dataset` mode) — no `chartview` code block for these five.
-- `DataTable` reads inline tables (CSV/JSON/Markdown) or an external dataset manifest, sharing the same query layer as Chart.
+- Paired tag or code block, same contract either way; `DataTable` also supports a self-closing tag for its `dataset` mode.
+- `DataTable` reads inline tables (CSV/JSON/Markdown) or an external dataset manifest, sharing the same query layer as Chart. External data is a Chart and DataTable feature; the other four take inline payloads only.
 - `MetricGrid`, `Timeline`, `DecisionBox`, `FlowDiagram` take inline payloads only; each has its own field-alias and status-vocabulary contract.
 - `DecisionBox` is the one type that never errors on an empty or unstructured body — it falls back to a short rich-text render instead (misusing `dataset` or malformed JSON still errors).
 - Full contracts: [data-table.md](guides/data-table.md), [metric-grid.md](guides/metric-grid.md), [timeline.md](guides/timeline.md), [decision-box.md](guides/decision-box.md), [flow-diagram.md](guides/flow-diagram.md).

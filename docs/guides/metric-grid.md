@@ -1,7 +1,8 @@
 # MetricGrid
 
 > MetricGrid 内容块的使用指导（how）：一组指标卡片，自适应网格布局，卡片按状态着色边框。
-> 只支持成对标签入口，只支持内联 payload——不支持 `dataset` 属性、不支持自闭合（body 为空时直接报错）、不支持 `chartview` 代码块写法。
+> 两种物理写法：成对标签与 ```` ```metricgrid ```` 代码块，同一套属性契约，渲染结果完全一致。
+> 只支持内联 payload——不支持 `dataset` 属性，也不支持自闭合标签（body 为空时直接报错）。
 > 标签写法通则见 [tag-syntax.md](tag-syntax.md)；网格自适应与状态色的设计动机见 [design/metric-grid.md](../design/metric-grid.md)。
 
 ## 写法
@@ -20,6 +21,24 @@ label,value,delta,note,status
 ````
 
 写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
+
+**代码块写法**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。
+
+````text
+```metricgrid
+---
+title: "示例指标"
+---
+label,value,delta,note,status
+月活,1.2万,+5%,同比增长,good
+留存率,42%,-3%,需关注,watch
+客单价,88元,+1%,环比持平,neutral
+```
+````
+
+- **payload 裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```csv ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
+- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，网格照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
+- payload 契约（[下文](#payload-契约)）对两种写法同时成立。
 
 ## 属性表
 

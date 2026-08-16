@@ -28,7 +28,7 @@ month,Trials,Signups
 </Chart>
 ````
 
-Chart also supports a self-closing form driven by external dataset manifests (`.dataset.json`, with time-range filtering and granularity rollup) and a ```` ```chartview ```` code-block form — see the [documentation](#documentation).
+Chart also supports a self-closing form driven by external dataset manifests (`.dataset.json`, with time-range filtering and granularity rollup). Every block type can be written either as a tag or as a code block named after it (```` ```chart ````, ```` ```datatable ````, ```` ```timeline ````, ```` ```metricgrid ````, ```` ```decisionbox ````, ```` ```flowdiagram ````) — same attribute contract either way. See the [documentation](#documentation).
 
 ## Content blocks
 

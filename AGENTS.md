@@ -17,9 +17,10 @@ Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/mos
 ## 架构：三区块
 
 ```
-入口（src/entry/）    识别 + 生命周期。两个 processor：
+入口（src/entry/）    只识别两种物理形式，产出结构完全相同（类型 + 属性表
+                      + body）——解析层与渲染层不知道内容来自哪种写法。
                       chart-tag-processor（六类标签，代际 token 防重入）
-                      chart-block-processor（```chartview 代码块）
+                      block-processor（六类代码块，按组件名分发）
 解析（src/parse/）    纯函数，零 Obsidian 依赖（obsidian-dataset.ts 除外，
                       是 vault IO 适配）。blocks/ 子目录是已定型的数据层
                       实现——只报真 bug，不做风格重构，改动面压到最小。
@@ -29,6 +30,7 @@ Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/mos
 ```
 
 - 标签名唯一权威清单：`COMPONENT_NAMES`（src/parse/chart-tag.mjs），入口 FAST_PATH 与 OPEN_TAG 由它构造；渲染映射在 render-component 的 PLAIN_VIEWS。
+- 代码块语言名 ↔ 组件名的唯一映射：`BLOCK_LANGUAGES`（同文件），由 `COMPONENT_NAMES` 派生（组件名转小写）+ 历史别名 `chartview` → Chart。加一类内容块仍然只改 `COMPONENT_NAMES` 一处。
 - 调用方向只允许 entry → parse/render、render → parse，禁止逆向依赖。
 
 ## File structure

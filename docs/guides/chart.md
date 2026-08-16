@@ -10,7 +10,7 @@
 | --- | --- | --- | --- |
 | 自闭合标签 | `<Chart ... />` | 外部数据集（`.dataset.json`） | 长期维护的报告，数据留在外部文件 |
 | 成对标签 | `<Chart ...>` + 围栏 CSV + `</Chart>` | 内联 CSV | 小数据量、一次性的快照内容 |
-| 代码块 | ```` ```chartview ```` + `---` frontmatter | 外部数据集或内联 CSV 均可 | 两种模式通吃；需要非 ASCII 属性名时的唯一选择 |
+| 代码块 | ```` ```chart ```` + `---` frontmatter | 外部数据集或内联 CSV 均可 | 两种模式通吃；需要非 ASCII 属性名时的唯一选择 |
 
 **共同规则**
 
@@ -172,12 +172,14 @@ series="不存在的列"
 
 ## 代码块
 
-`chartview` 代码块：`---` frontmatter 属性区 + 可选内联 CSV 数据区，两种模式通吃。frontmatter 为扁平 `key: value`，一行一个；值可用引号包裹；`#` 开头的行是注释；不支持嵌套结构——这是声明式契约，不是图表库配置透传。
+`chart` 代码块：`---` frontmatter 属性区 + 可选内联 CSV 数据区，两种模式通吃。frontmatter 为扁平 `key: value`，一行一个；值可用引号包裹；`#` 开头的行是注释；不支持嵌套结构——这是声明式契约，不是图表库配置透传。
+
+> **`chartview` 是 `chart` 的别名**，行为完全一致、不会失效，现有文档不必改写。六类内容块的语言名一律是组件名的小写形式（`chart` / `datatable` / `timeline` / `metricgrid` / `decisionbox` / `flowdiagram`），`chartview` 是唯一的历史例外。
 
 **写法一：引用外部数据集（只写 frontmatter）**，语义与自闭合标签的 `dataset` 模式完全一致：
 
 ````text
-```chartview
+```chart
 ---
 title: "示例趋势"
 dataset: "data/schema/example.dataset.json"
@@ -194,7 +196,7 @@ granularityOptions: "month,quarter"
 **写法二：内联 CSV（frontmatter + 数据区）**，去掉 `dataset`，`---` 之后紧跟 CSV：
 
 ````text
-```chartview
+```chart
 ---
 title: "示例趋势"
 type: line
@@ -208,22 +210,21 @@ month,指标A,指标B
 ```
 ````
 
+**数据区裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```csv ` 围栏里，代码块的不用——数据区已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
+
 ### 报错示例（代码块）
 
-代码块一旦声明为 `chartview` 就必定被接管，所有错误都以红色错误框呈现（没有原文回落）：
+代码块一旦声明为 `chart` 就必定被接管，所有错误都以红色错误框呈现（没有原文回落）：
 
 ````text
 缺少 "---" 开头的属性区
-→ Mosaic: chartview block must start with a "---" attribute section (see docs/chart.md).
+→ Mosaic: Block must start with a "---" attribute section.
 
 属性区没有闭合的 "---"
-→ Mosaic: chartview attribute section is missing its closing "---".
+→ Mosaic: The "---" attribute section is missing its closing "---".
 
-属性行缩进（试图写嵌套结构）
-→ Mosaic: Attribute lines must not be indented (flat key: value only): ...
-
-key 后面没有值
-→ Mosaic: Attribute "labels" has no value (nested values are not supported).
+属性区里一条都读不出来（整段压根不是属性区）
+→ Mosaic: No attribute could be read from the "---" section (expected flat key: value lines): ...
 
 frontmatter 有 dataset 同时又带 CSV 数据区
 → Mosaic: Provide either dataset= or an inline CSV body, not both.
@@ -231,6 +232,8 @@ frontmatter 有 dataset 同时又带 CSV 数据区
 既没有 dataset 也没有 CSV 数据区
 → Mosaic: Chart needs dataset= or an inline CSV body.
 ````
+
+**`---` 的两条边界是硬的，属性行本身不是。** 缺开头、缺闭合会整块报错——那是代码块的结构边界，没有它就分不清哪里是属性、哪里是数据。写歪的属性行则不会让整块作废：缩进行、不是 `key: value` 的行、`key:` 后面没有值的行，都被跳过，图照常出，底部提示条点名跳过了哪几条（与成对标签的口径一字不差，见[上一节](#照常出图底部提示)）。只有当**一条属性都读不出来**时才整块退回。
 
 内联数据区的报错（禁用属性、非法数值、列不存在）与成对标签完全一致，见[上一节](#报错示例成对标签)。
 
