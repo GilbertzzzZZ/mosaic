@@ -139,6 +139,17 @@ const RANK_EXTREME = 2; // 最大 / 最小：趋势的转折点
 const RANK_PLAIN = 3; // 其余
 const RANK_KEY = "mosaicLabelRank";
 
+// 「有数值吗」的唯一判据。**不要写成 Number(x) 再 isFinite**：`Number(null)` 是 0
+// 且通过 isFinite，于是 CSV 里的空单元格（解析成 null）会被当作真实的 0 参与计算。
+// 真实事故：互斥系列（盈利/亏损，每月只填一列）的图上，另一列的空格全被算成 0，
+// 极值的下界因此变成 0，每一个空单元格都满足 v === min，被判成「极值」，优先级
+// 仅次于 highlight，把真正该保住的标签挤掉。`Number("")` 同样是 0，一并挡掉。
+function numericValue(raw) {
+	if (raw === null || raw === undefined || raw === "") return null;
+	const n = Number(raw);
+	return Number.isFinite(n) ? n : null;
+}
+
 // 每个 mark 的 data 只在渲染时才传进来，极值按 (data, field) 缓存一次，避免
 // 每个标签各遍历一遍整份数据。WeakMap 挂在 data 数组上，data 被回收就一起走。
 const extremesCache = new WeakMap();
@@ -150,8 +161,8 @@ function extremesOf(data, field) {
 		let min = Number.POSITIVE_INFINITY;
 		let max = Number.NEGATIVE_INFINITY;
 		for (const row of data) {
-			const v = Number(row?.[field]);
-			if (!Number.isFinite(v)) continue;
+			const v = numericValue(row?.[field]);
+			if (v === null) continue;
 			if (v < min) min = v;
 			if (v > max) max = v;
 		}
@@ -189,8 +200,8 @@ function labelRank(marked, xKey, field) {
 		if (Array.isArray(data)) {
 			const { first, last } = edgesOf(data, xKey);
 			if (period === first || period === last) return RANK_EDGE;
-			const v = Number(datum?.[field]);
-			if (Number.isFinite(v)) {
+			const v = numericValue(datum?.[field]);
+			if (v !== null) {
 				const { min, max } = extremesOf(data, field);
 				if (v === min || v === max) return RANK_EXTREME;
 			}
@@ -207,8 +218,8 @@ function labelRank(marked, xKey, field) {
 // 守卫连注释一起 grep，所以这段话也不能写出那种形式的示例。
 function labelMagnitude(node) {
 	const props = node?.attributes ?? node?.style ?? {};
-	const raw = Number(props.datum?.[props[`${RANK_KEY}Field`]]);
-	if (Number.isFinite(raw)) return Math.abs(raw);
+	const raw = numericValue(props.datum?.[props[`${RANK_KEY}Field`]]);
+	if (raw !== null) return Math.abs(raw);
 	const n = Number.parseFloat(String(props.text ?? "").replace(/[^0-9.eE+-]/g, ""));
 	return Number.isFinite(n) ? Math.abs(n) : Number.NEGATIVE_INFINITY;
 }

@@ -848,6 +848,37 @@ test("the cull spares the highlighted, the edges and the extremes, in that order
 		"3:40",
 		"3:5",
 	]);
+	// 空单元格不是 0。互斥系列（盈利/亏损，每月只填一列）的图上，另一列整列是空格。
+	// 若拿 `Number(x)` + `isFinite` 判「有没有数」，`Number(null)` 是 0 且通过检查，
+	// 极值的下界会塌成 0，于是**每一个空格都满足 v === min**、被判成极值——优先级仅
+	// 次于 highlight，把真正该保住的标签挤掉。`Number("")` 同样是 0。
+	const sparse = [
+		{ period: "s0", value: 50 },
+		{ period: "s1", value: null }, // 空：CSV 空单元格解析成 null
+		{ period: "s2", value: 30 }, // 真实最小值
+		{ period: "s3", value: "" }, // 空：另一种空形态
+		{ period: "s4", value: 60 },
+	];
+	assert.equal(rank(sparse[2], 2, sparse), 2, "30 是真实最小值，判极值");
+	assert.equal(rank(sparse[1], 1, sparse), 3, "null 不是数值，不该冒充极值");
+	assert.equal(rank(sparse[3], 3, sparse), 3, "空串同理");
+	// 首尾仍按周期名判，与有没有值无关
+	assert.equal(rank(sparse[0], 0, sparse), 1);
+	assert.equal(rank(sparse[4], 4, sparse), 1);
+	// 排序侧同样不能把空值当 0：它该排在所有真实数值之后，先被牺牲
+	const emptyNode = {
+		attributes: {
+			mosaicLabelRank: 3,
+			mosaicLabelRankField: "value",
+			datum: { value: null },
+			text: "",
+		},
+	};
+	assert.deepEqual(
+		[emptyNode, node(3, 5)].sort(priority).map((n) => n.attributes.datum.value),
+		[5, null],
+	);
+
 	// 值取自 datum 而非文字。这两条只有在格式化把大小关系弄反时才分得出差别：
 	// "1.2k" 按文字 parse 得到 1.2，会被排到 "50" 后面，而它其实是 1200。
 	assert.deepEqual(
