@@ -40,7 +40,8 @@ mosaic/
 ├── src/                  # 三层源码（见上）
 ├── tests/                # node --test，只测 parse/render 的纯函数 .mjs
 ├── docs/
-│   ├── _archive/         # 暂存区（默认空，.gitkeep 占位）
+│   ├── _archive/         # 已完成 plan 的归档；每份顶部有状态块，记录落点与
+│   │                     # **后来被推翻的项**——那才是归档的价值所在
 │   ├── _assets/          # 文档截图（模拟英文假数据，dark 主题实拍）
 │   ├── design/           # 每个区块的设计文档（why 与机制，无代码）
 │   ├── guides/           # 明细指导：各区块用法 / dataset 契约
