@@ -474,25 +474,40 @@
 
    首列的右侧分隔线用 box-shadow 而不是 border-right：border-collapse: collapse 下
    边框由表格绘制，首列横向滚走时 border 会留在原地，box-shadow 跟着单元格走。
-   （表头下边线仍是 border-bottom，collapse 下它纵向滚动时会不会掉队，真机确认。）
    背景色必须写死不透明，否则滚动时下层内容会从格子里透上来。 */
 .mosaic-data-table thead th {
 	position: sticky;
 	top: 0;
 	z-index: 1;
+	/* 下边线换成 inset 内投影。border-collapse: collapse 下边框由表格绘制，表头钉住
+	   不动、表格往上跑，那条 border-bottom 就跟着表格走了——表头与数据之间出现一条
+	   会上下滑的缝（实测：表头顶部偏移恒为 0，缝来自这条线而不是表头本身）。
+	   inset 画在单元格自己的盒子里，钉住时跟着一起停。 */
+	border-bottom: none;
+	box-shadow: inset 0 -1px 0 var(--background-modifier-border);
 }
 .mosaic-data-table th:first-child,
 .mosaic-data-table td:first-child {
 	position: sticky;
 	left: 0;
+	/* z-index 必须显式给。sticky 在 z-index: auto 时**不创建层叠上下文**，仍按 DOM
+	   顺序绘制，于是同行后面的每个 td 都画在首列之上——实测 elementFromPoint：横滚后
+	   首列右缘外侧 1px 上最顶层的是已经滚走的第三列，首列的外投影被整条盖掉。 */
+	z-index: 1;
 	background: var(--background-primary);
-	box-shadow: 1px 0 0 var(--background-modifier-border);
+	/* inset 而不是外投影：外投影画在盒子外侧那 1px，那 1px 归相邻单元格，谁后画谁赢。
+	   inset 画在自己盒子里，没人能盖。 */
+	box-shadow: inset -1px 0 0 var(--background-modifier-border);
 }
 /* 左上角那一格同时属于表头和首列，两个方向都要钉住，层级必须压过另外两组——
    否则横滚时它会被后面的表头盖住，纵滚时被后面的首列盖住。 */
 .mosaic-data-table thead th:first-child {
 	z-index: 2;
 	background: var(--background-secondary);
+	/* 它同属表头与首列，两条线都要，且都得是 inset。 */
+	box-shadow:
+		inset 0 -1px 0 var(--background-modifier-border),
+		inset -1px 0 0 var(--background-modifier-border);
 }
 .mosaic-table-meta {
 	margin: 6px 0 0;

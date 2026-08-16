@@ -702,6 +702,8 @@ test("a long table scrolls inside its own frame, with the header and first colum
 	const overflow = /overflow:\s*([^;]+);/.exec(scroll)?.[1].trim();
 	assert.equal(overflow, "auto", `overflow 该是双向 auto，实际是 ${overflow}`);
 
+	const head = ruleOf(".mosaic-data-table thead th");
+
 	// (c) 表头与首列都钉住，且都是无条件的——选择器里不能再出现开关 class。
 	for (const selector of [
 		".mosaic-data-table thead th",
@@ -725,15 +727,30 @@ test("a long table scrolls inside its own frame, with the header and first colum
 		"左上角那格会被表头盖住",
 	);
 
-	// 首列的右侧分隔线用 box-shadow 而不是 border-right：border-collapse: collapse 下
-	// 边框由表格绘制，首列横向滚走时 border 会留在原地。这一条被删的那版就做对了。
 	const firstColumn = ruleOf(
 		".mosaic-data-table th:first-child,\n.mosaic-data-table td:first-child",
 	);
-	assert.ok(firstColumn.includes("box-shadow"), "首列的分隔线该用 box-shadow");
+	// 首列必须显式给 z-index。sticky 在 z-index: auto 时**不创建层叠上下文**，仍按
+	// DOM 顺序绘制，同行后面的每个 td 都会画在首列之上——真实浏览器里量过：横滚后
+	// 首列右缘外侧 1px 上最顶层的是已经滚走的第三列，首列的分隔线被整条盖掉。
+	assert.ok(/z-index:\s*\d+;/.test(firstColumn), "首列没有 z-index，会被后面的列盖住");
+
+	// 三条分隔线都必须是 inset。外投影画在盒子外侧那 1px，那 1px 归相邻单元格，
+	// 谁后画谁赢；inset 画在自己盒子里，钉住时跟着一起走，没人能盖。
+	assert.ok(firstColumn.includes("inset -1px 0 0"), "首列的分隔线不是 inset，会被盖掉");
 	assert.equal(/border-right:/.test(firstColumn), false, "首列用了 border-right，横滚会掉队");
-	// 钉住的格子必须有不透明背景，否则数据行从底下穿过时会看到叠影
 	assert.ok(firstColumn.includes("background:"), "首列没有不透明背景");
+
+	// 表头的下边线同理：border-collapse: collapse 下边框由表格绘制，表头钉住不动而
+	// 表格往上跑，那条线就跟着表格走了——表头与数据之间出现一条会上下滑的缝。
+	assert.ok(head.includes("inset 0 -1px 0"), "表头下边线不是 inset，滚动时会掉队");
+	assert.ok(head.includes("border-bottom: none"), "表头还留着会掉队的 border-bottom");
+
+	// 左上角同属表头与首列，两条线都要
+	assert.ok(
+		corner.includes("inset 0 -1px 0") && corner.includes("inset -1px 0 0"),
+		"左上角缺了一条分隔线",
+	);
 });
 
 test("the source view follows the body text size instead of being shrunk", () => {
