@@ -43,15 +43,19 @@
 	position: relative;
 }
 /* unit 与图例同处一行：图例由引擎画在画布顶部居中，unit 是 DOM，两者不可能排进
-   同一个 flex 行，只能把 unit 定位到画布左上角、行高对齐图例那一行的高度。
-   line-height 取 22px = 图例标记 12px + 上下留白，改图例尺寸时要一起改。 */
+   同一个 flex 行，只能把 unit 定位到画布左上角，再把基线对齐图例那一行。
+   把 unit 交给引擎当图例标题（legend.color.title + titlePosition:'left'）这条路
+   实测走不通：标题占走水平空间后图例项被迫换行，一行变两行，绘图区跟着变矮、
+   y 轴刻度从 5 档掉到 3 档；flexWrap:'nowrap' 对它无效。
+   top 取 4px 是无头实测值——叠了 0/4/8/12/16 五档与图例文字比对，4px 基线齐平。
+   改图例标记尺寸（LEGEND_MARKER_SIZE）或字号时要重新量。 */
 .mosaic-figure-unit {
 	position: absolute;
-	top: 0;
+	top: 4px;
 	left: 0;
 	z-index: 1;
-	line-height: 22px;
 	font-size: 0.85em;
+	line-height: 1;
 	color: var(--text-muted);
 	pointer-events: none;
 }
