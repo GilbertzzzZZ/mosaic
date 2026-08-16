@@ -155,22 +155,34 @@ test("DataTable folds its granularity buttons into the same single group", async
 
 // --- Task 8：unit 由 DOM 呈现，不再是 y 轴标题 ---
 
-test("a single-axis unit lands as one small line under the caption", async () => {
+test("a single-axis unit sits inside the plot area, on the legend's row", async () => {
 	const host = chartFigure({ builtExtra: { unit: "万元" } });
 	await flush();
-	const line = query(host, "p.mosaic-figure-unit");
+	const line = query(host, "span.mosaic-figure-unit");
 	assert.notEqual(line, null);
 	assert.equal(line.textContent, "万元");
-	// 位置：紧跟在 figcaption 所在的那一行下面
-	const figure = query(host, "figure.mosaic-figure");
-	assert.equal(figure.childNodes[0].className, "mosaic-figure-header");
-	assert.equal(figure.childNodes[1], line);
+	// 位置：在画布区里（图例由引擎画在画布顶部，unit 靠 CSS 定位与之同行），
+	// 不再是 figure 下面独占一行。
+	const body = query(host, "div.mosaic-figure-body");
+	assert.notEqual(body, null);
+	assert.equal(line.parentNode, body);
+	assert.equal(body.childNodes[0], line);
 });
 
 test("a dual-axis chart writes both units on one line as 左 / 右", async () => {
 	const host = chartFigure({ builtExtra: { leftUnit: "万元", rightUnit: "%" } });
 	await flush();
-	assert.equal(query(host, "p.mosaic-figure-unit").textContent, "万元 / %");
+	assert.equal(query(host, "span.mosaic-figure-unit").textContent, "万元 / %");
+});
+
+test("the unit gets out of the way when the source is showing", async () => {
+	const host = chartFigure({ builtExtra: { unit: "万元" } });
+	await flush();
+	assert.notEqual(query(host, "span.mosaic-figure-unit"), null);
+	query(host, '[aria-label="Show source"]').click();
+	await flush();
+	// 原文视图里没有图例，浮在左上角的 unit 会压住第一行源码。
+	assert.equal(query(host, "span.mosaic-figure-unit"), null);
 });
 
 test("unit= travels from the tag all the way to the DOM line", async () => {
@@ -192,7 +204,7 @@ test("unit= travels from the tag all the way to the DOM line", async () => {
 		getSectionInfo: () => ({ text, lineStart: 0, lineEnd: 5 }),
 	});
 	await flush();
-	assert.equal(query(el, "p.mosaic-figure-unit").textContent, "万元");
+	assert.equal(query(el, "span.mosaic-figure-unit").textContent, "万元");
 	// 轴标题里不该再有一份
 	assert.equal(JSON.stringify(renders[renders.length - 1].config).includes('"title":"万元"'), false);
 });
@@ -200,11 +212,49 @@ test("unit= travels from the tag all the way to the DOM line", async () => {
 test("no unit= means no line at all", async () => {
 	const host = chartFigure();
 	await flush();
-	assert.equal(query(host, "p.mosaic-figure-unit"), null);
+	assert.equal(query(host, "span.mosaic-figure-unit"), null);
 	// 空字符串同样不占一行
 	const empty = chartFigure({ builtExtra: { unit: "" } });
 	await flush();
-	assert.equal(query(empty, "p.mosaic-figure-unit"), null);
+	assert.equal(query(empty, "span.mosaic-figure-unit"), null);
+});
+
+// --- 按钮的两种状态 ---
+
+test("the toggle button looks pressed while the source is showing", async () => {
+	const host = chartFigure();
+	await flush();
+	const toggle = () => query(host, "button.clickable-icon");
+	// 弹起
+	assert.equal(toggle().className, "clickable-icon");
+	assert.equal(toggle().getAttribute("aria-pressed"), "false");
+
+	toggle().click();
+	await flush();
+	// 按下：宿主原生的 is-active 高亮，肉眼能看出处在哪个状态
+	assert.equal(toggle().className, "clickable-icon is-active");
+	assert.equal(toggle().getAttribute("aria-pressed"), "true");
+
+	toggle().click();
+	await flush();
+	assert.equal(toggle().className, "clickable-icon");
+	assert.equal(toggle().getAttribute("aria-pressed"), "false");
+});
+
+test("the copy button answers with a checkmark, then goes back", async () => {
+	const host = chartFigure();
+	await flush();
+	const copy = () => queryAll(host, "button.clickable-icon")[1];
+	assert.equal(copy().getAttribute("data-icon"), "copy");
+
+	copy().click();
+	await flush();
+	// 点了跟没点一样是不行的：图标换成对勾，标签也换
+	assert.equal(copy().getAttribute("data-icon"), "check");
+	assert.equal(copy().getAttribute("aria-label"), "Copied");
+	// 对勾不是空头支票：确实复制了
+	assert.equal(typeof clipboard.text, "string");
+	assert.equal(clipboard.text.includes("Mosaic block report"), true);
 });
 
 // --- 切换：看原文，再切回 ---

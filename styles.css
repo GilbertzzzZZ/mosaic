@@ -38,10 +38,22 @@
    而且横排后按文字真实宽度占位，`CNY` 比 `%` 更贵；双轴图更是只有一个位置放得下
    两个单位。搬到 DOM 之后字号、颜色、明暗主题全部跟宿主的变量走，绘图区也拿回了
    那 28/56px。双轴写成 `左 / 右` 一行。 */
+/* 画布区。unit 要浮在里面，所以它是定位上下文。 */
+.mosaic-figure-body {
+	position: relative;
+}
+/* unit 与图例同处一行：图例由引擎画在画布顶部居中，unit 是 DOM，两者不可能排进
+   同一个 flex 行，只能把 unit 定位到画布左上角、行高对齐图例那一行的高度。
+   line-height 取 22px = 图例标记 12px + 上下留白，改图例尺寸时要一起改。 */
 .mosaic-figure-unit {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 1;
+	line-height: 22px;
 	font-size: 0.85em;
 	color: var(--text-muted);
-	margin: 0 0 4px;
+	pointer-events: none;
 }
 .mosaic-figure-note {
 	font-size: 0.85em;

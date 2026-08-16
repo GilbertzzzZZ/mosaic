@@ -178,14 +178,18 @@ export const ChartFigure = ({
 					/>
 				</div>
 			</div>
-			{unit && <p className="mosaic-figure-unit">{unit}</p>}
 			{error && (
 				<BlockErrorBox
 					message={error}
 					onCopy={() => copyToClipboard(report({ status: "error", error }))}
 				/>
 			)}
-			<div ref={contentRef}>
+			{/* unit 绝对定位进画布区左上角，和 canvas 里居中的图例同处一行——两者一个是
+			    DOM 一个是 canvas，没法排进同一个 flex 行，只能靠定位对齐。 */}
+			<div ref={contentRef} className="mosaic-figure-body">
+				{unit && !showSource && (
+					<span className="mosaic-figure-unit">{unit}</span>
+				)}
 				{showSource ? (
 					<SourceView raw={context.raw} height={sourceHeight} />
 				) : (

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { setIcon } from "obsidian";
 
 // 共享卡片外壳 + 标题 / kicker / 统一错误渲染，供五类内容块视图复用。
@@ -81,9 +81,12 @@ export interface IconButtonProps {
 	icon: string;
 	label: string;
 	onClick: () => void;
+	// 开关型按钮（如「看原文」）传 active，走宿主原生的 is-active 高亮——按下去
+	// 和弹起来必须看得出区别，否则用户不知道自己处在哪个状态。
+	active?: boolean;
 }
 
-export const IconButton = ({ icon, label, onClick }: IconButtonProps) => {
+export const IconButton = ({ icon, label, onClick, active }: IconButtonProps) => {
 	const ref = useRef<HTMLButtonElement | null>(null);
 	useEffect(() => {
 		if (ref.current) setIcon(ref.current, icon);
@@ -92,10 +95,32 @@ export const IconButton = ({ icon, label, onClick }: IconButtonProps) => {
 		<button
 			type="button"
 			ref={ref}
-			className="clickable-icon"
+			className={active ? "clickable-icon is-active" : "clickable-icon"}
 			aria-label={label}
+			aria-pressed={active === undefined ? undefined : active}
 			data-mosaic-action={label}
 			onClick={onClick}
+		/>
+	);
+};
+
+// 一次性动作（复制）没有「开/关」两态，但也必须有反馈：点下去图标换成对勾，
+// 1.5 秒后自己变回。不加这个的话点了跟没点一模一样，用户会怀疑没生效。
+export const CopyButton = ({ label, onClick }: { label: string; onClick: () => void }) => {
+	const [done, setDone] = useState(false);
+	useEffect(() => {
+		if (!done) return;
+		const timer = window.setTimeout(() => setDone(false), 1500);
+		return () => window.clearTimeout(timer);
+	}, [done]);
+	return (
+		<IconButton
+			icon={done ? "check" : "copy"}
+			label={done ? "Copied" : label}
+			onClick={() => {
+				onClick();
+				setDone(true);
+			}}
 		/>
 	);
 };
@@ -121,8 +146,9 @@ export const BlockToolbar = ({
 			icon="code"
 			label={showingSource ? "Show rendered block" : "Show source"}
 			onClick={onToggleSource}
+			active={showingSource}
 		/>
-		<IconButton icon="copy" label="Copy block report" onClick={onCopy} />
+		<CopyButton label="Copy block report" onClick={onCopy} />
 		{extra}
 	</>
 );
@@ -150,7 +176,7 @@ export const BlockErrorBox = ({
 		<span className="mosaic-error-message">{message}</span>
 		{onCopy && (
 			<span className="mosaic-control-group">
-				<IconButton icon="copy" label="Copy error report" onClick={onCopy} />
+				<CopyButton label="Copy error report" onClick={onCopy} />
 			</span>
 		)}
 	</div>
@@ -170,7 +196,7 @@ export const BlockNotice = ({
 		<span className="mosaic-notice-message">{text}</span>
 		{onCopy && (
 			<span className="mosaic-control-group">
-				<IconButton icon="copy" label="Copy notice report" onClick={onCopy} />
+				<CopyButton label="Copy notice report" onClick={onCopy} />
 			</span>
 		)}
 	</p>
