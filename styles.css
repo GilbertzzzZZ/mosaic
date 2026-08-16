@@ -1,11 +1,26 @@
 /* 导出 PNG 按钮没有自己的样式：它用 Obsidian 的 clickable-icon，和视图头部那些
    图标按钮同一套。开关由设置项决定——开了就在按钮组里，关了就不渲染。 */
 
+/* 六类内容块唯一的一道框。写成一条而不是六份同参数的规则：参数分散在六处，改一处
+   忘五处，迟早变成六种粗细六种圆角——这正是 DataTable 之前的下场（它的框长在里层的
+   .table-card 上，标题和按钮因此裸露在框外，看上去像另一个插件画的）。
+   框只有这三样，内边距不在这里：画布、svg、表格各自要的留白不同，那是内容的事。
+   规则里没有 box-shadow：六类一律「1px 边框 + 8px 圆角 + 无阴影」，任何一类带上阴影
+   都会显得浮在页面上，和另外五类不在同一个平面。 */
+.mosaic-figure,
+.mosaic-timeline,
+.mosaic-decision-box,
+.mosaic-metric-grid,
+.mosaic-data-table,
+.mosaic-flow-diagram {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	background: var(--background-primary);
+}
+
 .mosaic-figure {
 	margin: 1em 0;
 	padding: 12px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
 }
 .mosaic-figure-header {
 	display: flex;
@@ -157,13 +172,12 @@
 	color: var(--text-muted);
 }
 
-/* shared card shell: Timeline / DecisionBox / MetricGrid */
+/* 卡片内边距：Timeline / DecisionBox / MetricGrid / DataTable 同一档。
+   框体（边框、圆角、背景）在文件开头那条六类共用规则里，不在这。 */
 .mosaic-timeline,
 .mosaic-decision-box,
-.mosaic-metric-grid {
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	background: var(--background-primary);
+.mosaic-metric-grid,
+.mosaic-data-table {
 	padding: 14px 16px;
 }
 
@@ -355,17 +369,20 @@
 /* 这里曾有一条 .mosaic-data-table > .mosaic-control-group：DataTable 的按钮组当年是
    五类里唯一走正常文档流的一个（绝对定位会盖住表头）。现在五类都走 .mosaic-block-header，
    那条例外规则连同它的例外理由一起没了。 */
+/* 表格卡片不画框：框在外层的 .mosaic-data-table 上，和其余五类同一条规则。这一层
+   曾有自己的 1px 边框 + 8px 圆角，于是 DataTable 成了六类里唯一「标题和按钮在框外、
+   内容在框内」的一个。工具栏与表格之间的分隔由下面那条 border-bottom 负责，不需要
+   再套一层框。
+   position: relative 留着：它与边框无关，也不是冻结首列那条分隔线的依赖
+   （sticky 的包含块是滚动容器 .table-scroll，不是这一层）。 */
 .mosaic-data-table .table-card {
 	position: relative;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	background: var(--background-primary);
-	/* 刻意没有 box-shadow：Chart / Timeline / DecisionBox / MetricGrid 四类区块都是
-	   「1px 边框 + 8px 圆角 + 无阴影」，DataTable 曾是唯一带阴影的一个，看上去像浮起来。
-	   （下面冻结首列那条 box-shadow 是一条 1px 竖分隔线，与立体感无关，不要一起删。） */
 	width: 100%;
 	max-width: 100%;
 }
+/* 工具栏自己不再留左右内边距：外框已经给了 16px，再加 10px 只是把它往里推，
+   工具栏就和头部的标题对不齐了。上方留白同样删掉——头部的 margin-bottom 已经
+   隔开了这一段，8px 只留在分隔线之上。 */
 .mosaic-data-table .table-toolbar {
 	display: flex;
 	flex-wrap: wrap;
@@ -373,7 +390,7 @@
 	/* Same 8px it always was, taken from the host's spacing scale so it tracks
 	   the reader's own density setting. */
 	gap: var(--size-4-2);
-	padding: 8px 10px;
+	padding: 0 0 8px;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 /* 过滤输入框同样不写样式：它是 input[type="search"]，Obsidian 对这个类型有完整的
@@ -422,6 +439,11 @@
 	color: var(--text-muted);
 	font-weight: 650;
 }
+/* 最后一行不画下边线：卡片自己的框没了之后，那条线会悬在离外框底边一个内边距的
+   地方，看着像表格没画完。表格到此为止由外框收口。 */
+.mosaic-data-table tbody tr:last-child td {
+	border-bottom: none;
+}
 /* 表头背景单独成一条，且刻意写得比宿主更具体——不是冗余，删了会退回「有、没有、有」。
    Obsidian app.css 里有一条列斑马纹（1.13.7 实测）：
        .markdown-rendered thead tr > th:nth-child(2n+2) {
@@ -463,10 +485,9 @@
 }
 
 /* FlowDiagram */
+/* 框体在文件开头那条六类共用规则里；这里只剩它自己的内边距（底部比其余几类少 4px：
+   svg 自带一圈空白）。 */
 .mosaic-flow-diagram {
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	background: var(--background-primary);
 	padding: 14px 16px 10px;
 }
 .mosaic-flow-scroll {
