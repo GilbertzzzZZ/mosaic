@@ -557,7 +557,7 @@ function datasetPlugin() {
 	});
 }
 
-async function mountDataset(attributes = {}) {
+async function mountDataset(attributes = {}, body = "") {
 	const host = mountHost();
 	await renderComponentInto(
 		datasetPlugin(),
@@ -566,12 +566,32 @@ async function mountDataset(attributes = {}) {
 		{
 			name: "DataTable",
 			attributes: { title: TITLE, dataset: "./daily.dataset.json", ...attributes },
-			body: "",
+			body,
 		},
 	);
 	await flush();
 	return host;
 }
+
+// dataset 模式与内联 payload 互斥，body 必须为空。这条曾经不是这样：body 里可以放一个
+// ```query 围栏，装 {from, to, where}。围栏删掉了——`where` 是它唯一能表达而属性表达
+// 不了的东西，而全部真实笔记里一次都没人用过；围栏本身还写不进代码块（同长度的内层围栏
+// 会关掉外层），白白让 DataTable 的两种写法不等价。
+test("dataset mode rejects a body instead of silently ignoring it", async () => {
+	const host = await mountDataset({}, '```query\n{"from":"2026-04-01"}\n```');
+	assert.equal(queryAll(host, "table").length, 0);
+	assert.equal(
+		query(host, ".mosaic-error-message").textContent,
+		"Mosaic: Provide either dataset= or an inline body, not both.",
+	);
+});
+
+test("dataset mode narrows the window with from/to attributes, no fence needed", async () => {
+	const host = await mountDataset({ from: "2026-04-02", granularity: "day" });
+	const rows = queryAll(query(host, "tbody"), "tr").length;
+	const all = queryAll(query(await mountDataset({ granularity: "day" }), "tbody"), "tr").length;
+	assert.equal(rows < all, true, `from= did not narrow the window (${rows} of ${all})`);
+});
 
 test("dataset mode folds the granularity buttons into the same single group", async () => {
 	const host = await mountDataset();

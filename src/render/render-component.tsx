@@ -7,7 +7,6 @@ import MosaicPlugin from "../main";
 import { loadDatasetForNote } from "../parse/obsidian-dataset";
 import { queryDataset } from "../parse/dataset-query.mjs";
 import { DATASET_GRANULARITIES, isDatasetGranularity } from "../parse/dataset-granularity.mjs";
-import { datasetQueryFromContent } from "../parse/blocks/dataset-table.mjs";
 import { uniqueStrings } from "../parse/blocks/payload.mjs";
 import { componentFieldNotice, formatBlockReport } from "./block-report.mjs";
 import { whenHostReady } from "./host-ready";
@@ -113,7 +112,11 @@ async function renderDataTableDataset(
 	if (granularityAttr !== "auto" && !granularityOptions.includes(granularityAttr)) {
 		throw new Error("granularity must be included in granularityOptions.");
 	}
-	const query = datasetQueryFromContent(body);
+	// dataset 模式与内联 payload 互斥：行数据 100% 来自 manifest，body 必须为空。
+	// 与 Chart 的 dataset 模式同一口径（renderChartInto 对同样的情况报「二选一」）。
+	if (String(body ?? "").trim()) {
+		throw new Error("Provide either dataset= or an inline body, not both.");
+	}
 	const { manifest, rows } = await loadDatasetForNote(
 		plugin.app,
 		context.sourcePath,
@@ -136,7 +139,6 @@ async function renderDataTableDataset(
 			rows,
 			component: "DataTable",
 			attributes,
-			query,
 			granularity: granularity ?? granularityAttr,
 			granularityOptions,
 		});

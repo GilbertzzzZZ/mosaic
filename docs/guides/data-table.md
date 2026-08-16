@@ -78,7 +78,7 @@ granularityOptions: "month,quarter"
 | `dataset` | 外部 `.dataset.json` manifest 的相对路径，出现即切换到 dataset 模式 | 无 |
 | `granularity` | dataset 模式下的展示粒度 | `auto` |
 | `granularityOptions` | dataset 模式下允许的粒度集合，逗号分隔，每项须 ∈ `day/week/month/quarter` | `day,week,month,quarter` |
-| `from` / `to` | dataset 模式下的日期范围闭区间（也可被 body 的 `query` fence 覆盖，query 优先） | 无 |
+| `from` / `to` | dataset 模式下的日期范围闭区间 | 无 |
 
 布尔属性（`search`/`freeze`/`copy`/`sticky`）接受 `true`/`false`、`1`/`0`、`yes`/`no`、`on`/`off`，大小写不敏感；其余值回退默认值。
 
@@ -91,15 +91,26 @@ granularityOptions: "month,quarter"
 - **不对字段名做别名归一化**：列名就是原始 key（除非 `columns` 属性重排/裁剪）。
 - **数字嗅探**：只有严格匹配 `^-?\d+(?:\.\d+)?$`（纯整数或小数）的单元格会转成数字，其余（含空字符串、日期、`"12%"`、`"1,234"`）保持字符串原样展示。
 
-**dataset 模式**（有 `dataset` 属性时）：**与内联 payload 完全互斥**。行数据 100% 来自外部 manifest + 数据文件，标签体唯一合法内容是一个可选的 ` ```query ` 围栏，JSON 对象，只能含 `from`/`to`/`where` 三个键（`from`/`to` 优先于同名属性）：
+**dataset 模式**（有 `dataset` 属性时）：**与内联 payload 完全互斥**。行数据 100% 来自外部 manifest + 数据文件，**body 必须为空**，时间范围写成 `from` / `to` 属性：
 
 ````text
-<DataTable dataset="demo.dataset.json" columns="AnchorDate,营收" from="2025-01-01" to="2025-06-01">
-```query
-{"where":[{"field":"门店","op":"eq","value":"示例门店A"}]}
-```
-</DataTable>
+<DataTable dataset="demo.dataset.json" columns="AnchorDate,营收" from="2025-01-01" to="2025-06-01" />
 ````
+
+代码块写法一字不差，同样 body 为空：
+
+````text
+```datatable
+---
+dataset: "demo.dataset.json"
+columns: "AnchorDate,营收"
+from: "2025-01-01"
+to: "2025-06-01"
+---
+```
+````
+
+> **body 里曾经可以写一个 ` ```query ` 围栏**（JSON 对象，含 `from` / `to` / `where`）。已移除：`where`（按字段过滤）是它唯一能表达而属性表达不了的东西，而全仓扫描下来真实笔记里一次都没用过；围栏本身还写不进代码块——同长度的内层围栏会把外层关掉——白白让 DataTable 的两种写法不等价。真需要按字段过滤时，加一个属性即可，不必重开一套 body 语法。
 
 粒度按钮组、溯源脚注（数据集标题 · 生效窗口 · 粒度 · N/M source rows · data through）、时间对齐校验、`rollup` 语义与 dataset manifest 契约本身，与 Chart 完全一致，见 [dataset-guide.md](dataset-guide.md)。唯一的差异：Chart 会因为「图表可读密度上限 120 点」剔除过密的粒度选项，DataTable **不受此限制**，所有安全粗化后的粒度都保留在候选集合里。
 
@@ -111,14 +122,8 @@ granularityOptions: "month,quarter"
 内联 payload 为空或列集合为空
 → Mosaic: DataTable requires CSV, JSON, or a Markdown table.
 
-dataset 模式 body 塞入内联 CSV（互斥冲突）
-→ Mosaic: A dataset component body may contain only a fenced query JSON object.
-
-dataset 模式 body 的 query fence 不是合法 JSON
-→ Mosaic: Dataset query must contain valid JSON.
-
-dataset 模式 body 的 query fence 是 JSON 数组而不是对象
-→ Mosaic: Dataset query must be a JSON object.
+dataset 模式的 body 非空（互斥冲突，写什么都一样）
+→ Mosaic: Provide either dataset= or an inline body, not both.
 
 dataset 属性值为空字符串
 → Mosaic: dataset must point to a .dataset.json manifest.

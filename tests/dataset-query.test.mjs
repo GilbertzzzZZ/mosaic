@@ -152,36 +152,6 @@ test("queryDataset refuses to guess a coarser rollup for a field", () => {
   );
 });
 
-test("queryDataset applies bounded equality filters before aggregation", () => {
-  const filteredManifest = {
-    ...manifest,
-    grain: ["date", "company"],
-    primaryKey: ["date", "company"],
-    fields: [
-      ...manifest.fields,
-      { name: "company", type: "string", required: true, rollup: null },
-    ],
-  };
-  const baseRows = dailyRows("2026-04-01", "2026-04-03");
-  const rows = baseRows.flatMap((row) => [
-    { ...row, company: "A" },
-    { ...row, company: "B", revenue: 10 },
-  ]);
-  const result = queryDataset({
-    manifest: filteredManifest,
-    rows,
-    component: "Chart",
-    attributes: { series: "revenue" },
-    query: { where: [{ field: "company", op: "eq", value: "B" }] },
-    granularity: "month",
-  });
-
-  assert.equal(result.rows[0].revenue, 30);
-  assert.equal(result.meta.sourceRows, 3);
-  assert.equal(result.meta.totalRows, 6);
-  assert.equal(result.meta.partialPeriodCount, 1);
-});
-
 test("queryDataset refuses an ambiguous last snapshot across multiple rows on one date", () => {
   const multiSeriesManifest = {
     ...manifest,

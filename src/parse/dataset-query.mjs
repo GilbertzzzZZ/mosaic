@@ -1,6 +1,14 @@
-// Dataset query layer: validates the {from, to, where} query shape, resolves
-// the requested granularity against the source data, rolls rows up and returns
-// the rows/columns a component view renders.
+// Dataset query layer: narrows rows to the from/to window, resolves the
+// requested granularity against the source data, rolls rows up and returns the
+// rows/columns a component view renders.
+//
+// `from` / `to` come from attributes only. There used to be a second way in — a
+// fenced ```query JSON object carrying {from, to, where} — but `where` was the
+// only thing it could express that attributes could not, and a sweep of every
+// real note found zero uses of it. The fence also could not be written inside a
+// code block at all (a same-length inner fence closes the outer one), so it made
+// the two spellings of DataTable unequal for no one's benefit. If field
+// filtering is ever wanted, an attribute is the place for it.
 
 import {
   DATASET_GRANULARITIES,
@@ -10,8 +18,6 @@ import {
   isDatasetPeriodStart,
 } from "./dataset-granularity.mjs";
 
-const QUERY_KEYS = new Set(["from", "to", "where"]);
-const FILTER_OPERATORS = new Set(["eq", "notEq", "in", "notIn"]);
 const MAX_OUTPUT_ROWS = 5_000;
 const MAX_RANGE_DAYS = 10_000;
 // The 796 px chart plot keeps roughly one marker-width per period at this limit.
@@ -22,11 +28,9 @@ export function queryDataset({
   rows,
   component,
   attributes = {},
-  query = {},
   granularity = "auto",
   granularityOptions = DATASET_GRANULARITIES,
 } = {}) {
-  assertQueryShape(query);
   const sourceGranularity = String(manifest?.time?.sourceGranularity || "").trim().toLowerCase();
   if (!isDatasetGranularity(sourceGranularity)) {
     throw datasetQueryError("Dataset manifest has an invalid sourceGranularity.");
@@ -69,8 +73,8 @@ export function queryDataset({
     manifest,
     xKey,
   });
-  const from = normalizeRangeDate(query.from ?? attributes.from, "from");
-  const to = normalizeRangeDate(query.to ?? attributes.to, "to");
+  const from = normalizeRangeDate(attributes.from, "from");
+  const to = normalizeRangeDate(attributes.to, "to");
   if (from && to && from > to) {
     throw datasetQueryError("Dataset query from must not be after to.");
   }
@@ -82,11 +86,9 @@ export function queryDataset({
     }
   }
 
-  const filters = normalizeFilters(query.where, fieldMap);
   const filteredRows = rows.filter((row) => (
     (!from || row[timeField] >= from) &&
-    (!to || row[timeField] <= to) &&
-    filters.every((filter) => filterMatches(row, filter))
+    (!to || row[timeField] <= to)
   ));
   if (filteredRows.length === 0) {
     throw datasetQueryError("Dataset query returned no rows.");
@@ -368,16 +370,6 @@ function assertSingleRowPerDate(field, rows, timeField) {
   }
 }
 
-function assertQueryShape(query) {
-  if (!query || typeof query !== "object" || Array.isArray(query)) {
-    throw datasetQueryError("Dataset query must be a JSON object.");
-  }
-  const unsupported = Object.keys(query).filter((key) => !QUERY_KEYS.has(key));
-  if (unsupported.length > 0) {
-    throw datasetQueryError(`Unsupported dataset query key: ${unsupported[0]}.`);
-  }
-}
-
 function normalizeGranularityOptions(value) {
   const entries = value === undefined
     ? DATASET_GRANULARITIES
@@ -390,75 +382,6 @@ function normalizeGranularityOptions(value) {
     throw datasetQueryError("granularityOptions supports day, week, month, and quarter.");
   }
   return normalized;
-}
-
-function normalizeFilters(where, fieldMap) {
-  if (where === undefined) {
-    return [];
-  }
-  if (!Array.isArray(where) || where.length > 10) {
-    throw datasetQueryError("Dataset query where must contain at most 10 filters.");
-  }
-  return where.map((filter) => {
-    if (!filter || typeof filter !== "object" || Array.isArray(filter)) {
-      throw datasetQueryError("Each dataset filter must be an object.");
-    }
-    const keys = Object.keys(filter);
-    if (keys.some((key) => !["field", "op", "value"].includes(key))) {
-      throw datasetQueryError("Dataset filters support only field, op, and value.");
-    }
-    const field = fieldMap.get(String(filter.field || ""));
-    if (!field) {
-      throw datasetQueryError(`Unknown filter field: ${filter.field}.`);
-    }
-    const op = String(filter.op || "eq");
-    if (!FILTER_OPERATORS.has(op)) {
-      throw datasetQueryError(`Unsupported filter operator: ${op}.`);
-    }
-    const arrayOperator = op === "in" || op === "notIn";
-    if (arrayOperator && (!Array.isArray(filter.value) || filter.value.length < 1 || filter.value.length > 100)) {
-      throw datasetQueryError(`${op} filters require 1 to 100 values.`);
-    }
-    return {
-      field: field.name,
-      op,
-      value: arrayOperator
-        ? filter.value.map((value) => coerceFilterValue(value, field))
-        : coerceFilterValue(filter.value, field),
-    };
-  });
-}
-
-function filterMatches(row, filter) {
-  const current = row[filter.field];
-  const equals = Array.isArray(filter.value)
-    ? filter.value.some((value) => Object.is(current, value))
-    : Object.is(current, filter.value);
-  return filter.op === "notEq" || filter.op === "notIn" ? !equals : equals;
-}
-
-function coerceFilterValue(value, field) {
-  if (value === null) {
-    return null;
-  }
-  if (field.type === "integer" || field.type === "decimal" || field.type === "number") {
-    const number = Number(value);
-    if (!Number.isFinite(number) || (field.type === "integer" && !Number.isInteger(number))) {
-      throw datasetQueryError(`Filter value for "${field.name}" must be ${field.type}.`);
-    }
-    return number;
-  }
-  if (field.type === "boolean") {
-    if (value === true || value === false) return value;
-    if (String(value).toLowerCase() === "true") return true;
-    if (String(value).toLowerCase() === "false") return false;
-    throw datasetQueryError(`Filter value for "${field.name}" must be boolean.`);
-  }
-  const text = String(value);
-  if (field.type === "date" && !isIsoDate(text)) {
-    throw datasetQueryError(`Filter value for "${field.name}" must be YYYY-MM-DD.`);
-  }
-  return text;
 }
 
 function periodCoverage({
