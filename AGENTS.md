@@ -64,7 +64,9 @@ npm run install:vault  # build + 拷三件套到测试 vault
 ## 测试 vault（真机验证）
 
 - 位置 `测试 vault`（仓库外独立目录，不进 git；不要用其他生产 vault 做测试）。
-- 测试文档在其 `charts/` 与 `blocks/`；晨检清单 `verify.md`；README/文档截图的英文 demo 页与假数据集也在这里。
+- 测试文档按内容块类型分目录：`chart/` `data-table/` `timeline/` `metric-grid/` `decision-box/` `flow-diagram/`，每类下按写法编号（`01-code-inline` / `02-code-dataset` / `03-tag-inline` / `04-tag-dataset` / `09-errors`；外部数据只有 Chart 与 DataTable 支持，其余四类没有 02/04 两格）。
+- `cases/` 是综合案例（混合写法），`_assets/` 是数据文件，`_readme/` 是 README 截图专用页——三者定位不同，不要混用。
+- 每个 `.md` 都有一份**逐字节相同**的 `.mdx`，用 vault 根的 `sync-mdx.sh` 维护；新增和改动都要成对。
 - obsidian CLI（obsidian-cli 桥）：`obsidian vault=mosaic-test-vault eval code='...'`；restricted mode 用 `app.plugins.setEnable(true)` 解除。
 - 插件增删一律 `disablePluginAndSave`/`enablePluginAndSave`（纯 disablePlugin 会被 Obsidian 内存态写回复活）。
 - 截图管线：JXA CGWindowList 取 Obsidian 窗口 id → `screencapture -x -o -l <id>` → ffmpeg 裁剪；只截 Obsidian 窗口，内容必须是模拟英文假数据。
