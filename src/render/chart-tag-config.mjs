@@ -486,6 +486,18 @@ const Y_AXIS = {
 	gridStrokeOpacity: 1,
 };
 
+// x 轴标签放不下时往哪个方向转。
+// 引擎的自动旋转候选角度写死为 [0, 15, 30, 45, 60, 90]（component 的 axis.js），
+// 全是正角度——顺时针转，`2024-07` 竖起来后年份在上、月份在下，读的时候得把头往右歪。
+// 换成同样步长的负角度，逆时针转，年在下、月在上，头往左歪。
+// **自适应保留**：autoRotate 是按候选顺序逐个试、取第一个不重叠的（overlap/autoRotate.js
+// 的 rotateLabels），0 仍排在最前，所以标签放得下时照旧不转，只有放不下才开始转。
+// 必须显式写成 transform 数组：axis.js 的 inferDefaultTransform 一见到非空 transform
+// 就整条返回，不再拼自动那套——这正是覆盖候选角度的唯一入口。
+const X_AXIS = {
+	transform: [{ type: "rotate", optionalAngles: [0, -15, -30, -45, -60, -90] }],
+};
+
 // x 轴上被 highlight= 点名的那几期：轴标签加粗。
 // 轴标签的每个 label* 样式键都能写成按刻度调用的回调——@antv/component 的
 // renderLabel 走 getCallbackStyle(style, [datum, index, data])，datum 是
@@ -939,7 +951,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		// 一个新对象：同一份配置被两处引用会在渲染层被就地改写。
 		const xAxis = () => {
 			const x = highlightAxisX(highlight);
-			return x ? { x } : {};
+			return { x: { ...fresh(X_AXIS), ...(x ?? {}) } };
 		};
 		const barAxis = {
 			...xAxis(),
@@ -1080,7 +1092,7 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 			? valueLabel("value", formatter, type === "stacked-bar", marked)
 			: undefined,
 		axis: {
-			...(highlightX ? { x: highlightX } : {}),
+			x: { ...fresh(X_AXIS), ...(highlightX ?? {}) },
 			y: { ...fresh(Y_AXIS), labelFormatter: formatter },
 		},
 		tooltip: valueTooltip("value", formatter),
