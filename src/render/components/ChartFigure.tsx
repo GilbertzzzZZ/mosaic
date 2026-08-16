@@ -153,7 +153,9 @@ export const ChartFigure = ({
 						{title && (
 							<figcaption className="mosaic-figure-title">{title}</figcaption>
 						)}
-						{unit && <span className="mosaic-figure-unit">{unit}</span>}
+						{unit && (
+							<span className="mosaic-figure-unit">（{unit}）</span>
+						)}
 					</div>
 				)}
 				{/* 一组控件，不是两组：粒度按钮和三个图标按钮并排在同一个容器里。 */}
