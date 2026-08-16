@@ -1043,31 +1043,6 @@ test("a stacked bar centres its numbers inside each segment, and still culls", (
 	}
 });
 
-// x 轴标签放不下时往左转，不是往右转。引擎自己只给正角度候选
-// （component 的 axis.js 写死 [0,15,30,45,60,90]），转出来年份在上、月份在下，
-// 读的时候得把头往右歪。换成同步长的负角度，年在下、月在上。
-// 0 必须留在第一位：autoRotate 按顺序逐个试、取第一个不重叠的，0 排头才能保住
-// 「放得下就不转」这条自适应。
-test("the x axis labels tip to the left, and only when they must", () => {
-	const WANT = [0, -15, -30, -45, -60, -90];
-	for (const type of ["line", "bar", "grouped-bar", "stacked-bar"]) {
-		const built = buildChartFromInline({
-			attributes: { x: "month", type, series: "a" },
-			csv: INLINE_CSV,
-		});
-		const t = built.config.axis.x.transform;
-		assert.deepEqual(t[0].optionalAngles, WANT, `${type} 的候选角度不对`);
-		assert.equal(t[0].optionalAngles[0], 0, `${type} 丢了「放得下就不转」`);
-		assert.ok(
-			t[0].optionalAngles.slice(1).every((a) => a < 0),
-			`${type} 里混进了正角度，会往右转`,
-		);
-		// 真正下发到引擎读 guide 的那个 mark 上
-		const drawn = marksOf(asEngineSees(built)).find((m) => m.axis?.x?.transform);
-		assert.deepEqual(drawn.axis.x.transform[0].optionalAngles, WANT, `${type} 没送到引擎`);
-	}
-});
-
 test("highlight= bolds the x axis labels it names, and leaves the rest alone", () => {
 	// Axis label styles accept a per-tick callback: @antv/component's renderLabel
 	// resolves every label* style through getCallbackStyle(style, [datum, i, data]),
@@ -1095,18 +1070,12 @@ test("highlight= bolds the x axis labels it names, and leaves the rest alone", (
 	assert.equal(drawn.axis.x.labelFontWeight({ label: "2025-01" }), "bold");
 	assert.equal(drawn.axis.x.labelFontWeight({ label: "2025-02" }), "normal");
 
-	// 没写 highlight= 就没有加粗回调，主题自己的字重说了算。axis.x 本身仍然存在，
-	// 因为轴标签的旋转方向是无条件配的（见 X_AXIS）——两件事不能互相牵连。
+	// no highlight= means no axis.x at all, so the theme's own weight stands
 	const plain = buildChartFromInline({
 		attributes: { x: "month", type: "bar", series: "a" },
 		csv: INLINE_CSV,
 	});
-	assert.equal(plain.config.axis.x.labelFontWeight, undefined);
-	assert.deepEqual(
-		plain.config.axis.x.transform[0].optionalAngles,
-		[0, -15, -30, -45, -60, -90],
-		"没有 highlight 时旋转配置照样要在",
-	);
+	assert.equal(plain.config.axis.x, undefined);
 });
 
 test("highlight= reaches both sides of a combo, which share one x scale", () => {
@@ -2017,7 +1986,7 @@ test("a period the data does not have never reaches the x scale", () => {
 
 	const none = withHighlight({ type: "bar", series: "Total" }, "2029-12");
 	assert.equal(none.config.annotations, undefined, "no match, nothing to draw");
-	assert.equal(none.config.axis.x.labelFontWeight, undefined, "no match, nothing to bold");
+	assert.equal(none.config.axis.x, undefined, "no match, nothing to bold");
 });
 
 test("the marker stays out of the legend, the tooltip and the hover band", () => {
