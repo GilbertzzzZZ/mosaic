@@ -68,9 +68,12 @@ npm run install:vault  # build + 拷三件套到测试 vault
 
 - 位置 `测试 vault`——**它自己是一个独立的 git 仓库**（本地，无 remote），不是本仓库的子目录，也不会被本仓库跟踪。不要用其他生产 vault 做测试。
 - 改测试库前先 `git -C 测试 vault status` 看清工作区；写坏了 `git checkout` 就能回退，不需要手工备份。`.obsidian/` 不进 git（宿主状态，随每次部署和插件开关而变）。
-- 测试文档按内容块类型分目录：`chart/` `data-table/` `timeline/` `metric-grid/` `decision-box/` `flow-diagram/`，每类下按写法编号（`01-code-inline` / `02-code-dataset` / `03-tag-inline` / `04-tag-dataset` / `09-errors`；外部数据只有 Chart 与 DataTable 支持，其余四类没有 02/04 两格）。
-- `cases/` 是综合案例（混合写法），`_assets/` 是数据文件，`_readme/` 是 README 截图专用页——三者定位不同，不要混用。
-- 每个 `.md` 都有一份**逐字节相同**的 `.mdx`，用 vault 根的 `sync-mdx.sh` 维护；新增和改动都要成对。
+- **只放单元测试验不了的东西**。338 条单测已覆盖纯函数层（解析产物、配置对象、错误文案），这里验的是：画出来什么样、换写法结果一不一致、宿主行为、错误框出现在哪、给人看的效果。纯函数能验的一律不放——别名链就是反例，`tests/payload.test.mjs` 已有三条 `alias chain fallbacks`。
+- **一份文件 = 一条可验证的断言，文件名说清验什么，不用编号**。六个类型目录下是能力名（`line.md` / `granularity.md` / `payload-forms.md` / `errors.md` …）。
+- **同一能力的所有写法放在同一份文件里**，小节标题固定 `## 代码块 · 内联` / `## 代码块 · 外部` / `## 标签 · 内联` / `## 标签 · 外部`，四段画同一张图——等价性验证是一屏之内的视觉对照，不是跨文件记忆对照。只有 Chart 与 DataTable 有四段，其余四类只有 `## 代码块` 与 `## 标签`（外部数据只这两类支持）。
+- `host-behavior/` 验宿主而非某个类型（主题切换、虚拟化与宽度、段落接管、插件启停）；`cases/` 是四篇模拟场景报告，效果呈现，写法刻意混杂且每篇留两处故意写错；`_assets/` 是数据文件；`_readme/` 是 README 截图专用页。
+- 每个 `.md` 都有一份**逐字节相同**的 `.mdx`（库根 `README.md` 除外），用 `sync-mdx.sh` 维护；新增和改动都要成对。
+- 库根 `README.md` 是这套结构的 SSOT，改结构先改它。
 - obsidian CLI（obsidian-cli 桥）：`obsidian vault=mosaic-test-vault eval code='...'`；restricted mode 用 `app.plugins.setEnable(true)` 解除。
 - 插件增删一律 `disablePluginAndSave`/`enablePluginAndSave`（纯 disablePlugin 会被 Obsidian 内存态写回复活）。
 - 截图管线：JXA CGWindowList 取 Obsidian 窗口 id → `screencapture -x -o -l <id>` → ffmpeg 裁剪；只截 Obsidian 窗口，内容必须是模拟英文假数据。
