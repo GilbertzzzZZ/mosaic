@@ -907,7 +907,11 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 				`Chart type "${type}" needs both bar and line series (use bars= and lines=).`,
 			);
 		}
-		const barLong = toLong(rows, xKey, barKeys, attrs, "barValue");
+		// 柱那一半剔掉 null（interval 拿到 null 会画出顶到轴底的满高柱），线那一半
+		// 留着（null 是断点）。理由与单视图那条一致，见下方 toLong 调用处的注释。
+		const barLong = toLong(rows, xKey, barKeys, attrs, "barValue").filter(
+			(d) => d.barValue !== null,
+		);
 		const lineLong = toLong(rows, xKey, lineKeys, attrs, "lineValue");
 		const barFormatter = valueFormatterFor(dual ? leftUnit : unit);
 		const lineFormatter = valueFormatterFor(dual ? rightUnit : unit);
@@ -1038,7 +1042,14 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		};
 	}
 
-	const data = toLong(rows, xKey, seriesKeys, attrs);
+	// 柱状图不能把 null 交给引擎：interval 的 y 通道拿到 null 会把柱子从 0 一路画到
+	// 轴底，看上去就是一根「亏到极值」的满高柱。互斥系列（盈利/亏损每月只填一列）
+	// 上尤其刺眼——空着的那一半月份，每个都长出一根顶到轴底的柱子。
+	// 折线图相反，**必须**保留 null：那是断点语义，把记录删掉线会直接连过去，
+	// 断点就没了（guide 里写明「数值列留空表示断点」）。
+	const data = toLong(rows, xKey, seriesKeys, attrs).filter(
+		(d) => type === "line" || d.value !== null,
+	);
 	const formatter = valueFormatterFor(unit);
 	// stacked-bar 的视觉上限是每期堆叠和，其余按单值最大。
 	const yMax =

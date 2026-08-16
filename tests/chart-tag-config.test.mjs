@@ -746,6 +746,50 @@ test("the chain only hides — nothing moves a label off its data point", () => 
 	}
 });
 
+// 空单元格不能进柱状图的数据集。interval 的 y 通道拿到 null 会把柱子从 0 一路画到
+// 轴底——真实事故：互斥系列（盈利/亏损每月只填一列）的图上，空着的那一半月份每个都
+// 长出一根顶到轴底的满高红柱，看起来像每月都巨亏。
+// 折线图相反，必须留着 null：那是断点语义，删掉记录线会直接连过去。
+test("an empty cell never becomes a bar, but stays a break in a line", () => {
+	const csv = [
+		"month,profit,loss",
+		"2024-07,49.7,",
+		"2024-08,29.7,",
+		"2025-01,,-26.9",
+		"2026-07,,-16.6",
+	].join("\n");
+	const attrs = { title: "t", x: "month", series: "profit,loss", unit: "万元" };
+
+	for (const type of ["bar", "grouped-bar", "stacked-bar"]) {
+		const data = buildChartFromInline({ attributes: { ...attrs, type }, csv }).config.data;
+		assert.equal(
+			data.filter((d) => d.value === null).length,
+			0,
+			`${type} 把 null 交给了引擎，柱子会顶到轴底`,
+		);
+		// 真实数字一条不能少
+		assert.deepEqual(
+			data.map((d) => d.value).sort((a, b) => a - b),
+			[-26.9, -16.6, 29.7, 49.7],
+			`${type} 连真实数值一起剔掉了`,
+		);
+	}
+
+	const line = buildChartFromInline({ attributes: { ...attrs, type: "line" }, csv }).config.data;
+	assert.equal(line.length, 8, "折线图每个 period × 每个系列都要有记录");
+	assert.equal(line.filter((d) => d.value === null).length, 4, "折线图的断点被删掉了");
+
+	// combo：柱那一半剔除，线那一半保留
+	const combo = buildChartFromInline({
+		attributes: { ...attrs, type: "combo", bars: "profit", lines: "loss" },
+		csv,
+	}).config;
+	const bars = (combo.children ?? []).find((c) => c.yField === "barValue");
+	const lines = (combo.children ?? []).find((c) => c.yField === "lineValue");
+	assert.equal(bars.data.filter((d) => d.barValue === null).length, 0, "combo 的柱留下了 null");
+	assert.equal(lines.data.filter((d) => d.lineValue === null).length, 2, "combo 的线丢了断点");
+});
+
 test("the cull spares the highlighted, the edges and the extremes, in that order", () => {
 	// 分级是我们自己写的逻辑，不是选个引擎参数，所以要测它排出来的次序。
 	// 引擎按 (datum, index, data) 调用这个回调，结果原样挂到标签节点上给 priority 读。
