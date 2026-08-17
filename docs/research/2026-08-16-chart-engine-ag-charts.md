@@ -7,12 +7,12 @@
 > **关于证据路径的说明**：调研期间 `git clone` 前两次在中途被 git 自身清理（`fetch-pack: invalid index-pack output`，网络不稳），第三次成功。因此**主要结论用已发布的 npm tarball 作为证据源**——这比仓库源码更硬，仓库 `latest` 分支上是 `14.1.0-beta.20260809`，而 tarball 是用户真正会装到的 `14.1.0` 正式版。仓库最终可用后，所有 `REPO` 路径引用均已复核。
 >
 > 下文路径简写：
-> - `TAR` = `本机 npm tarball 解包目录`
+> - `TAR` = 本机 npm tarball 的解包目录
 > - `TYPES` = `TAR/ag-charts-types/dist/types/src`（107 个 `.d.ts`，完整公开 API 类型定义，带 JSDoc）
 > - `COMM` = `TAR/ag-charts-community/dist/package/main.esm.mjs`（Community 完整实现，未压缩，2.4 MB，可读）
 > - `ENT` = `TAR/ag-charts-enterprise/dist/package/main.esm.mjs`
 >
-> 少量在仓库被删除前已读到的文件，用 `REPO` 前缀标注（`REPO` = `本机 ag-charts 仓库 checkout`，commit `2001e0c`）。
+> 少量在仓库被删除前已读到的文件，用 `REPO` 前缀标注（`REPO` = 本机 ag-charts 仓库 checkout，commit `2001e0c`）。
 
 ---
 

@@ -143,7 +143,7 @@ const toggle = (host, label) => query(host, `[aria-label="${label}"]`).click();
 // 一张 DataTable 只有一套呈现，与它多大无关。曾经有一层「复杂度自动判定」：行数
 // 或列数过了阈值就自动长出过滤框、冻结首列勾选框、Copy CSV 按钮和表头吸顶，于是
 // 同样是 DataTable，读者会看到两种不同的组件。触发线是数据的物理尺寸，与「这张表
-// 需不需要这些功能」无关——实测 真实笔记库 的 49 张真实表里只有 4 张越线，还全是
+// 需不需要这些功能」无关——实测 真实笔记库的 49 张真实表里只有 4 张越线，还全是
 // 同一份数据。整套连同 complexity= 属性一起删了。
 // 布局适配（fit / wrap / scroll）不在此列：那是同样的内容在不同宽度下的摆放，留着。
 test("every DataTable renders the same way, whatever its size", async () => {
