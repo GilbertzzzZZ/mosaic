@@ -312,6 +312,7 @@ Mosaic is fully local and fully offline:
 - **No telemetry or analytics**, client-side or server-side.
 - **No account, no payment, no ads.** Every feature works out of the box.
 - **No file access outside your vault.** Dataset manifests are resolved relative to the note that references them and read through Obsidian's own vault API.
+- **Clipboard: write-only.** Pressing a copy button writes a report to your clipboard. Mosaic never reads the clipboard, so nothing you copied elsewhere is ever seen.
 - **No code execution.** No SQL, no formula evaluation, no scripts — declarations are parsed, never evaluated.
 
 Charts are rendered by [Ant Design Charts](https://github.com/ant-design/ant-design-charts) (AntV), bundled into `main.js` under the MIT license.

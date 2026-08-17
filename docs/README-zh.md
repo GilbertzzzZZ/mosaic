@@ -314,6 +314,7 @@ Mosaic 完全本地、完全离线：
 - **无遥测、无分析**，客户端与服务端都没有。
 - **无账号、无付费、无广告。** 所有功能开箱即用。
 - **不访问 vault 之外的文件。** 数据集 manifest 相对引用它的笔记解析，并通过 Obsidian 自己的 vault API 读取。
+- **剪贴板只写不读。** 按下复制按钮才会把报告写进剪贴板；Mosaic 从不读取剪贴板，你在别处复制的东西它一概看不到。
 - **不执行代码。** 无 SQL、无公式求值、无脚本——声明只被解析，绝不被执行。
 
 图表由 [Ant Design Charts](https://github.com/ant-design/ant-design-charts)（AntV）渲染，以 MIT 许可打包进 `main.js`。
