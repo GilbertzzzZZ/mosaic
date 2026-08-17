@@ -68,6 +68,30 @@ const legendBar = (x, y, r) => [
 legendBar.style = ["fill"];
 register(`symbol.${LEGEND_BAR_SYMBOL}`, legendBar);
 
+// 柱状系列的图例色块。内置的 "square" 是四个直角，与宿主界面里每一处圆角控件都不
+// 搭；自绘一个圆角方块换掉它，走的是上面那条同样的自定义形状通道。
+// 圆角取半边长的 1/3——12px 的色块得到 2px 圆角，和 Obsidian 自己的小控件同量级：
+// 再大就成了药丸，再小则在 12px 上根本看不出来。
+// 长宽都是 2r，与内置 square 的外接盒一致，所以归一化后尺寸不变，只有角变圆。
+const LEGEND_SQUARE_SYMBOL = "legendSquare";
+const legendSquare = (x, y, r) => {
+	const k = r / 3;
+	return [
+		["M", x - r + k, y - r],
+		["L", x + r - k, y - r],
+		["A", k, k, 0, 0, 1, x + r, y - r + k],
+		["L", x + r, y + r - k],
+		["A", k, k, 0, 0, 1, x + r - k, y + r],
+		["L", x - r + k, y + r],
+		["A", k, k, 0, 0, 1, x - r, y + r - k],
+		["L", x - r, y - r + k],
+		["A", k, k, 0, 0, 1, x - r + k, y - r],
+		["Z"],
+	];
+};
+legendSquare.style = ["fill"];
+register(`symbol.${LEGEND_SQUARE_SYMBOL}`, legendSquare);
+
 // 图例方块 12×12。itemMarkerLineWidth 必须显式写 0：inferItemMarkerLineWidth 只有
 // 在用户显式给值时才短路，否则会按「形状是不是线类」自动塞 lineWidth = 4，而那个 4
 // 会通过上面的反向缩放把方块缩到 5.17px、把间距撑到 9.42px。现在没发生只是因为数据
@@ -94,7 +118,8 @@ function legendConfig(lineLabels = []) {
 		color: {
 			position: "top",
 			layout: { justifyContent: "center" },
-			itemMarker: (name) => (lines.has(name) ? LEGEND_BAR_SYMBOL : "square"),
+			itemMarker: (name) =>
+				lines.has(name) ? LEGEND_BAR_SYMBOL : LEGEND_SQUARE_SYMBOL,
 			itemMarkerSize: LEGEND_MARKER_SIZE,
 			itemMarkerLineWidth: 0,
 			itemSpacing: [...LEGEND_ITEM_SPACING],

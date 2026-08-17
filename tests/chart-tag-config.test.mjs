@@ -627,7 +627,10 @@ const legendOf = (built) => {
 	return marks[0].legend.color;
 };
 
-test("bar series get a square marker, line series get a bar", () => {
+// Both markers are registered shapes rather than built-ins: the bar needs a 3:1
+// box a single itemMarkerSize could not serve, and the square is rounded to match
+// the host's controls. Neither name can be a built-in symbol.
+test("bar series get a rounded square marker, line series get a bar", () => {
 	// the comment this replaces claimed the engine defaults to a dash for lines and a
 	// square for columns. True of the engine, false here: our line charts hand the
 	// legend a shape scale through the data points' shapeField, so the real default
@@ -650,8 +653,8 @@ test("bar series get a square marker, line series get a bar", () => {
 			attributes: { ...base, type: "grouped-bar", series: "Total,Split", granularity: "month" },
 		}),
 	);
-	assert.equal(bar.itemMarker("Total metric"), "square");
-	assert.equal(bar.itemMarker("Split"), "square");
+	assert.equal(bar.itemMarker("Total metric"), "legendSquare");
+	assert.equal(bar.itemMarker("Split"), "legendSquare");
 
 	// a combo has to carry both at once — this is the case a single itemMarkerSize
 	// could never serve, which is why the bar is a registered shape and not `hyphen`
@@ -662,7 +665,7 @@ test("bar series get a square marker, line series get a bar", () => {
 			attributes: { ...base, type: "combo", bars: "Split", lines: "Total", granularity: "month" },
 		}),
 	);
-	assert.equal(combo.itemMarker("Split"), "square");
+	assert.equal(combo.itemMarker("Split"), "legendSquare");
 	assert.equal(combo.itemMarker("Total metric"), "legendBar");
 });
 

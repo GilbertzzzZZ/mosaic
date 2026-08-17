@@ -59,7 +59,7 @@ One contract shared by all three entries. In the tag forms, one attribute per li
 - `combo-dual-axis`: independent left and right axes, with bars always on the left.
 - Every chart adds 8% of headroom above its y-axis maximum (for stacked bars, computed on each period's total).
 - Line nodes are solid dots. Value labels are thousands-grouped with at most two decimals, and collide gracefully — shown when they fit, hidden when they do not.
-- Square legend markers. Charts follow Obsidian's light and dark themes and reskin in place the moment the theme changes; the figure carries a faint themed border.
+- Legend markers are rounded squares for column series and a short bar for line series. Charts follow Obsidian's light and dark themes and reskin in place the moment the theme changes; the figure carries a faint themed border.
 
 **Provenance footnote** (external-dataset mode only). Generated under every chart: `dataset title · from → to · granularity · N/M source rows · data through <date>`. A warning line is appended when the range contains incomplete or missing periods.
 
