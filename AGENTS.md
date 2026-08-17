@@ -8,7 +8,7 @@ AI agent 工作规则。
 AI agent（Claude Code / Codex / Gemini CLI 等）**必读**，并遵守其中规则。
 本文件是本仓库 AI agent 工作规则的唯一 SSOT。`CLAUDE.md` 只通过 `@AGENTS.md` 引用本文件。
 
-面向使用者的介绍在根目录 [README.md](README.md)（英文）；文档目录的职责边界在 [docs/README.md](docs/README.md)。
+面向使用者的介绍在根目录 [README.md](README.md)（英文）；`docs/` 各目录的职责边界见下文 [docs/ 的目录约束](#docs-的目录约束)。
 
 ## Repo purpose
 
@@ -52,7 +52,7 @@ Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/mos
 - **其他项目的源码路径与行号**——除非那是公开可查的第三方开源库。
 - **过程文档不豁免**——`docs/plans/` 与 `docs/_archive/` 是这个公开仓库的一部分。实施计划、验收记录、归档状态块最容易顺手夹带本机路径与真实业务名，落笔前对照上面三条。
 
-新增文档前先读 [docs/README.md](docs/README.md)，确认该放哪个目录。
+新增文档前先看 [docs/ 的目录约束](#docs-的目录约束)，确认该放哪个目录。
 
 ## 架构：三区块
 
@@ -79,17 +79,14 @@ mosaic/
 ├── src/                  # 三层源码（见上）
 ├── tests/                # node --test，只测 parse/render 的纯函数 .mjs
 ├── docs/
-│   ├── README.md         # 各子目录的读者与职责边界；新增文档前先读它
-│   ├── _archive/         # 已完成 plan 的归档，每份顶部的状态块记录落点与
-│   │                     # **后来被推翻的项**——那才是归档的价值（当前为空）
+│   ├── _archive/         # 已完成 plan 的归档（当前为空）
 │   ├── _assets/          # 文档截图（模拟英文假数据，dark 主题实拍）
-│   ├── design/           # 每个区块的设计文档（why 与机制，无代码）
-│   ├── guides/           # 明细指导：各区块用法 / dataset 契约 / 发版步骤
-│   ├── plans/            # 正在执行的实施计划，做完移进 _archive/（当前为空）
-│   ├── policies/         # Obsidian 官方规范原文归档（带 source url），文件名
-│   │                     # 统一 obsidian- 前缀，与 Mosaic 自己的规则区分
-│   ├── research/         # 技术调研档案；现存三份图表引擎横评（AntV / ECharts
-│   │                     # / AG Charts），换引擎的决策尚未做出
+│   ├── design/           # 每个区块的设计文档
+│   ├── guides/           # 各区块用法 / dataset 契约 / 发版步骤
+│   ├── plans/            # 正在执行的实施计划（当前为空）
+│   ├── policies/         # Obsidian 官方规范原文归档
+│   ├── research/         # 技术调研档案；现存三份图表引擎横评（AntV /
+│   │                     # ECharts / AG Charts），换引擎的决策尚未做出
 │   └── *.md              # 介绍类：mosaic-intro（en 为准）与 zh 镜像
 ├── .github/workflows/    # ci.yml（PR 跑测试）+ release.yml（tag 触发出草稿 release）
 ├── scripts/              # verify-release-tag.mjs：校验 tag 与三处版本号一致
@@ -99,6 +96,21 @@ mosaic/
 ```
 
 - `main.js` 是构建产物，不进 git；分发走 GitHub Releases 三件套（main.js/manifest.json/styles.css）。
+
+## docs/ 的目录约束
+
+| 目录 | 放什么 | 不放什么 |
+| --- | --- | --- |
+| `guides/` | **how**：写法、属性表、payload 契约、报错清单、发版步骤 | 设计理由 |
+| `design/` | **why**：为什么这么设计，机制取舍与被否决的方案 | 属性明细、用法示例、代码 |
+| `policies/` | Obsidian 官方规范原文，带 source url 与抓取日期，文件名统一 `obsidian-` 前缀 | Mosaic 自己的规则（在本文） |
+| `research/` | 第三方技术调研，结论尚未落地 | 结论落地后的实施细节 |
+| `plans/` | 正在执行的实施计划 | 已经做完的（移进 `_archive/`） |
+| `_archive/` | 已完成 plan，状态块记录落点与**后来被推翻的项** | 写不出被推翻项的流水账——直接删，不必归档 |
+
+新文档按「读者是谁」一步定位：使用者要照着做 → `guides/`；改代码的人需要知道当初为什么这么定 → `design/`；别人定的规矩我们只管遵守 → `policies/`；「该不该换、该选哪个」→ `research/`；这一轮的任务拆分 → `plans/`。都不是，多半不该进这个仓库。
+
+同一件事在 `guides/` 与 `design/` 各有一份是常态——前者讲怎么写属性，后者讲这些属性为什么长这样。两边都写全，不要互相塞。
 
 ## 开发命令
 
