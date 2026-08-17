@@ -4,6 +4,8 @@
 
 [![简体中文](https://img.shields.io/badge/lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-informational?style=flat)](docs/README-zh.md)
 
+## Introduction
+
 **Turn a plain-text declaration in your note into a chart, table, timeline or diagram — rendered in place, with no external service and no change to your source file.**
 
 ![Inline combo chart rendered in reading view](docs/_assets/readme-chart.png)
@@ -20,19 +22,18 @@
 
 ## Contents
 
-- [Mosaic](#mosaic)
-  - [Contents](#contents)
-  - [Requirements](#requirements)
-  - [Installation](#installation)
-  - [Quick start](#quick-start)
-  - [Content blocks](#content-blocks)
-  - [Troubleshooting](#troubleshooting)
-  - [Roadmap](#roadmap)
-  - [Documentation](#documentation)
-  - [Privacy and disclosures](#privacy-and-disclosures)
-  - [Development](#development)
-  - [Contributing](#contributing)
-  - [License](#license)
+- [Introduction](#introduction)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Content blocks](#content-blocks)
+- [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
+- [Documentation](#documentation)
+- [Privacy and disclosures](#privacy-and-disclosures)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Requirements
 
