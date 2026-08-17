@@ -87,7 +87,8 @@ mosaic/
 │   ├── policies/         # Obsidian 官方规范原文归档
 │   ├── research/         # 技术调研档案；现存三份图表引擎横评（AntV /
 │   │                     # ECharts / AG Charts），换引擎的决策尚未做出
-│   └── *.md              # 介绍类：mosaic-intro（en 为准）与 zh 镜像
+│   └── *.md              # README-zh（根 README 的中文版，en 为准）、
+│                         # mosaic-intro（en 为准）与 zh 镜像
 ├── .github/workflows/    # ci.yml（PR 跑测试）+ release.yml（tag 触发出草稿 release）
 ├── scripts/              # verify-release-tag.mjs：校验 tag 与三处版本号一致
 ├── styles.css            # 插件样式（发布三件套之一）

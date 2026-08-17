@@ -4,6 +4,8 @@
 [![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md)
 [![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](LICENSE)
 
+*[中文版](docs/README-zh.md)*
+
 **Turn a plain-text declaration in your note into a chart, table, timeline or diagram — rendered in place, with no external service and no change to your source file.**
 
 ![Inline combo chart rendered in reading view](docs/_assets/readme-chart.png)
