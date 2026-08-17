@@ -1108,19 +1108,21 @@ function buildChartFromRows({ rows, attrs, attributes, xKey, common: baseCommon 
 		// 一样「进列就出」，而不是必须压在柱体上。
 		interaction: fresh(BAR_INTERACTION),
 	};
-	if (type === "grouped-bar")
-		return {
-			...common,
-			chartType: "Column",
-			config: { ...barConfig, group: true },
-		};
 	if (type === "stacked-bar")
 		return {
 			...common,
 			chartType: "Column",
 			config: { ...barConfig, stack: true },
 		};
-	return { ...common, chartType: "Column", config: barConfig }; // "bar"
+	// bar 与 grouped-bar 是同一张图的两个名字：一个系列画一根柱，n 个系列在每期
+	// 并排画 n 根。分开处理时 bar 走的是「既不 group 也不 stack」的 Column——
+	// G2 会把多个系列画在同一个位置上，最高的那根盖住其余的，只在底部露出一线。
+	// group 对单系列是空操作，所以两者共用这一条分支不改变单系列的任何输出。
+	return {
+		...common,
+		chartType: "Column",
+		config: { ...barConfig, group: true },
+	}; // "bar" / "grouped-bar"
 }
 
 export function buildChartFromTag({

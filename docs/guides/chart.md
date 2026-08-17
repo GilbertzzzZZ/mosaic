@@ -53,6 +53,8 @@ One contract shared by all three entries. In the tag forms, one attribute per li
 
 ## Chart types and display semantics
 
+- `bar` and `grouped-bar` are two names for the same chart: one series draws one column, and n series draw n columns side by side in every period. Write whichever name reads better.
+- `stacked-bar`: the same n series stacked into one column per period instead of placed side by side.
 - `combo`: one scale for both — the left and right axes are pinned to the same `min: 0` and the same max. Legend order follows the order the attributes are written in (write `lines` before `bars` and the line series come first).
 - `combo-dual-axis`: independent left and right axes, with bars always on the left.
 - Every chart adds 8% of headroom above its y-axis maximum (for stacked bars, computed on each period's total).

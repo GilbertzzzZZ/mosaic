@@ -148,6 +148,53 @@ test("grouped-bar maps to Column with grouped bars", () => {
 	assert.equal(r.config.group, true);
 });
 
+// bar 与 grouped-bar 是同一张图的两个名字。绑成一条断言而不是各测各的：
+// grouped-bar 的行为是既有的、已验证的那份，bar 与它逐字相等就必然跟着正确，
+// 日后 grouped-bar 怎么改，bar 都不会悄悄分家。
+test("bar and grouped-bar are two names for one chart", () => {
+	const csv = "period,Orders,Revenue\n2025-01,1180,42000\n2025-02,1260,45500";
+	const attrs = { title: "t", x: "period", series: "Orders,Revenue" };
+	const bar = buildChartFromInline({ attributes: { ...attrs, type: "bar" }, csv });
+	const grouped = buildChartFromInline({ attributes: { ...attrs, type: "grouped-bar" }, csv });
+	// 逐字比 JSON 而不是 deepEqual：配置里的 labelFormatter / tickMethod 是每次调用
+	// 新建的闭包，引用永远不等，但那不是两张图的差别。JSON 覆盖全部数据与开关，
+	// 键集合再补上被序列化丢掉的那几个函数字段。
+	assert.equal(JSON.stringify(bar), JSON.stringify(grouped));
+	assert.deepEqual(Object.keys(bar.config).sort(), Object.keys(grouped.config).sort());
+	assert.equal(bar.config.group, true);
+});
+
+// 多系列的 bar 曾经既不 group 也不 stack：G2 把每个系列画在同一个位置上，
+// 最高的那根盖住其余的，只在底部露出一线。n 个系列必须是 n 根并排的柱子。
+test("bar draws one column per series instead of stacking them on one spot", () => {
+	const r = buildChartFromTag({
+		manifest,
+		rows,
+		attributes: { ...base, type: "bar", series: "Total,Split", granularity: "month" },
+	});
+	assert.equal(r.chartType, "Column");
+	assert.equal(r.config.group, true);
+	assert.equal(r.config.stack, undefined);
+	// 两个系列各自成列，没有被合并掉
+	assert.deepEqual([...new Set(r.config.data.map((d) => d.series))].sort(), [
+		"Split",
+		"Total metric",
+	]);
+});
+
+// group 对单系列是空操作。柱宽（BAR_X_SCALE）和其余配置都不能因为这次合并而变。
+test("a single-series bar is untouched by grouping", () => {
+	const r = buildChartFromInline({
+		attributes: { title: "t", x: "period", type: "bar", series: "Orders", unit: "cny" },
+		csv: "period,Orders\n2025-01,1180\n2025-02,1260",
+	});
+	assert.equal(r.chartType, "Column");
+	assert.deepEqual(r.config.scale.x, { paddingInner: 0.5, paddingOuter: 0.25 });
+	assert.equal(r.config.stack, undefined);
+	assert.equal(r.config.data.length, 2);
+	assert.deepEqual([...new Set(r.config.data.map((d) => d.series))], ["Orders"]);
+});
+
 test("combo pins both implicit axes to one scale", () => {
 	const r = buildChartFromTag({
 		manifest,
