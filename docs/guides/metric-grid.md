@@ -1,6 +1,6 @@
 # MetricGrid
 
-*[中文版](metric-grid-zh.md)*
+<p align="center"><b>English</b> | <a href="metric-grid-zh.md">简体中文</a></p>
 
 > How to use the MetricGrid block: a set of metric cards in an adaptive grid, each with a status-colored border.
 > Two physical forms — a paired tag and a ```` ```metricgrid ```` code block. Same attribute contract, identical rendering.

@@ -1,6 +1,6 @@
 # Chart
 
-*[English](chart.md)*
+<p align="center"><a href="chart.md">English</a> | <b>简体中文</b></p>
 
 > Chart 内容块的使用指导（how）：一种图表，三种写法——自闭合标签、成对标签、代码块。
 > 三种写法共用同一套属性契约（见下文[属性表](#属性表)），同一属性无论写成哪种形态，渲染结果完全一致。

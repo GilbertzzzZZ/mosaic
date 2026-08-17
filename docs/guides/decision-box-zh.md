@@ -1,6 +1,6 @@
 # DecisionBox
 
-*[English](decision-box.md)*
+<p align="center"><a href="decision-box.md">English</a> | <b>简体中文</b></p>
 
 > DecisionBox 内容块的使用指导（how）：结构化的 label/value 决策清单，或空 payload 时回退成一段极简富文本。
 > 两种物理写法：成对标签与 ```` ```decisionbox ```` 代码块，同一套属性契约。只支持内联 payload——不支持 `dataset` 属性。

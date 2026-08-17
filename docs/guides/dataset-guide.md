@@ -1,6 +1,6 @@
 # External datasets
 
-*[中文版](dataset-guide-zh.md)*
+<p align="center"><b>English</b> | <a href="dataset-guide-zh.md">简体中文</a></p>
 
 > How to use external datasets: the manifest contract, the query semantics and a troubleshooting list. Chart and DataTable share all of this in their `dataset` mode — `from` / `to` / `granularity` / `granularityOptions`, the granularity switcher and the provenance footnote behave identically in both.
 > This page does not cover the tag syntax or attribute tables on the note side. For Chart see [chart.md](chart.md) (the single source of truth for attributes), for DataTable see [data-table.md](data-table.md). The rationale behind the contract is in the external-dataset section of [design/architecture.md](../design/architecture.md).

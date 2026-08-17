@@ -1,6 +1,6 @@
 # Chart
 
-*[中文版](chart-zh.md)*
+<p align="center"><b>English</b> | <a href="chart-zh.md">简体中文</a></p>
 
 > How to use the Chart block: one chart, three ways to write it — a self-closing tag, a paired tag, and a code block.
 > All three share the same attribute contract (see [Attributes](#attributes) below); a given attribute renders identically no matter which form it is written in.

@@ -1,6 +1,6 @@
 # DecisionBox
 
-*[中文版](decision-box-zh.md)*
+<p align="center"><b>English</b> | <a href="decision-box-zh.md">简体中文</a></p>
 
 > How to use the DecisionBox block: a structured label/value decision record, or — when the payload has no usable rows — a minimal rich-text fallback.
 > Two physical forms: a paired tag and a ```` ```decisionbox ```` code block, sharing one attribute contract. Inline payload only — no `dataset` attribute.

@@ -1,6 +1,6 @@
 # DataTable
 
-*[English](data-table.md)*
+<p align="center"><a href="data-table.md">English</a> | <b>简体中文</b></p>
 
 > DataTable 内容块的使用指导（how）：内联表格（CSV / JSON / Markdown 表）与外部数据集（`.dataset.json`）两种数据来源，共用一套渲染。
 > 两种物理写法：标签（成对标签为主，自闭合标签仅在 dataset 模式下才有意义）与 ```` ```datatable ```` 代码块。同一套属性契约，渲染结果完全一致。

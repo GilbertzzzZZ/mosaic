@@ -1,6 +1,6 @@
 # Tag syntax
 
-*[中文版](tag-syntax-zh.md)*
+<p align="center"><b>English</b> | <a href="tag-syntax-zh.md">简体中文</a></p>
 
 > Rules shared by all six tag entries (Chart / DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram): how the host splits paragraphs, attribute syntax, tag-body boundaries, the common row-extraction paths, and the cases that fall back to rendering the source as-is.
 > This page covers only what is identical across blocks. Per-block attribute tables, field contracts and quirks live in each block's own guide; the design rationale is in [architecture.md](../design/architecture.md).

@@ -1,6 +1,6 @@
 # 标签写法通则
 
-*[English](tag-syntax.md)*
+<p align="center"><a href="tag-syntax.md">English</a> | <b>简体中文</b></p>
 
 > 六类内容块标签入口（Chart / DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram）共用的写法规则：宿主段落规则、属性语法、标签体边界、通用行提取路径与「按原文渲染」情形。
 > 本文只讲跨组件一致的通则；各组件的属性表、字段契约与特有差异见各自的指导文档，设计动机见 [architecture.md](../design/architecture.md)。

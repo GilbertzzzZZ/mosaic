@@ -1,6 +1,6 @@
 # FlowDiagram
 
-*[English](flow-diagram.md)*
+<p align="center"><a href="flow-diagram.md">English</a> | <b>简体中文</b></p>
 
 > FlowDiagram 内容块的使用指导（how）：分层自动布局的流程图（SVG），两种互斥的 payload 形态——显式 graph JSON，或表格式行数据（`next` 列隐式生成边）。
 > 两种物理写法：成对标签与 ```` ```flowdiagram ```` 代码块，同一套属性契约，渲染结果完全一致。

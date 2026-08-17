@@ -1,8 +1,23 @@
-# Mosaic
+<!-- markdownlint-disable -->
 
-[![Release](https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=flat)](https://github.com/GilbertzzzZZ/mosaic/releases) [![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md) [![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](../LICENSE)
+<h1 align="center">Mosaic</h1>
 
-[![English](https://img.shields.io/badge/lang-English-informational?style=flat)](../README.md)
+<p align="center"><em>Obsidian 的声明式内容块</em></p>
+
+<p align="center">
+  <a href="https://github.com/GilbertzzzZZ/mosaic/releases"><img src="https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=for-the-badge&colorA=263238&colorB=4CAF50&label=VERSION" alt="Release"></a>
+  <a href="#六类内容块"><img src="https://img.shields.io/badge/Blocks-6-43A047?style=for-the-badge&colorA=263238&colorB=43A047" alt="Block types"></a>
+  <a href="https://obsidian.md"><img src="https://img.shields.io/badge/Obsidian-1.13.0%2B-7C3AED?style=for-the-badge&colorA=263238&colorB=7C3AED" alt="Obsidian"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-1976D2?style=for-the-badge&colorA=263238&colorB=1976D2" alt="License"></a>
+</p>
+
+<p align="center"><a href="../README.md">English</a> | <b>简体中文</b></p>
+
+<br />
+
+<p align="center">
+  <img src="_assets/readme-chart.png" alt="阅读视图中渲染的内联组合图" width="760" />
+</p>
 
 > 英文版为准，本文是镜像翻译。
 
@@ -10,17 +25,17 @@
 
 **在笔记里写一段纯文本声明，就地渲染成图表、表格、时间线或流程图——不依赖外部服务，也不改动源文件。**
 
-![阅读视图中渲染的内联组合图](_assets/readme-chart.png)
-
-![MetricGrid 与 Timeline 区块](_assets/readme-blocks.png)
-
-> **\<待补全\>** —— 两张截图早于当前的边框样式，会重拍。
-
 - **六类内容块，一套契约**——Chart、DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram，无论用哪种写法，读的都是同一套属性。
 - **每类都有两种写法**——标签（`<Chart …>`）或代码块（```` ```chart ````）。结果完全一致，挑一种能在你的编辑习惯下活下来的即可。
 - **数据留在原地**——笔记里的内联 CSV、JSON、Markdown 表格，或者 vault 里别处的 `.dataset.json` manifest。
 - **报错不会毁掉整页**——写坏的块只渲染一个内联错误框，附带准确的行号范围，笔记其余部分照常渲染。
 - **数据不出 vault**——无网络请求、无遥测、无账号、不执行代码。
+
+<p align="center">
+  <img src="_assets/readme-blocks.png" alt="MetricGrid 与 Timeline 区块" width="760" />
+</p>
+
+> **\<待补全\>** —— 两张截图早于当前的边框样式，会重拍。
 
 ## 目录
 

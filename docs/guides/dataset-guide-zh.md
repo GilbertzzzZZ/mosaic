@@ -1,6 +1,6 @@
 # 外部数据集渲染指导
 
-*[English](dataset-guide.md)*
+<p align="center"><a href="dataset-guide.md">English</a> | <b>简体中文</b></p>
 
 > 外部数据集的使用指导（how）：manifest 契约、查询语义与排错清单——Chart 与 DataTable 的 dataset 模式共用这一套（`from`/`to`/`granularity`/`granularityOptions`、粒度切换按钮、溯源脚注均一致）。
 > 本文不含正文侧的标签写法与属性表——Chart 见 [chart.md](chart-zh.md)（属性的单一权威源），DataTable 见 [data-table.md](data-table-zh.md)；契约设计动机见 [design/architecture.md](../design/architecture.md) 的外部数据集子系统一节。

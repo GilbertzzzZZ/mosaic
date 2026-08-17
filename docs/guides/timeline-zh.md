@@ -1,6 +1,6 @@
 # Timeline
 
-*[English](timeline.md)*
+<p align="center"><a href="timeline.md">English</a> | <b>简体中文</b></p>
 
 > Timeline 内容块的使用指导（how）：纵向时间线列表，每个节点按状态着色圆点。
 > 两种物理写法：成对标签与 ```` ```timeline ```` 代码块，同一套属性契约，渲染结果完全一致。

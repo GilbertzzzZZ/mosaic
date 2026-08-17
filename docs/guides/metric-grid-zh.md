@@ -1,6 +1,6 @@
 # MetricGrid
 
-*[English](metric-grid.md)*
+<p align="center"><a href="metric-grid.md">English</a> | <b>简体中文</b></p>
 
 > MetricGrid 内容块的使用指导（how）：一组指标卡片，自适应网格布局，卡片按状态着色边框。
 > 两种物理写法：成对标签与 ```` ```metricgrid ```` 代码块，同一套属性契约，渲染结果完全一致。

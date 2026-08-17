@@ -1,6 +1,6 @@
 # FlowDiagram
 
-*[中文版](flow-diagram-zh.md)*
+<p align="center"><b>English</b> | <a href="flow-diagram-zh.md">简体中文</a></p>
 
 > How to use the FlowDiagram block: an automatically layered flow diagram (SVG), with two mutually exclusive payload shapes — an explicit graph JSON, or tabular rows where a `next` column generates the edges.
 > Two physical forms: a paired tag and a ```` ```flowdiagram ```` code block. Same attribute contract, identical rendering.

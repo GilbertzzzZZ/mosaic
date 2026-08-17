@@ -1,6 +1,6 @@
 # DataTable
 
-*[中文版](data-table-zh.md)*
+<p align="center"><b>English</b> | <a href="data-table-zh.md">简体中文</a></p>
 
 > How to use the DataTable block: two data sources — an inline table (CSV / JSON / Markdown table) or an external dataset (`.dataset.json`) — feeding one shared rendering.
 > Two physical forms: a tag (usually paired; the self-closing form only makes sense in `dataset` mode) and a ```` ```datatable ```` code block. Same attribute contract, identical rendering.

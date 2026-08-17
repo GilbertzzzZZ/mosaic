@@ -1,24 +1,39 @@
-# Mosaic
+<!-- markdownlint-disable -->
 
-[![Release](https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=flat)](https://github.com/GilbertzzzZZ/mosaic/releases) [![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md) [![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](LICENSE)
+<h1 align="center">Mosaic</h1>
 
-[![简体中文](https://img.shields.io/badge/lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-informational?style=flat)](docs/README-zh.md)
+<p align="center"><em>Declarative content blocks for Obsidian</em></p>
+
+<p align="center">
+  <a href="https://github.com/GilbertzzzZZ/mosaic/releases"><img src="https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=for-the-badge&colorA=263238&colorB=4CAF50&label=VERSION" alt="Release"></a>
+  <a href="#content-blocks"><img src="https://img.shields.io/badge/Blocks-6-43A047?style=for-the-badge&colorA=263238&colorB=43A047" alt="Block types"></a>
+  <a href="https://obsidian.md"><img src="https://img.shields.io/badge/Obsidian-1.13.0%2B-7C3AED?style=for-the-badge&colorA=263238&colorB=7C3AED" alt="Obsidian"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-1976D2?style=for-the-badge&colorA=263238&colorB=1976D2" alt="License"></a>
+</p>
+
+<p align="center"><b>English</b> | <a href="docs/README-zh.md">简体中文</a></p>
+
+<br />
+
+<p align="center">
+  <img src="docs/_assets/readme-chart.png" alt="Inline combo chart rendered in reading view" width="760" />
+</p>
 
 ## Introduction
 
 **Turn a plain-text declaration in your note into a chart, table, timeline or diagram — rendered in place, with no external service and no change to your source file.**
-
-![Inline combo chart rendered in reading view](docs/_assets/readme-chart.png)
-
-![MetricGrid and Timeline blocks](docs/_assets/readme-blocks.png)
-
-> **\<pending\>** — both screenshots predate the current frame styling. They will be retaken.
 
 - **Six block types, one contract** — Chart, DataTable, MetricGrid, Timeline, DecisionBox and FlowDiagram all read the same attributes whichever way you write them.
 - **Two ways to write every block** — a tag (`<Chart …>`) or a code block (```` ```chart ````). Same result, so pick whichever survives your editing style.
 - **Your data stays where it is** — inline CSV, JSON or a Markdown table in the note, or an external `.dataset.json` manifest elsewhere in the vault.
 - **Errors never break the page** — a bad block renders one inline error box with the exact line range; the rest of the note renders normally.
 - **Nothing leaves your vault** — no network, no telemetry, no account, no code execution.
+
+<p align="center">
+  <img src="docs/_assets/readme-blocks.png" alt="MetricGrid and Timeline blocks" width="760" />
+</p>
+
+> **\<pending\>** — both screenshots predate the current frame styling. They will be retaken.
 
 ## Contents
 

@@ -1,6 +1,6 @@
 # Timeline
 
-*[中文版](timeline-zh.md)*
+<p align="center"><b>English</b> | <a href="timeline-zh.md">简体中文</a></p>
 
 > How to use the Timeline block: a vertical list of milestones, each with a status-colored dot.
 > Two physical forms — a paired tag and a ```` ```timeline ```` code block. Same attribute contract, identical rendering.
