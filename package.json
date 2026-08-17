@@ -1,6 +1,6 @@
 {
   "name": "mosaic",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Declarative content blocks for your notes: charts, data tables, timelines, metric cards, decision records and flow diagrams from inline CSV, JSON or dataset files.",
   "main": "main.js",
   "scripts": {
