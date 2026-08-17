@@ -25,10 +25,12 @@ jobs:
             const { verifyReleaseTag } = await import("./scripts/verify-release-tag.mjs");
             const fs = await import("node:fs");
             const read = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
+            const manifest = read("./manifest.json");
             const result = verifyReleaseTag({
               tag: process.env.GITHUB_REF.replace("refs/tags/", ""),
-              manifestVersion: read("./manifest.json").version,
+              manifestVersion: manifest.version,
               packageVersion: read("./package.json").version,
+              minAppVersion: manifest.minAppVersion,
               versionsJson: read("./versions.json"),
             });
             if (!result.ok) { console.error(`::error::${result.error}`); process.exit(1); }
@@ -44,6 +46,7 @@ jobs:
         with:
           subject-path: |
             main.js
+            manifest.json
             styles.css
       - name: Create draft release
         env:
