@@ -57,25 +57,34 @@ const LINE_STROKE = { lineWidth: 3 };
 // 恒为 S × S/3，与主题的 itemMarkerSize 无关，主题以后改那个值也不会坏。
 // .style 必填：useMarker 直接读 symbol.style.includes('stroke')，不设会 TypeError。
 // 取 fill 类而不是 stroke 类：fill 类的 lineWidth 恒为 0，不触发上面那层反向缩放。
+// 两端收成半圆。函数坐标到像素的系数是 6/r（长边 2r 归一到 itemMarkerSize=12），
+// 所以 2px 圆角就是 r/3——而横杠的半高恰好也是 r/3，两端因此正好收成整半圆。
+// 每端拆成两段 90° 弧而不是一段 180°：弧的终点落在 x±r 上，包围盒仍然由路径里的
+// 显式坐标给出，3:1 的长宽比不用靠解析圆弧才算得出来。
 const LEGEND_BAR_SYMBOL = "legendBar";
-const legendBar = (x, y, r) => [
-	["M", x - r, y - r / 3],
-	["L", x + r, y - r / 3],
-	["L", x + r, y + r / 3],
-	["L", x - r, y + r / 3],
-	["Z"],
-];
+const legendBar = (x, y, r) => {
+	const h = r / 3;
+	return [
+		["M", x - r + h, y - h],
+		["L", x + r - h, y - h],
+		["A", h, h, 0, 0, 1, x + r, y],
+		["A", h, h, 0, 0, 1, x + r - h, y + h],
+		["L", x - r + h, y + h],
+		["A", h, h, 0, 0, 1, x - r, y],
+		["A", h, h, 0, 0, 1, x - r + h, y - h],
+		["Z"],
+	];
+};
 legendBar.style = ["fill"];
 register(`symbol.${LEGEND_BAR_SYMBOL}`, legendBar);
 
 // 柱状系列的图例色块。内置的 "square" 是四个直角，与宿主界面里每一处圆角控件都不
 // 搭；自绘一个圆角方块换掉它，走的是上面那条同样的自定义形状通道。
-// 圆角取半边长的 1/3——12px 的色块得到 2px 圆角，和 Obsidian 自己的小控件同量级：
-// 再大就成了药丸，再小则在 12px 上根本看不出来。
-// 长宽都是 2r，与内置 square 的外接盒一致，所以归一化后尺寸不变，只有角变圆。
+// 圆角 3px：函数坐标到像素的系数是 6/r，所以 r/2 渲染出来正好 3px，占 12px 色块的
+// 四分之一边长。长宽都是 2r，与内置 square 的外接盒一致，归一化后尺寸不变，只有角变圆。
 const LEGEND_SQUARE_SYMBOL = "legendSquare";
 const legendSquare = (x, y, r) => {
-	const k = r / 3;
+	const k = r / 2;
 	return [
 		["M", x - r + k, y - r],
 		["L", x + r - k, y - r],

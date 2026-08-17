@@ -680,9 +680,14 @@ test("the legend bar is a fill shape with a 3:1 aspect, so 12 renders as 12x4", 
 	const symbol = Symbols.get("legendBar");
 	assert.ok(symbol, "the shape was never registered");
 	assert.deepEqual(symbol.style, ["fill"]); // useMarker reads .style directly
-	const [, ...points] = symbol(0, 0, 24).filter((seg) => seg[0] !== "Z");
-	const xs = points.map((p) => p[1]);
-	const ys = points.map((p) => p[2]);
+	// An arc segment is ["A", rx, ry, rotation, largeArc, sweep, x, y] — its
+	// endpoint is the last pair, not the first. The rounded ends put their
+	// extremes on those endpoints, so reading them keeps the box exact.
+	const points = symbol(0, 0, 24)
+		.filter((seg) => seg[0] !== "Z")
+		.map((seg) => (seg[0] === "A" ? [seg[6], seg[7]] : [seg[1], seg[2]]));
+	const xs = points.map((p) => p[0]);
+	const ys = points.map((p) => p[1]);
 	const width = Math.max(...xs) - Math.min(...xs);
 	const height = Math.max(...ys) - Math.min(...ys);
 	assert.equal(width / height, 3);
