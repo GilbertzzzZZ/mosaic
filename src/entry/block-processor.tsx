@@ -94,7 +94,7 @@ export function createBlockProcessor(
 		ctx.addChild(child);
 		try {
 			const parsed = parseBlockSource(source);
-			const blockAttributes = parsed.attributes as Record<string, string>;
+			const blockAttributes = parsed.attributes;
 			const blockContextWithDataset = blockAttributes.dataset
 				? { ...context, dataset: blockAttributes.dataset }
 				: context;

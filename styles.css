@@ -241,7 +241,9 @@
 	position: relative;
 	display: grid;
 	grid-template-columns: 18px minmax(0, 1fr);
-	column-gap: 10px;
+	/* 用简写 gap 写列间距：这里是单行 grid，与 CSS 多栏排版（multicolumn）无关，
+	   但目录审核按属性名归类，长写法会被报成「Obsidian 仅部分支持的浏览器特性」。 */
+	gap: 0 10px;
 }
 /* 条目间距必须从列表容器写起。Obsidian 自己的 `.markdown-preview-view ol > li`
    （一个类名加两个元素）比单独一个 `.mosaic-timeline-item`（一个类名）更具体，

@@ -79,7 +79,7 @@ export default class MosaicPlugin extends Plugin {
 
 		try {
 			this.registerExtensions(["mdx"], "markdown");
-		} catch (error) {
+		} catch {
 			// .mdx 已被其他插件注册时的预期冲突：静默降级，本插件其余功能不受影响。
 		}
 	}
@@ -95,7 +95,7 @@ export default class MosaicPlugin extends Plugin {
 		for (const teardown of [...this.teardowns]) {
 			try {
 				teardown();
-			} catch (error) {
+			} catch {
 				// 卸载路径没有可恢复动作，继续清理剩下的。
 			}
 		}

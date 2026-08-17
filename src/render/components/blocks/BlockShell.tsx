@@ -160,9 +160,14 @@ export const BlockNotice = ({
 	</p>
 );
 
-/** 剪贴板写入的唯一出口：宿主是 Chromium，navigator.clipboard 恒在，仍按可选调用。 */
+/**
+ * 剪贴板写入的唯一出口：宿主是 Chromium，navigator.clipboard 恒在，仍按可选调用。
+ * writeText 返回的 Promise 必须自己接住：窗口失焦时 Chromium 会拒绝写入，没有
+ * rejection handler 就是一条 unhandled rejection 打进开发者控制台——本插件对
+ * console 噪音是零容忍。复制定位上下文是辅助动作，失败不该打断阅读，所以静默吞掉。
+ */
 export function copyToClipboard(text: string): void {
-	navigator.clipboard?.writeText(text);
+	navigator.clipboard?.writeText(text).catch(() => {});
 }
 
 // 区块自有的头部零件。五类里只有 DecisionBox 用得上（kicker + 徽章 + 状态 class），

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Chart, ConfigProps, PlotInstance } from "./Chart";
+import { Chart, PlotInstance } from "./Chart";
 import { GranularityButtons } from "./GranularityButtons";
 import {
 	BlockContext,
@@ -201,7 +201,7 @@ export const ChartFigure = ({
 				) : (
 					<Chart
 						type={built.chartType}
-						config={built.config as ConfigProps}
+						config={built.config}
 						onInstance={(instance) => {
 							plotRef.current = instance;
 						}}
