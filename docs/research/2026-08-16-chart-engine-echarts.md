@@ -1,6 +1,6 @@
 # Apache ECharts 选型调研
 
-调研对象：Apache ECharts **6.1.0**（本地源码 `references/chart-engines/echarts`，commit `30076ae`，2026-08-04；npm `echarts@6.1.0` 发布于 2026-05-19）
+调研对象：Apache ECharts **6.1.0**（源码 checkout，commit `30076ae`，2026-08-04；npm `echarts@6.1.0` 发布于 2026-05-19）
 调研日期：2026-08-16
 取证方式：源码逐行核实为主，实测打包为辅，官方文档只在源码无法回答时引用
 
