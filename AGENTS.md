@@ -44,10 +44,12 @@ mosaic/
 │   │                     # **后来被推翻的项**——那才是归档的价值所在
 │   ├── _assets/          # 文档截图（模拟英文假数据，dark 主题实拍）
 │   ├── design/           # 每个区块的设计文档（why 与机制，无代码）
-│   ├── guides/           # 明细指导：各区块用法 / dataset 契约
-│   ├── policies/         # 发版须遵守的 Obsidian 官方规范原文归档（带 source url）
+│   ├── guides/           # 明细指导：各区块用法 / dataset 契约 / 发版操作步骤
+│   ├── policies/         # 发版须遵守的 Obsidian 官方规范原文归档（带 source url），
+│   │                     # 文件名统一 obsidian- 前缀，与 Mosaic 自己的规则区分
 │   ├── plans/            # 实施计划，随仓库分发
-│   ├── research/         # 调研档案（当前为空，.gitkeep 占位）
+│   ├── research/         # 调研档案；现存三份图表引擎横评（AntV / ECharts /
+│   │                     # AG Charts），换引擎的决策尚未做出
 │   └── *.md              # 介绍类：mosaic-intro（en 为准）与 zh 镜像
 ├── styles.css            # 插件样式（发布三件套之一）
 ├── manifest.json         # 插件清单（发布三件套之一）
@@ -87,7 +89,8 @@ npm run install:vault  # build + 拷三件套到测试 vault
 
 ## 上架合规（marketplace）
 
-- 官方规范原文归档在 [docs/guides/](docs/guides/)：Developer policies、Submission requirements、Plugin guidelines、self-critique checklist。改 UI/设置页/manifest 前先对照。
+- 官方规范原文归档在 [docs/policies/](docs/policies/)，四篇均带 `obsidian-` 前缀：developer-policies、submission-requirements、plugin-guidelines、plugin-self-critique-checklist。改 UI/设置页/manifest 前先对照。
+- 发版操作步骤在 [docs/guides/publishing-to-obsidian.md](docs/guides/publishing-to-obsidian.md)。注意官方流程已改版：提交社区目录走 community.obsidian.md，**不再向 obsidian-releases 提 PR**。
 - 已达成并必须保持：无 console 噪音、无 innerHTML、无网络请求、无遥测、UI 文案英文 sentence case、设置页无标题、build 必过 typecheck、`main.js` 不进 git。
 
 ## Git 规则
