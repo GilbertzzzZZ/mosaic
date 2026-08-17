@@ -79,15 +79,15 @@ mosaic/
 ├── src/                  # 三层源码（见上）
 ├── tests/                # node --test，只测 parse/render 的纯函数 .mjs
 ├── docs/
-│   ├── _archive/         # 已完成 plan 的归档（当前为空）
+│   ├── _archive/         # 已完成 plan 的归档
 │   ├── _assets/          # 文档截图（模拟英文假数据，dark 主题实拍）
 │   ├── design/           # 每个区块的设计文档
 │   ├── guides/           # 各区块用法 / dataset 契约 / 发版步骤；八篇用户
 │   │                     # 指导双语成对（xxx.md 英文为准 + xxx-zh.md）
-│   ├── plans/            # 正在执行的实施计划（当前为空）
+│   ├── plans/            # 正在执行的实施计划，做完移进 _archive/
 │   ├── policies/         # Obsidian 官方规范原文归档
-│   ├── research/         # 技术调研档案；现存三份图表引擎横评（AntV /
-│   │                     # ECharts / AG Charts），换引擎的决策尚未做出
+│   ├── research/         # 技术调研档案：候选方案的能力边界、许可证、
+│   │                     # 维护状态与实测数据，结论落地前放这里
 │   └── *.md              # README-zh（根 README 的中文版，en 为准）、
 │                         # mosaic-intro（en 为准）与 zh 镜像
 ├── .github/workflows/    # ci.yml（PR 跑测试）+ release.yml（tag 触发出草稿 release）
