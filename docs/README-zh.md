@@ -3,8 +3,9 @@
 [![Release](https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=flat)](https://github.com/GilbertzzzZZ/mosaic/releases)
 [![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md)
 [![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](../LICENSE)
+[![English](https://img.shields.io/badge/lang-English-informational?style=flat)](../README.md)
 
-> 本文是 [README.md](../README.md) 的中文版，英文版为准。
+> 英文版为准，本文是镜像翻译。
 
 **在笔记里写一段纯文本声明，就地渲染成图表、表格、时间线或流程图——不依赖外部服务，也不改动源文件。**
 
