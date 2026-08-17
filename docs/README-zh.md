@@ -129,7 +129,7 @@ Chart 还有第三种写法：由外部数据集 manifest 驱动的自闭合标�
 />
 ```
 
-完整属性表与报错清单见 [guides/chart.md](guides/chart.md)。
+完整属性表与报错清单见 [guides/chart.md](guides/chart-zh.md)。
 
 </details>
 
@@ -149,7 +149,7 @@ INC-111,billing,low,carol
 
 `columns` 决定显示哪些列、按什么顺序；不写则渲染找到的全部列。payload 也可以是 JSON 或普通的 Markdown 表格。
 
-完整属性表见 [guides/data-table.md](guides/data-table.md)。
+完整属性表见 [guides/data-table.md](guides/data-table-zh.md)。
 
 </details>
 
@@ -169,7 +169,7 @@ Avg order value,$88,+1%,flat,watch
 
 `status` 归一化为四个桶：`good`、`risk`、`watch` 与默认的 `neutral`。`delta` 以 `+` 或 `-` 开头时卡片会自行着色，`status` 可以不写。
 
-完整契约见 [guides/metric-grid.md](guides/metric-grid.md)。
+完整契约见 [guides/metric-grid.md](guides/metric-grid-zh.md)。
 
 </details>
 
@@ -191,7 +191,7 @@ Avg order value,$88,+1%,flat,watch
 
 `status` 归一化为 `done`、`blocked`、`active` 与 `default`。没有必填字段——一行全空也只是渲染出一个空节点，而不是报错。
 
-完整契约见 [guides/timeline.md](guides/timeline.md)。
+完整契约见 [guides/timeline.md](guides/timeline-zh.md)。
 
 </details>
 
@@ -211,7 +211,7 @@ Alternatives,Postgres (too heavy), flat files (no queries)
 
 `status` 接受 `accepted`、`proposed`、`rejected` 与 `superseded`，各有自己的强调色。DecisionBox 是唯一一个在非结构化 payload 下也不报错的内容块——写一段话而不是若干行，它就按散文渲染。
 
-完整契约见 [guides/decision-box.md](guides/decision-box.md)。
+完整契约见 [guides/decision-box.md](guides/decision-box-zh.md)。
 
 </details>
 
@@ -249,7 +249,7 @@ c,Resolve,end,
 </FlowDiagram>
 ````
 
-完整契约见 [guides/flow-diagram.md](guides/flow-diagram.md)。
+完整契约见 [guides/flow-diagram.md](guides/flow-diagram-zh.md)。
 
 </details>
 
@@ -281,14 +281,14 @@ c,Resolve,end,
 各内容块的参考指导都是中文，每篇都带完整属性表、payload 契约与报错清单。`mosaic-intro` 以英文版为准，中文版是镜像翻译。
 
 - [Mosaic intro 中文版](mosaic-intro-zh.md)（[English](mosaic-intro.md) 为准）——定位、架构与 Roadmap
-- [标签写法通则](guides/tag-syntax.md)——所有标签共用的写法规则、行提取、按原文渲染的情形
-- [Chart](guides/chart.md)——三种写法、完整属性表、报错示例
-- [DataTable](guides/data-table.md)——内联表格或外部数据集
-- [MetricGrid](guides/metric-grid.md)——按状态着色的指标卡片
-- [Timeline](guides/timeline.md)——按状态着色的纵向时间线
-- [DecisionBox](guides/decision-box.md)——结构化 label/value 清单，或自由文本回退
-- [FlowDiagram](guides/flow-diagram.md)——自动布局流程图，graph JSON 或行数据形态
-- [Dataset 指导](guides/dataset-guide.md)——数据集 manifest 契约、查询语义、排错
+- [标签写法通则](guides/tag-syntax-zh.md)——所有标签共用的写法规则、行提取、按原文渲染的情形
+- [Chart](guides/chart-zh.md)——三种写法、完整属性表、报错示例
+- [DataTable](guides/data-table-zh.md)——内联表格或外部数据集
+- [MetricGrid](guides/metric-grid-zh.md)——按状态着色的指标卡片
+- [Timeline](guides/timeline-zh.md)——按状态着色的纵向时间线
+- [DecisionBox](guides/decision-box-zh.md)——结构化 label/value 清单，或自由文本回退
+- [FlowDiagram](guides/flow-diagram-zh.md)——自动布局流程图，graph JSON 或行数据形态
+- [Dataset 指导](guides/dataset-guide-zh.md)——数据集 manifest 契约、查询语义、排错
 
 设计说明（为什么这么设计）：[architecture](design/architecture.md)，以及 [design/](design/) 下每类内容块各一篇。
 

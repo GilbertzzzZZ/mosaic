@@ -1,6 +1,6 @@
 # DataTable 区块设计
 
-> DataTable 的核心设计是「一套呈现，宽度自适应」：列宽与布局模式由内容测量决定，内联与外部数据集两种来源共用同一个视图。本文解释这些判定为什么这么定。用法与属性表见 [../guides/data-table.md](../guides/data-table.md)。
+> DataTable 的核心设计是「一套呈现，宽度自适应」：列宽与布局模式由内容测量决定，内联与外部数据集两种来源共用同一个视图。本文解释这些判定为什么这么定。用法与属性表见 [../guides/data-table.md](../guides/data-table-zh.md)。
 
 ## 曾经的复杂度启发式，以及它为什么被删掉
 
@@ -56,4 +56,4 @@ dataset 模式的粒度按钮组采用与 Chart 相同的受控重建模式：ma
 
 - [architecture.md](architecture.md)——外部数据集契约、错误哲学
 - [chart.md](chart.md)——共用查询语义与受控重建模式的姊妹区块
-- [../guides/data-table.md](../guides/data-table.md) / [../guides/dataset-guide.md](../guides/dataset-guide.md)——用法、属性表与排错清单
+- [../guides/data-table.md](../guides/data-table-zh.md) / [../guides/dataset-guide.md](../guides/dataset-guide-zh.md)——用法、属性表与排错清单

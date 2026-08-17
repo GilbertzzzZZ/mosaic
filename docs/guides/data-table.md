@@ -1,15 +1,17 @@
 # DataTable
 
-> DataTable 内容块的使用指导（how）：内联表格（CSV / JSON / Markdown 表）与外部数据集（`.dataset.json`）两种数据来源，共用一套渲染。
-> 两种物理写法：标签（成对标签为主，自闭合标签仅在 dataset 模式下才有意义）与 ```` ```datatable ```` 代码块。同一套属性契约，渲染结果完全一致。
-> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；布局算法与双数据源的设计动机见 [design/data-table.md](../design/data-table.md)。
+*[中文版](data-table-zh.md)*
 
-## 写法
+> How to use the DataTable block: two data sources — an inline table (CSV / JSON / Markdown table) or an external dataset (`.dataset.json`) — feeding one shared rendering.
+> Two physical forms: a tag (usually paired; the self-closing form only makes sense in `dataset` mode) and a ```` ```datatable ```` code block. Same attribute contract, identical rendering.
+> Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the layout algorithm and the two data sources is in [design/data-table.md](../design/data-table.md).
 
-**成对标签 · 内联数据**（主要形式）：属性写在开标签上，payload 写在标签体内。
+## Writing it
+
+**Paired tag, inline data** (the main form). Attributes go on the opening tag, the payload goes in the body.
 
 ````text
-<DataTable title="示例明细" columns="item,amount,note">
+<DataTable title="Line items" columns="item,amount,note">
 ```csv
 item,amount,note
 sample-a,10,ok
@@ -18,27 +20,27 @@ sample-b,5,watch
 </DataTable>
 ````
 
-- 写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
+- Writing boundaries — single-line opening tag, no blank lines in the body, quoting forms and the `=` rule, a closing tag alone on its line and case-sensitive — are in [tag-syntax.md](tag-syntax.md).
 
-**自闭合标签 · dataset 模式**（body 允许为空，因此只有引用外部数据集时才常见）：
+**Self-closing tag, dataset mode** (an empty body is allowed, so this form is only common when referencing an external dataset):
 
 ```text
 <DataTable
   dataset="demo.dataset.json"
-  columns="AnchorDate,营收"
+  columns="AnchorDate,Revenue"
   granularity="month"
   granularityOptions="month,quarter"
 />
 ```
 
-- 五类组件的标签解析都支持自闭合语法，但 DataTable 之外的四类（MetricGrid / Timeline / DecisionBox / FlowDiagram）没有 payload 就没有数据可渲染——自闭合写它们要么直接报空数据错误，要么（仅 DecisionBox）渲染出一个空壳，通常没有实际意义。
+- All five blocks parse self-closing tags, but the other four (MetricGrid / Timeline / DecisionBox / FlowDiagram) have nothing to render without a payload. Written self-closing, they either error on empty data or — DecisionBox only — render an empty shell. Neither is usually what you want.
 
-**代码块 · 内联数据**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。
+**Code block, inline data.** Attributes go in a `---` block (flat `key: value`, one per line, values may be quoted, `#` starts a comment) and the payload follows the closing `---`.
 
 ````text
 ```datatable
 ---
-title: "示例明细"
+title: "Line items"
 columns: "item,amount,note"
 ---
 item,amount,note
@@ -47,111 +49,111 @@ sample-b,5,watch
 ```
 ````
 
-**代码块 · dataset 模式**：只写属性区，不写 payload。
+**Code block, dataset mode.** Attributes only, no payload.
 
 ````text
 ```datatable
 ---
 dataset: "demo.dataset.json"
-columns: "AnchorDate,营收"
+columns: "AnchorDate,Revenue"
 granularity: month
 granularityOptions: "month,quarter"
 ---
 ```
 ````
 
-- **payload 裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```csv ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
-- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，表照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
-- 属性名与语义和写在哪里无关：下面这张表对两种写法同时成立。
+- **Write the payload bare — do not wrap it in another fence.** A paired tag needs its payload inside a ` ```csv ` fence; a code block does not, because the payload is already inside one. Write an inner fence of the same length and the host reads it as the closing fence of the outer block, truncating everything from that line on.
+- The opening and closing `---` are hard boundaries — miss one and the whole block errors. The attribute lines themselves are forgiving: malformed lines are skipped, the table renders anyway, and the notice bar names which lines were skipped. Only when not a single attribute can be read does the whole block fall back.
+- Attribute names and meanings do not depend on where you write them: the table below holds for both forms.
 
-## 属性表
+## Attributes
 
-| 属性 | 说明 | 默认值 |
+| Attribute | What it does | Default |
 | --- | --- | --- |
-| `title` | 表格标题，渲染在区块头部（与另外四类同一个位置，切原文时不会跟着消失） | 无标题则不渲染 |
-| `columns` | 逗号分隔的列名列表，覆盖自动推断的列顺序 | 未设置时 = 所有行 key 的并集，按首次出现顺序 |
-| `dataset` | 外部 `.dataset.json` manifest 的相对路径，出现即切换到 dataset 模式 | 无 |
-| `granularity` | dataset 模式下的展示粒度 | `auto` |
-| `granularityOptions` | dataset 模式下允许的粒度集合，逗号分隔，每项须 ∈ `day/week/month/quarter` | `day,week,month,quarter` |
-| `from` / `to` | dataset 模式下的日期范围闭区间 | 无 |
+| `title` | Table title, rendered in the block header (same position as the other four blocks, so it does not disappear when you switch to source) | no title rendered |
+| `columns` | Comma-separated column list; overrides the inferred column order | the union of all row keys, in order of first appearance |
+| `dataset` | Relative path to an external `.dataset.json` manifest; its presence switches on dataset mode | none |
+| `granularity` | Display granularity in dataset mode | `auto` |
+| `granularityOptions` | Allowed granularities in dataset mode, comma-separated; each must be one of `day` / `week` / `month` / `quarter` | `day,week,month,quarter` |
+| `from` / `to` | Inclusive date range in dataset mode | none |
 
-> **一张 DataTable 只有一套呈现，与它多大无关。** 曾经有一层「复杂度自动判定」：行数或列数过了阈值就自动长出过滤框、冻结首列勾选框、Copy CSV 按钮和表头吸顶，并有 `complexity` / `search` / `freeze` / `copyCsv` / `sticky` 五个属性可以覆盖。整套已删除——触发线是数据的物理尺寸，与「这张表需不需要这些功能」毫无关系，结果是同样写 `<DataTable>`，读者会看到两种不同的组件。
+> **A DataTable renders one way, whatever its size.** There used to be a complexity heuristic: past a row or column threshold the table would sprout a filter box, a freeze-first-column checkbox, a Copy CSV button and a sticky header, with five attributes — `complexity` / `search` / `freeze` / `copyCsv` / `sticky` — to override it. The whole thing is gone. The trigger was the physical size of the data, which has nothing to do with whether a given table needs those features, and the result was that the same `<DataTable>` showed readers two different components.
 >
-> 唯一保留的自动行为是**布局宽度**（`fit` / `wrap` / `scroll`），那是同样的内容在不同容器宽度下的摆放，不是功能差异。
+> The one automatic behaviour that stays is **layout width** (`fit` / `wrap` / `scroll`), which is the same content arranged for different container widths — not a difference in features.
 
-**`columnLabels` 陷阱**：DataTable 支持一个「列显示名映射」概念，但它**只能通过 dataset 查询结果自动生成**（取 manifest 里每个字段的 `label`），**不能**当作标签属性直接写。标签属性解析永远产出字符串，`columnLabels="..."` 无论写什么都会被判定「不是对象」而静默忽略，表头依旧显示原始列名。想要自定义表头文案，请在 manifest 的 `fields[].label` 里声明（见 [dataset-guide.md](dataset-guide.md)），而不是在标签上加这个属性。
+**The `columnLabels` trap.** DataTable does have a notion of column display names, but it is **generated automatically from a dataset query** (taking each field's `label` from the manifest) and **cannot** be written as a tag attribute. Tag attribute parsing always produces strings, so `columnLabels="..."` — whatever you write — is judged "not an object" and silently ignored, leaving the raw column names in the header. To customise header text, declare it in the manifest's `fields[].label` (see [dataset-guide.md](dataset-guide.md)) rather than adding this attribute to the tag.
 
-## Payload 契约
+## Payload contract
 
-**内联模式**（无 `dataset` 属性时）：标签体走[通用行提取四路径](tag-syntax.md#通用行提取四路径)。DataTable 特有的两条规则：
+**Inline mode** (no `dataset` attribute). The body goes through the [four row-extraction paths](tag-syntax.md#the-four-row-extraction-paths). Two rules are specific to DataTable:
 
-- **不对字段名做别名归一化**：列名就是原始 key（除非 `columns` 属性重排/裁剪）。
-- **数字嗅探**：只有严格匹配 `^-?\d+(?:\.\d+)?$`（纯整数或小数）的单元格会转成数字，其余（含空字符串、日期、`"12%"`、`"1,234"`）保持字符串原样展示。
+- **No field-alias normalisation.** Column names are the raw keys, unless `columns` reorders or trims them.
+- **Number sniffing.** Only cells matching `^-?\d+(?:\.\d+)?$` exactly (a plain integer or decimal) become numbers. Everything else — empty strings, dates, `"12%"`, `"1,234"` — stays a string and is displayed verbatim.
 
-**dataset 模式**（有 `dataset` 属性时）：**与内联 payload 完全互斥**。行数据 100% 来自外部 manifest + 数据文件，**body 必须为空**，时间范围写成 `from` / `to` 属性：
+**Dataset mode** (with a `dataset` attribute). **Completely exclusive with an inline payload.** Rows come entirely from the external manifest plus its data file, **the body must be empty**, and the time range is written as `from` / `to` attributes:
 
 ````text
-<DataTable dataset="demo.dataset.json" columns="AnchorDate,营收" from="2025-01-01" to="2025-06-01" />
+<DataTable dataset="demo.dataset.json" columns="AnchorDate,Revenue" from="2025-01-01" to="2025-06-01" />
 ````
 
-代码块写法一字不差，同样 body 为空：
+The code-block form is identical, body still empty:
 
 ````text
 ```datatable
 ---
 dataset: "demo.dataset.json"
-columns: "AnchorDate,营收"
+columns: "AnchorDate,Revenue"
 from: "2025-01-01"
 to: "2025-06-01"
 ---
 ```
 ````
 
-> **body 里曾经可以写一个 ` ```query ` 围栏**（JSON 对象，含 `from` / `to` / `where`）。已移除：`where`（按字段过滤）是它唯一能表达而属性表达不了的东西，而全仓扫描下来真实笔记里一次都没用过；围栏本身还写不进代码块——同长度的内层围栏会把外层关掉——白白让 DataTable 的两种写法不等价。真需要按字段过滤时，加一个属性即可，不必重开一套 body 语法。
+> **The body used to accept a ` ```query ` fence** — a JSON object with `from` / `to` / `where`. It was removed. `where` (filtering by field) was the only thing it could express that attributes cannot, and a full scan of real notes turned up not one use of it. The fence also could not be written inside a code block — an inner fence of the same length closes the outer one — so it made DataTable's two forms non-equivalent for nothing. If field filtering is ever genuinely needed, one more attribute will do; there is no need for a second body syntax.
 
-粒度按钮组、溯源脚注（数据集标题 · 生效窗口 · 粒度 · N/M source rows · data through）、时间对齐校验、`rollup` 语义与 dataset manifest 契约本身，与 Chart 完全一致，见 [dataset-guide.md](dataset-guide.md)。唯一的差异：Chart 会因为「图表可读密度上限 120 点」剔除过密的粒度选项，DataTable **不受此限制**，所有安全粗化后的粒度都保留在候选集合里。
+The granularity switcher, the provenance footnote (dataset title · effective window · granularity · N/M source rows · data through), time-alignment validation, `rollup` semantics and the dataset manifest contract itself are all identical to Chart — see [dataset-guide.md](dataset-guide.md). One difference: Chart drops overly dense granularity options at its 120-point readability ceiling, whereas DataTable has **no such limit** and keeps every safely coarsened granularity in the candidate set.
 
-### 报错示例
+### Error examples
 
-红色错误框（就地透出根因，前缀均为 `Mosaic: `）：
+Red error box, root cause surfaced in place, always prefixed with `Mosaic: `:
 
 ```text
-内联 payload 为空或列集合为空
+Empty inline payload, or an empty column set
 → Mosaic: DataTable requires CSV, JSON, or a Markdown table.
 
-dataset 模式的 body 非空（互斥冲突，写什么都一样）
+A non-empty body in dataset mode (they are exclusive; the content does not matter)
 → Mosaic: Provide either dataset= or an inline body, not both.
 
-dataset 属性值为空字符串
+An empty dataset attribute value
 → Mosaic: dataset must point to a .dataset.json manifest.
 
-granularity 不在 granularityOptions 展开的集合里
+granularity outside the set expanded from granularityOptions
 → Mosaic: granularity must be included in granularityOptions.
 
-granularityOptions 出现 day/week/month/quarter 之外的值
+granularityOptions containing anything but day/week/month/quarter
 → Mosaic: granularityOptions supports day, week, month, and quarter.
 ```
 
-dataset 模式下更深层的查询报错（时间对齐、粒度粗化、`where` 校验、`rollup` 缺失等）与 Chart 共用同一套查询语义，完整列表见 [dataset-guide.md](dataset-guide.md) 排错清单。
+Deeper query errors in dataset mode — time alignment, granularity coarsening, `rollup` gaps — share their query semantics with Chart; the full list is in the troubleshooting section of [dataset-guide.md](dataset-guide.md).
 
-按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
+The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
 
-## 渲染效果
+## What it looks like
 
-> 示例截图一律使用模拟假数据（dark 主题实拍）。三种内联 payload（CSV / JSON / Markdown 表格）渲染效果一致，不分开截图。
+> Screenshots always use simulated data, captured live in the dark theme. The three inline payload forms (CSV / JSON / Markdown table) render identically and are not screenshotted separately.
 >
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
 
-上：内联 CSV；下：dataset 模式（month/quarter 粒度按钮组，表头显示 manifest label）。
+Top: inline CSV. Bottom: dataset mode, with a month/quarter granularity switcher and header text from the manifest labels.
 
-> **<待补全>**：这张图拍摄于工具栏删除之前，上半张里的搜索框 / 冻结首列 / 复制 CSV 都已不存在。现在两种模式的表格本体一模一样，只有 dataset 模式多一组粒度按钮和一行脚注。
+> **\<pending\>**: this image predates the toolbar removal — the search box, freeze-first-column checkbox and Copy CSV button in the top half no longer exist. Today the table itself is identical in both modes; dataset mode simply adds a granularity switcher and a footnote.
 
 ![DataTable inline and dataset modes](../_assets/data-table.png)
 
-## 相关文档
+## Related
 
-- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
-- [dataset-guide.md](dataset-guide.md)——dataset 模式共用的 manifest 契约、查询语义、排错清单
-- [chart.md](chart.md)——Chart 内容块，dataset 模式的姊妹实现
-- [design/data-table.md](../design/data-table.md)——布局算法与双数据源设计动机
-- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap
+- [tag-syntax.md](tag-syntax.md) — shared tag rules and the common row-extraction rules
+- [dataset-guide.md](dataset-guide.md) — the manifest contract, query semantics and troubleshooting shared by dataset mode
+- [chart.md](chart.md) — the Chart block, dataset mode's sibling implementation
+- [design/data-table.md](../design/data-table.md) — why this layout algorithm and these two data sources
+- [mosaic-intro.md](../mosaic-intro.md) — overall positioning and roadmap

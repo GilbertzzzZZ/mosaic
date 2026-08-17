@@ -1,107 +1,109 @@
 # MetricGrid
 
-> MetricGrid 内容块的使用指导（how）：一组指标卡片，自适应网格布局，卡片按状态着色边框。
-> 两种物理写法：成对标签与 ```` ```metricgrid ```` 代码块，同一套属性契约，渲染结果完全一致。
-> 只支持内联 payload——不支持 `dataset` 属性，也不支持自闭合标签（body 为空时直接报错）。
-> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；网格自适应与状态色的设计动机见 [design/metric-grid.md](../design/metric-grid.md)。
+*[中文版](metric-grid-zh.md)*
 
-## 写法
+> How to use the MetricGrid block: a set of metric cards in an adaptive grid, each with a status-colored border.
+> Two physical forms — a paired tag and a ```` ```metricgrid ```` code block. Same attribute contract, identical rendering.
+> Inline payload only: no `dataset` attribute, and no self-closing form (an empty body is an error).
+> Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the adaptive grid and the status colors is in [design/metric-grid.md](../design/metric-grid.md).
 
-属性写在开标签上，payload 写在标签体内：
+## Writing it
+
+Attributes go on the opening tag, the payload goes in the body:
 
 ````text
-<MetricGrid title="示例指标">
+<MetricGrid title="This week">
 ```csv
 label,value,delta,note,status
-月活,1.2万,+5%,同比增长,good
-留存率,42%,-3%,需关注,watch
-客单价,88元,+1%,环比持平,neutral
+Active users,12.4k,+5%,vs last week,good
+Retention,42%,-3%,needs attention,watch
+Avg order value,$88,+1%,flat,neutral
 ```
 </MetricGrid>
 ````
 
-写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
+Writing boundaries — single-line opening tag, no blank lines in the body, quoting forms and the `=` rule, a closing tag alone on its line and case-sensitive — are in [tag-syntax.md](tag-syntax.md).
 
-**代码块写法**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。
+**Code-block form.** Attributes go in a `---` block (flat `key: value`, one per line, values may be quoted, `#` starts a comment) and the payload follows the closing `---`.
 
 ````text
 ```metricgrid
 ---
-title: "示例指标"
+title: "This week"
 ---
 label,value,delta,note,status
-月活,1.2万,+5%,同比增长,good
-留存率,42%,-3%,需关注,watch
-客单价,88元,+1%,环比持平,neutral
+Active users,12.4k,+5%,vs last week,good
+Retention,42%,-3%,needs attention,watch
+Avg order value,$88,+1%,flat,neutral
 ```
 ````
 
-- **payload 裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```csv ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
-- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，网格照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
-- payload 契约（[下文](#payload-契约)）对两种写法同时成立。
+- **Write the payload bare — do not wrap it in another fence.** A paired tag needs its payload inside a ` ```csv ` fence; a code block does not, because the payload is already inside one. Write an inner fence of the same length and the host reads it as the closing fence of the outer block, truncating everything from that line on.
+- The opening and closing `---` are hard boundaries — miss one and the whole block errors. The attribute lines themselves are forgiving: malformed lines are skipped, the grid renders anyway, and the notice bar names which lines were skipped. Only when not a single attribute can be read does the whole block fall back.
+- The payload contract ([below](#payload-contract)) holds for both forms.
 
-## 属性表
+## Attributes
 
-| 属性 | 说明 |
+| Attribute | What it does |
 | --- | --- |
-| `title` | 渲染为组件标题，无则不渲染 |
+| `title` | Rendered as the block title; omit it and no title is rendered |
 
-MetricGrid **没有其他属性**——不支持 `dataset`、不支持粒度/时间范围。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。
+MetricGrid has **no other attributes** — no `dataset`, no granularity, no time range. Writing `dataset="..."` on the tag routes the block down the external-dataset path, where it errors because MetricGrid is not on the supported list (see below).
 
-## Payload 契约
+## Payload contract
 
-标签体走[通用行提取四路径](tag-syntax.md#通用行提取四路径)，提取出的每行经过字段别名归一化（取第一个非空值）：
+The body goes through the [four row-extraction paths](tag-syntax.md#the-four-row-extraction-paths), and each extracted row is normalised through a field-alias chain (first non-empty value wins):
 
-| 输出字段 | 别名优先级 |
+| Output field | Alias priority |
 | --- | --- |
 | `label` | `label` ?? `metric` ?? `name` ?? `title` |
 | `value` | `value` ?? `current` ?? `amount` ?? `count` |
 | `delta` | `delta` ?? `change` ?? `mom` ?? `yoy` |
 | `note` | `note` ?? `description` ?? `source` ?? `body` |
-| `status` | 见下表，输入取 `status` ?? `trend` ?? `delta` ?? `change` |
+| `status` | see the table below; input is taken from `status` ?? `trend` ?? `delta` ?? `change` |
 
-`label` 与 `value` 都为空的行会被丢弃，不计入渲染。
+Rows where both `label` and `value` are empty are dropped and never rendered.
 
-**status 状态词表**（状态词自动归一化为四个桶，支持的词表见下）：
+**Status vocabulary.** Status words are normalised into four buckets:
 
-| 归一化结果 | 命中输入 |
+| Normalised | Matching input |
 | --- | --- |
-| `good` | `good` / `up` / `positive` / `success` / `active`，或取值以 `+` 开头 |
-| `risk` | `risk` / `warning` / `blocked` / `down` / `negative`，或取值以 `-` 开头 |
+| `good` | `good` / `up` / `positive` / `success` / `active`, or any value starting with `+` |
+| `risk` | `risk` / `warning` / `blocked` / `down` / `negative`, or any value starting with `-` |
 | `watch` | `watch` / `flat` / `neutral` |
-| `neutral`（默认） | 其他任意值或未指定 |
+| `neutral` (default) | anything else, or nothing at all |
 
-即：以 `+`/`-` 开头的 `delta` 列（如 `"+5%"`）不显式声明 `status` 也能自动判定颜色。
+In other words, a `delta` column starting with `+` or `-` (such as `"+5%"`) colors the card on its own, with no explicit `status`.
 
-**空数据报错**：解析不出任何数据行时触发；若行存在、但 label/value 均为空而被全部过滤，则不报错，只渲染一个空的网格容器。
+**Empty-data error.** Raised when no data row can be parsed at all. If rows do exist but every one is filtered out for having neither label nor value, there is no error — just an empty grid container.
 
-### 报错示例
+### Error examples
 
-红色错误框（就地透出根因，前缀均为 `Mosaic: `）：
+Red error box, root cause surfaced in place, always prefixed with `Mosaic: `:
 
 ```text
-标签体为空或没有可解析的 payload
+Empty body, or no parsable payload
 → Mosaic: MetricGrid requires CSV, JSON, or a Markdown table.
 
-标签上出现 dataset 属性（MetricGrid 不支持外部数据集）
+A dataset attribute on the tag (MetricGrid has no external-dataset support)
 → Mosaic: External datasets support Chart and DataTable.
 ```
 
-按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
+The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
 
-## 渲染效果
+## What it looks like
 
-> 示例截图一律使用模拟假数据（dark 主题实拍）。
+> Screenshots always use simulated data, captured live in the dark theme.
 >
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
 
-自适应网格 + good / risk / watch / neutral 四色状态顶边：
+Adaptive grid with the four status colors — good / risk / watch / neutral — on the top border:
 
 ![MetricGrid status cards](../_assets/metric-grid.png)
 
-## 相关文档
+## Related
 
-- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
-- [timeline.md](timeline.md)——字段别名归一化思路一致的姊妹组件
-- [design/metric-grid.md](../design/metric-grid.md)——网格自适应、状态色与别名链的设计动机
-- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap
+- [tag-syntax.md](tag-syntax.md) — shared tag rules and the common row-extraction rules
+- [timeline.md](timeline.md) — sibling block with the same field-alias approach
+- [design/metric-grid.md](../design/metric-grid.md) — why the grid adapts, why these status colors, why alias chains
+- [mosaic-intro.md](../mosaic-intro.md) — overall positioning and roadmap

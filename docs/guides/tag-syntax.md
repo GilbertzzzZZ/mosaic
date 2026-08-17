@@ -1,47 +1,49 @@
-# 标签写法通则
+# Tag syntax
 
-> 六类内容块标签入口（Chart / DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram）共用的写法规则：宿主段落规则、属性语法、标签体边界、通用行提取路径与「按原文渲染」情形。
-> 本文只讲跨组件一致的通则；各组件的属性表、字段契约与特有差异见各自的指导文档，设计动机见 [architecture.md](../design/architecture.md)。
+*[中文版](tag-syntax-zh.md)*
 
-## 宿主段落规则
+> Rules shared by all six tag entries (Chart / DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram): how the host splits paragraphs, attribute syntax, tag-body boundaries, the common row-extraction paths, and the cases that fall back to rendering the source as-is.
+> This page covers only what is identical across blocks. Per-block attribute tables, field contracts and quirks live in each block's own guide; the design rationale is in [architecture.md](../design/architecture.md).
 
-- 标签写法仅接管「整段只有标签与空白」的段落：段落里混有标签以外的内容时，整段保持 Markdown 原样渲染（不接管，不是错误）。
-- 同一段落里的多个标签依次各自渲染、独立报错，一处失败不影响同页其他内容。
+## How the host splits paragraphs
 
-## 写法边界
+- A tag is only taken over when the paragraph contains **nothing but tags and whitespace**. Mix anything else into the paragraph and the whole thing renders as plain Markdown — not an error, just untouched.
+- Several tags in one paragraph each render on their own and fail on their own. One broken tag never affects the rest of the page.
 
-- **开标签必须单行**：只有「完整的开标签独占一行」才会触发 Obsidian 的 HTML block 规则，把标签体连同围栏整体交给插件；开标签换行会被当作普通段落，标签不会被接管，按原文渲染。这是 Obsidian 宿主的段落切分规则决定的，不支持开标签跨多行。
-- **标签体内不能有空行**：开标签到闭标签之间一旦出现空行，Obsidian 会提前结束当前 HTML block，后续内容（含围栏和闭标签）被当作独立段落解析，标签同样不会被接管。
-- **属性值三种引号形态**：双引号、单引号或不加引号均合法（`title="示例"`、`title='示例'`、`title=示例`）；不加引号时值不能含空白、引号或 `>`、`/`。
-- **`=` 两侧有空格时该属性不认，但标签照常接管**：`title = "示例"` 里的 `title`、`=`、`"示例"` 被拆成三段认不出的文本，图/表**照常渲染**（只是没有标题），三段原样列进底部提示条。CommonMark 允许属性名与 `=` 之间有空白，宿主放行，拦不住它。
-- **属性名必须是 ASCII**（`[A-Za-z_][A-Za-z0-9_-]*`）：写 `零售业务Label="零售业务"` 或 `CaféLabel="Café"`，**整个标签不被接管**，段落按原文渲染。原因同样在宿主——HTML 属性名不允许非 ASCII，开标签在 CommonMark 那一关就不成立，开标签、围栏、闭标签被切成三个独立段落，插件拿不到完整标签。需要非 ASCII 属性名请改用代码块写法，frontmatter 不受这条限制。
-- **闭合标签必须独占一行**、与开标签同名，大小写敏感（如 `</DataTable>`）。
+## Writing boundaries
 
-属性语法（引号形态、`=` 规则）对自闭合标签与成对标签同样适用；标签体规则（单行开标签、无空行、闭合标签）仅约束成对标签。
+- **The opening tag must fit on one line.** Only a complete opening tag alone on its line triggers Obsidian's HTML-block rule, which hands the tag body — fences included — to the plugin. Break the opening tag across lines and Obsidian treats it as an ordinary paragraph: the tag is not taken over and renders as source. This is the host's paragraph-splitting rule, not a plugin limitation, and multi-line opening tags cannot be supported.
+- **No blank lines inside the tag body.** A blank line between the opening and closing tag ends the HTML block early; everything after it — fences and closing tag included — is parsed as separate paragraphs, and again the tag is not taken over.
+- **Three quoting forms for attribute values.** Double quotes, single quotes and no quotes are all valid (`title="Example"`, `title='Example'`, `title=Example`). Unquoted values may not contain whitespace, quotes, `>` or `/`.
+- **Spaces around `=` cost you the attribute but not the tag.** In `title = "Example"`, the `title`, the `=` and the `"Example"` are split into three unrecognized fragments. The chart or table **still renders** (just without a title) and all three fragments are listed verbatim in the notice bar underneath. CommonMark allows whitespace between an attribute name and its `=`, so the host lets it through and Mosaic cannot intercept it.
+- **Attribute names must be ASCII** (`[A-Za-z_][A-Za-z0-9_-]*`). Write `营收Label="Revenue"` or `CaféLabel="Café"` and **the entire tag is not taken over** — the paragraph renders as source. The cause is again the host: HTML attribute names may not contain non-ASCII characters, so the opening tag never qualifies at the CommonMark stage, and the opening tag, fence and closing tag are split into three separate paragraphs. The plugin never sees a complete tag. If you need non-ASCII attribute names, use the code-block form — its frontmatter has no such restriction.
+- **The closing tag needs its own line**, spelled exactly like the opening one and case-sensitive (for example `</DataTable>`).
 
-## 通用行提取四路径
+Attribute syntax (quoting forms, the `=` rule) applies to self-closing and paired tags alike. The tag-body rules (single-line opening tag, no blank lines, closing tag) constrain paired tags only.
 
-DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram 的内联 payload 共用同一套行提取规则，依次尝试四条路径（Chart 的成对标签标签体只接受 CSV 围栏，不走这套规则，见 [chart.md](chart.md)）：
+## The four row-extraction paths
 
-1. 标签体是一个唯一的围栏代码块（` ```json ` / ` ```tsv ` / ` ```csv ` 或缺省语言标签）：`json` 按 JSON 解析（数组本身即行数组，或 `{"rows":[...]}` 对象）；`tsv` 按 Tab 分隔；**其余任何语言标签（含拼写错误、`csv`、缺省、甚至无关标签）一律退化按逗号 CSV 解析**——语言标签只在 `json`/`tsv` 时真正生效。
-2. 无围栏、裸文本以 `[` 或 `{` 开头：整体当 JSON 解析。
-3. 无围栏、裸文本含 `|` 字符：当 Markdown 表格解析（第 1 行表头，第 2 行分隔行被无条件跳过不校验格式，第 3 行起是数据）。
-4. 兜底：裸文本按逗号 CSV 解析。
+Inline payloads for DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram share one set of extraction rules, tried in order. (Chart's paired-tag body accepts only a CSV fence and does not use these rules — see [chart.md](chart.md).)
 
-提取出的每行是一个扁平对象，字段名 = 列头（CSV/TSV/Markdown 表）或 JSON key；提取之后各组件再做各自的字段别名归一化（或不做，如 DataTable），见各篇 Payload 契约。
+1. The body is a single fenced code block (` ```json ` / ` ```tsv ` / ` ```csv ` or no language tag at all): `json` is parsed as JSON (either an array of rows, or a `{"rows":[...]}` object); `tsv` is split on tabs; **every other language tag — typos, `csv`, no tag, even something unrelated — falls back to comma-separated CSV.** The language tag only really matters when it is `json` or `tsv`.
+2. No fence, and the bare text starts with `[` or `{`: the whole body is parsed as JSON.
+3. No fence, and the bare text contains a `|`: parsed as a Markdown table (line 1 is the header, line 2 is the separator and is skipped unconditionally without format checking, data starts on line 3).
+4. Fallback: the bare text is parsed as comma-separated CSV.
 
-**畸形 JSON 报错**：`json` 围栏（或裸 JSON）内容不合法时，直接透出原生 JSON 解析错误（红色错误框，文案随具体错误位置变化）；这条路径对五类组件一致。
+Every extracted row is a flat object whose field names are the column headers (CSV / TSV / Markdown table) or the JSON keys. After extraction each block applies its own field-alias normalisation — or none at all, as with DataTable. See the payload contract in each guide.
 
-## 按原文渲染的通用情形
+**Malformed JSON.** When a `json` fence (or bare JSON) is invalid, the native JSON parse error is surfaced directly in a red error box; the wording varies with the exact failure position. This path behaves identically for all five blocks.
 
-以下情形标签不被接管，段落按 Markdown 原文渲染（不是错误框），对全部成对标签组件一致：
+## When the source renders as-is
 
-- 开标签跨多行（见上文写法边界）。
-- 标签体内出现空行。
-- 段落里混有标签以外的内容。
-- 找不到独占一行的闭合标签。
+In the following cases the tag is not taken over and the paragraph renders as plain Markdown — no error box. This is identical for every paired-tag block:
 
-## 相关文档
+- The opening tag spans multiple lines (see writing boundaries above).
+- A blank line appears inside the tag body.
+- The paragraph contains something other than tags.
+- No closing tag is found on a line of its own.
 
-- [chart.md](chart.md) · [data-table.md](data-table.md) · [metric-grid.md](metric-grid.md) · [timeline.md](timeline.md) · [decision-box.md](decision-box.md) · [flow-diagram.md](flow-diagram.md)——各组件的属性表、契约与特有差异
-- [architecture.md](../design/architecture.md)——入口识别与错误处理的设计动机
+## Related
+
+- [chart.md](chart.md) · [data-table.md](data-table.md) · [metric-grid.md](metric-grid.md) · [timeline.md](timeline.md) · [decision-box.md](decision-box.md) · [flow-diagram.md](flow-diagram.md) — per-block attribute tables, contracts and quirks
+- [architecture.md](../design/architecture.md) — why entry recognition and error handling work this way

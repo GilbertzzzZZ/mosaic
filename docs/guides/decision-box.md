@@ -1,160 +1,163 @@
 # DecisionBox
 
-> DecisionBox 内容块的使用指导（how）：结构化的 label/value 决策清单，或空 payload 时回退成一段极简富文本。
-> 两种物理写法：成对标签与 ```` ```decisionbox ```` 代码块，同一套属性契约。只支持内联 payload——不支持 `dataset` 属性。
-> DecisionBox 是五类组件里**唯一在空/非结构化 payload 时不报错**的一个（误用 `dataset` 或畸形 JSON 仍会报错，见「报错示例」）。
-> **富文本回退要写多段，只能用代码块写法**——理由见下文。
-> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；双路径与永不报错立场的设计动机见 [design/decision-box.md](../design/decision-box.md)。
+*[中文版](decision-box-zh.md)*
 
-## 写法
+> How to use the DecisionBox block: a structured label/value decision record, or — when the payload has no usable rows — a minimal rich-text fallback.
+> Two physical forms: a paired tag and a ```` ```decisionbox ```` code block, sharing one attribute contract. Inline payload only — no `dataset` attribute.
+> DecisionBox is the one block of the five that **never errors on an empty or unstructured payload** (misusing `dataset`, or malformed JSON, still errors — see "Error examples").
+> **Multi-paragraph rich text only works in the code-block form** — the reason is below.
+> Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the two paths and the never-error stance is in [design/decision-box.md](../design/decision-box.md).
 
-**结构化 label/value 数据**：属性写在开标签上，payload 是 label/value 行：
+## Writing it
+
+**Structured label/value data.** Attributes go on the opening tag, the payload is label/value rows:
 
 ````text
-<DecisionBox title="示例决策" status="accepted" owner="alice" source="RFC-001">
+<DecisionBox title="Storage engine" status="accepted" owner="alice" source="RFC-001">
 ```csv
 label,value
-决策,采用方案 A
-代价,迁移成本约两周
+Decision,Use SQLite for the local cache
+Cost,Roughly two weeks of migration
 ```
 </DecisionBox>
 ````
 
-**自由文本回退**（不写结构化数据，或数据里没有可用的 label/value）：
+**Free-text fallback** (no structured data, or no usable label/value in the data):
 
 ```text
-<DecisionBox title="示例决策">
-我们选择方案 A，理由是实现简单、迁移成本可控。
+<DecisionBox title="Storage engine">
+We are going with SQLite: simple to implement, and the migration cost is contained.
 </DecisionBox>
 ```
 
-- 写法边界（开标签必须单行、标签体内不能有空行等）见 [tag-syntax.md](tag-syntax.md)。
-- **「标签体内不能有空行」对 DecisionBox 的富文本回退影响尤其大**：富文本路径按空行分段，但标签体一旦出现空行整个标签就不会被接管，因此**自由文本回退实际只能承载单段文字或一个无序列表**，写多段落（段落之间留空行）会直接导致整个标签按原文渲染，而不是渲染出多个 `<p>`。需要多段说明时请改用结构化 label/value 数据（每行不含空行）。
-- 无序列表写法（`- ` 或 `* ` 开头）在同一段落内是安全的，因为列表项之间不需要空行：
+- Writing boundaries — single-line opening tag, no blank lines in the body, and the rest — are in [tag-syntax.md](tag-syntax.md).
+- **"No blank lines in the body" hits DecisionBox's rich-text fallback especially hard.** The rich-text path splits on blank lines, but a blank line anywhere in the body stops the tag from being taken over at all. So **the free-text fallback can only carry a single paragraph or one unordered list**: writing several paragraphs (with blank lines between them) makes the whole tag render as source rather than producing several `<p>` elements. When you need multi-paragraph prose, switch to structured label/value rows, where no line is blank.
+- Unordered lists (lines starting with `- ` or `* `) are safe inside one paragraph, because list items need no blank lines between them:
 
 ```text
-<DecisionBox title="示例决策">
-- 优点：实现简单
-- 缺点：扩展性一般
+<DecisionBox title="Storage engine">
+- Upside: simple to implement
+- Downside: limited headroom
 </DecisionBox>
 ```
 
-**代码块写法**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。
+**Code-block form.** Attributes go in a `---` block (flat `key: value`, one per line, values may be quoted, `#` starts a comment) and the payload follows the closing `---`.
 
 ````text
 ```decisionbox
 ---
-title: "示例决策"
+title: "Storage engine"
 status: accepted
 owner: alice
 source: RFC-001
 ---
 label,value
-决策,采用方案 A
-代价,迁移成本约两周
+Decision,Use SQLite for the local cache
+Cost,Roughly two weeks of migration
 ```
 ````
 
-**代码块解除了富文本回退的单段限制。** 上面那条「标签体内不能有空行」是宿主的段落切分规则，管的是标签，代码块不受它管——代码块的边界是围栏，里面的空行只是普通空行。所以多段说明写成代码块就能正常渲染成多个 `<p>`：
+**The code block lifts the single-paragraph limit on the rich-text fallback.** "No blank lines in the body" is the host's paragraph-splitting rule and it governs tags; a code block is not subject to it, because its boundary is the fence and a blank line inside is just a blank line. So multi-paragraph prose written as a code block renders as several `<p>` elements:
 
 ````text
 ```decisionbox
 ---
-title: "示例决策"
+title: "Storage engine"
 ---
-我们选择方案 A，理由是实现简单、迁移成本可控。
+We are going with SQLite: simple to implement, and the migration cost is contained.
 
-第二段：迁移分两批，先内部环境，再生产环境。
+Second paragraph: the migration ships in two waves — internal environments first, then production.
 ```
 ````
 
-- **payload 裸写，不要再套一层围栏。** 成对标签的结构化 payload 要写在 ` ```csv ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
-- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，决策框照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
-- 属性表与 payload 契约对两种写法同时成立，包括 `status` / `owner` / `source` 的归一化。
+- **Write the payload bare — do not wrap it in another fence.** A paired tag needs its structured payload inside a ` ```csv ` fence; a code block does not, because the payload is already inside one. Write an inner fence of the same length and the host reads it as the closing fence of the outer block, truncating everything from that line on.
+- The opening and closing `---` are hard boundaries — miss one and the whole block errors. The attribute lines themselves are forgiving: malformed lines are skipped, the box renders anyway, and the notice bar names which lines were skipped. Only when not a single attribute can be read does the whole block fall back.
+- The attribute table and payload contract hold for both forms, `status` / `owner` / `source` normalisation included.
 
-## 属性表
+## Attributes
 
-| 属性 | 说明 | 归一化 |
+| Attribute | What it does | Normalisation |
 | --- | --- | --- |
-| `title` | 渲染为组件标题，无则不渲染 | 无 |
-| `status`（别名 `decisionStatus`，取值优先级 `status` > `decisionStatus`） | 决策状态徽章，同时决定外层容器的 CSS 变体 | 见下表 |
-| `owner` | 责任人徽章 | 直接透传 |
-| `source` | 来源徽章 | 直接透传 |
+| `title` | Rendered as the block title; omit it and no title is rendered | none |
+| `status` (alias `decisionStatus`; `status` wins when both are present) | The status badge, and the CSS variant of the outer container | see below |
+| `owner` | Owner badge | passed through verbatim |
+| `source` | Source badge | passed through verbatim |
 
-DecisionBox **不支持 `dataset`**。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。
+DecisionBox has **no `dataset` support**. Writing `dataset="..."` on the tag routes the block down the external-dataset path, where it errors because DecisionBox is not on the supported list (see below).
 
-**status 状态词表**（状态词自动归一化，支持的词表见下）：
+**Status vocabulary.** Status words are normalised automatically:
 
-| 归一化结果 | 命中输入 |
+| Normalised | Matching input |
 | --- | --- |
-| `accepted` / `proposed` / `rejected` / `superseded` | 显式写这四个值之一，原样透传 |
+| `accepted` / `proposed` / `rejected` / `superseded` | one of these four written explicitly, passed through as-is |
 | `accepted` | `done` / `complete` / `completed` |
-| `default` | 其他任意非空值 |
-| `""`（不渲染徽章） | 未设置或空字符串 |
+| `default` | any other non-empty value |
+| `""` (no badge rendered) | unset or empty string |
 
-**归一化结果决定左边框的颜色**（跟随主题的扩展色板）：
+**The normalised result decides the left border color** (from the theme's extended palette):
 
-| 状态 | 左边框 |
+| Status | Left border |
 | --- | --- |
-| `accepted` | 绿 |
-| `rejected` | 红 |
-| `proposed` | 主题强调色（与 Timeline 的 `active` 同义：提议中，还没定） |
-| `superseded` | 灰（已被后来的决定取代——不是失败，只是过期） |
-| `default` / 未设置 | 不染色，保持中性 |
+| `accepted` | green |
+| `rejected` | red |
+| `proposed` | theme accent (same sense as Timeline's `active`: proposed, not settled) |
+| `superseded` | grey (replaced by a later decision — not a failure, just out of date) |
+| `default` / unset | no color, stays neutral |
 
-**徽章上的文字是属性原样取值，不是归一化结果**：写 `status="done"` 徽章显示 `done`，而左边框按 `accepted` 染成绿色。归一化只影响颜色。
+**The badge shows the raw attribute value, not the normalised result.** Write `status="done"` and the badge reads `done`, while the left border turns green as `accepted`. Normalisation only affects color.
 
-固定文案：区块头部左上角有一个不可配置的 kicker 标签，内容固定为 `Decision`（CSS 控制为大写显示），不是数据字段，永远显示。
+Fixed copy: the block header carries a non-configurable kicker in its top-left corner reading `Decision` (CSS renders it uppercase). It is not a data field and is always shown.
 
-## Payload 契约
+## Payload contract
 
-标签体走[通用行提取四路径](tag-syntax.md#通用行提取四路径)，解析出 rows 后按 label/value 别名归一化：
+The body goes through the [four row-extraction paths](tag-syntax.md#the-four-row-extraction-paths); the resulting rows are then normalised through the label/value alias chain:
 
-| 输出字段 | 别名优先级 |
+| Output field | Alias priority |
 | --- | --- |
 | `label` | `label` ?? `key` ?? `name` ?? `item` |
 | `value` | `value` ?? `text` ?? `body` ?? `description` ?? `summary` |
 
-`label` 与 `value` 都为空的行被过滤。
+Rows where both `label` and `value` are empty are filtered out.
 
-**两条互斥路径**：
+**Two mutually exclusive paths:**
 
-- **路径 A（结构化）**：过滤后至少 1 条 label/value 行时启用，渲染为 `<dl>` 定义列表；`value` 支持行内 `` `code` `` 和 `**bold**` 两种极简 markdown，其余原样转义（不支持斜体、链接、删除线、标题、引用块）。
-- **路径 B（富文本回退）**：过滤后 0 条 label/value 行时启用，把整段标签体当作极简 Markdown 渲染——按空行分段（受上文 Obsidian 限制，实际只有单段生效）、`- `/`* ` 开头的行归入无序列表，其余非空行拼成一个段落。
+- **Path A (structured).** Taken when at least one label/value row survives filtering; renders a `<dl>` definition list. `value` supports two inline Markdown constructs — `` `code` `` and `**bold**` — and escapes everything else verbatim (no italics, links, strikethrough, headings or blockquotes).
+- **Path B (rich-text fallback).** Taken when zero label/value rows survive; renders the whole tag body as minimal Markdown — split into paragraphs on blank lines (subject to the Obsidian limitation above, so in practice only one paragraph gets through), lines starting with `- ` or `* ` grouped into an unordered list, and every other non-empty line joined into a single paragraph.
 
-**永不报错**：即使标签体完全为空（或自闭合无 body），也只是渲染出一个空的富文本区块，不会走错误框。这是 DecisionBox 与 DataTable/Timeline/MetricGrid/FlowDiagram 的关键差异——那四类在 rows 为空时都会报错，DecisionBox 不会。
+**It never errors.** Even a completely empty body (or a self-closing tag with no body) just renders an empty rich-text block rather than an error box. This is the key difference between DecisionBox and DataTable / Timeline / MetricGrid / FlowDiagram — those four error on empty rows, DecisionBox does not.
 
-### 报错示例
+### Error examples
 
-DecisionBox 本身没有「空数据」错误路径。会触发红色错误框的情形只有两类：
+DecisionBox has no empty-data error path at all. Only two situations produce a red error box:
 
 ```text
-标签上出现 dataset 属性（DecisionBox 不支持外部数据集）
+A dataset attribute on the tag (DecisionBox has no external-dataset support)
 → Mosaic: External datasets support Chart and DataTable.
 
-fenced json 围栏内是不合法 JSON
-→ Mosaic: Unexpected token ... in JSON at position ...（原生 JSON 解析错误，文案随具体错误位置变化）
+Invalid JSON inside a fenced json block
+→ Mosaic: Unexpected token ... in JSON at position ...
+  (the native JSON parse error; wording varies with the failure position)
 ```
 
-后者不是 DecisionBox 专属，是[通用行提取](tag-syntax.md#通用行提取四路径)对畸形 JSON 的统一行为。
+The second is not specific to DecisionBox — it is how [common row extraction](tag-syntax.md#the-four-row-extraction-paths) handles malformed JSON everywhere.
 
-按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)；其中「标签体内出现空行」连带导致「多段落富文本回退」实际不可用，见上文写法说明。
+The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is). Note that "a blank line inside the tag body" is what makes multi-paragraph rich text unusable in the tag form, as explained above.
 
-## 渲染效果
+## What it looks like
 
-> 示例截图一律使用模拟假数据（dark 主题实拍）。
+> Screenshots always use simulated data, captured live in the dark theme.
 >
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
 
-结构化 label/value 两列布局 + status / owner / source 徽标（accepted 与 proposed 两种状态）。
+Structured label/value in two columns, with status / owner / source badges (an accepted and a proposed record).
 
-> **<待补全>**：这张图拍摄于状态色加入之前，图中两个框都没有左边框颜色。现在 accepted 是绿、proposed 是主题强调色。
+> **\<pending\>**: this image predates the status colors — neither box has a colored left border. Today `accepted` is green and `proposed` is the theme accent.
 
 ![DecisionBox records](../_assets/decision-box.png)
 
-## 相关文档
+## Related
 
-- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
-- [timeline.md](timeline.md) · [metric-grid.md](metric-grid.md)——同样以词表归一状态的姊妹组件
-- [design/decision-box.md](../design/decision-box.md)——双路径、状态归一与极简 markdown 子集的设计动机
-- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap
+- [tag-syntax.md](tag-syntax.md) — shared tag rules and the common row-extraction rules
+- [timeline.md](timeline.md) · [metric-grid.md](metric-grid.md) — sibling blocks that normalise status through a vocabulary too
+- [design/decision-box.md](../design/decision-box.md) — why two paths, why status normalisation, why this minimal Markdown subset
+- [mosaic-intro.md](../mosaic-intro.md) — overall positioning and roadmap

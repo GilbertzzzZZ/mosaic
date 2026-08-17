@@ -1,141 +1,143 @@
 # Chart
 
-> Chart 内容块的使用指导（how）：一种图表，三种写法——自闭合标签、成对标签、代码块。
-> 三种写法共用同一套属性契约（见下文[属性表](#属性表)），同一属性无论写成哪种形态，渲染结果完全一致。
-> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；写法分裂与类型体系的设计动机见 [design/chart.md](../design/chart.md)；外部数据集契约见 [dataset-guide.md](dataset-guide.md)。
+*[中文版](chart-zh.md)*
 
-## 三种写法一览
+> How to use the Chart block: one chart, three ways to write it — a self-closing tag, a paired tag, and a code block.
+> All three share the same attribute contract (see [Attributes](#attributes) below); a given attribute renders identically no matter which form it is written in.
+> Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind three forms and the type system is in [design/chart.md](../design/chart.md); the external-dataset contract is in [dataset-guide.md](dataset-guide.md).
 
-| 写法 | 形态 | 数据来源 | 适用场景 |
+## The three forms at a glance
+
+| Form | Shape | Data source | Best for |
 | --- | --- | --- | --- |
-| 自闭合标签 | `<Chart ... />` | 外部数据集（`.dataset.json`） | 长期维护的报告，数据留在外部文件 |
-| 成对标签 | `<Chart ...>` + 围栏 CSV + `</Chart>` | 内联 CSV | 小数据量、一次性的快照内容 |
-| 代码块 | ```` ```chart ```` + `---` frontmatter | 外部数据集或内联 CSV 均可 | 两种模式通吃；需要非 ASCII 属性名时的唯一选择 |
+| Self-closing tag | `<Chart ... />` | External dataset (`.dataset.json`) | Long-lived reports where the data stays in an external file |
+| Paired tag | `<Chart ...>` + CSV fence + `</Chart>` | Inline CSV | Small, one-off snapshots |
+| Code block | ```` ```chart ```` + `---` frontmatter | Either external dataset or inline CSV | Both modes; the only option when you need non-ASCII attribute names |
 
-**共同规则**
+**Rules common to all three**
 
-- 属性契约与展示语义见下文[属性表](#属性表)与[类型映射与展示语义](#类型映射与展示语义)，三种写法完全一致。
-- 标签写法的宿主段落规则与属性语法（`=` 两侧无空格、引号形态、混排不接管等）见 [tag-syntax.md](tag-syntax.md)。
-- 仅阅读视图；Live Preview（计划中）。
+- The attribute contract and display semantics are in [Attributes](#attributes) and [Chart types and display semantics](#chart-types-and-display-semantics) below, and are identical across the three forms.
+- Host paragraph rules and attribute syntax for the tag forms (no spaces around `=`, quoting forms, mixed paragraphs not taken over) are in [tag-syntax.md](tag-syntax.md).
+- Reading view only; Live Preview is planned.
 
-**内联模式（成对标签与代码块 CSV 共用的边界）**
+**Inline mode** (the boundary shared by the paired tag and the code block's CSV)
 
-- 不支持 `dataset` / `from` / `to` / `granularity` / `granularityOptions`——这些属于外部数据集语义。
-- `x` 缺省取 CSV 首列；显式声明的列必须存在于 CSV 表头。
-- 数值列必须是数字或留空，留空表示断点；不合法时报错并给出行号。
-- 无溯源脚注、无粒度切换按钮。
+- No `dataset` / `from` / `to` / `granularity` / `granularityOptions` — those belong to external-dataset semantics.
+- `x` defaults to the first CSV column; any column named explicitly must exist in the CSV header.
+- Numeric columns must be a number or empty; empty means a break in the line. Anything else errors and names the row number.
+- No provenance footnote, no granularity switcher.
 
 ---
 
-## 属性表
+## Attributes
 
-三个入口共用的契约；标签写法一行一个属性、属性值双引号，代码块写法为 frontmatter 的 `key: value`。
+One contract shared by all three entries. In the tag forms, one attribute per line with double-quoted values; in the code-block form, `key: value` frontmatter.
 
-| 属性 | 说明 |
+| Attribute | What it does |
 | --- | --- |
-| `dataset` | manifest 路径，相对当前笔记所在目录，须以 `.dataset.json` 结尾，不可越出库根 |
-| `type` | `line` / `bar` / `grouped-bar` / `stacked-bar` / `combo` / `combo-dual-axis`；缺省时多系列取 line、单系列取 bar |
-| `x` | X 轴字段；外部数据集模式须为 manifest 时间字段名或字面量 `period`，内联模式缺省取 CSV 首列 |
-| `series`（别名 `y`） | 逗号分隔的系列字段；未声明时回退到全部带 rollup 的数值字段（内联模式回退到首列以外的全部列） |
-| `lines` / `bars`（别名 `line` / `bar`） | combo 系列的角色划分；均未写时首个系列为 bar、其余为 line |
-| `from` / `to` | 闭区间端点，`YYYY-MM-DD`，须对齐源周期起点（仅外部数据集模式） |
-| `granularity` | 展示粒度，缺省 `auto`（取可用集合中最细）；大小写不敏感（仅外部数据集模式） |
-| `granularityOptions` | 逗号分隔的候选粒度，渲染为切换按钮组；缺省全四种（仅外部数据集模式） |
-| `unit` | 数值单位；`%` 时数值带后缀，`元/¥/cny/rmb/人民币` 前缀 `¥`、`$/usd/美元/美金` 前缀 `$`，其余只显示在标题右侧的 `( )` 里 |
-| `leftUnit` / `rightUnit` | `combo-dual-axis` 的左右两个单位，各自套用上述规则；两个并排写成 `左 / 右`，与 `unit` 同处标题右侧那一个位置 |
-| `labels` | 数值标签开关；`0/false/hide/hidden/no/none/off` 之一时关闭，缺省开启 |
-| `title` / `note` | 图表标题与口径说明，渲染在 figure 头部/底部 |
-| `<字段名>Label` / `<字段名>Color` | 单系列显示名与颜色（合法 hex）；Label 缺省取 manifest 的 `label`，颜色缺省 6 色板按显示序循环 |
+| `dataset` | Manifest path, relative to the note's own directory, must end in `.dataset.json`, and may not escape the vault root |
+| `type` | `line` / `bar` / `grouped-bar` / `stacked-bar` / `combo` / `combo-dual-axis`; omitted, multi-series charts default to line and single-series to bar |
+| `x` | The x-axis field. In external-dataset mode it must be the manifest's time-field name or the literal `period`; in inline mode it defaults to the first CSV column |
+| `series` (alias `y`) | Comma-separated series fields. Unset, it falls back to every numeric field with a rollup — in inline mode, to every column except the first |
+| `lines` / `bars` (aliases `line` / `bar`) | Splits the combo series into roles. With neither written, the first series is a bar and the rest are lines |
+| `from` / `to` | Inclusive range endpoints, `YYYY-MM-DD`, aligned to a source period start (external-dataset mode only) |
+| `granularity` | Display granularity, defaulting to `auto` (the finest available); case-insensitive (external-dataset mode only) |
+| `granularityOptions` | Comma-separated candidate granularities, rendered as a switcher; defaults to all four (external-dataset mode only) |
+| `unit` | The value unit. `%` becomes a suffix on the numbers; `元/¥/cny/rmb` becomes a `¥` prefix and `$/usd` a `$` prefix; every other unit is shown once, in parentheses to the right of the title |
+| `leftUnit` / `rightUnit` | The two units of a `combo-dual-axis` chart, each following the rule above; the pair is written as `left / right` in the same spot to the right of the title that `unit` uses |
+| `labels` | Value-label switch. One of `0/false/hide/hidden/no/none/off` turns them off; on by default |
+| `title` / `note` | Chart title and definition note, rendered in the figure's header and footer |
+| `<field>Label` / `<field>Color` | Display name and color (valid hex) for one series. `Label` defaults to the manifest's `label`; colors default to a six-color palette cycled in display order |
 
-`dataset` / `from` / `to` / `granularity` / `granularityOptions` 属于外部数据集语义，内联模式（成对标签、代码块内联 CSV）不支持，见上文[内联模式边界](#三种写法一览)；manifest 契约与查询语义见 [dataset-guide.md](dataset-guide.md)。
+`dataset` / `from` / `to` / `granularity` / `granularityOptions` are external-dataset semantics and are not supported in inline mode (paired tag, or code block with inline CSV) — see [the inline-mode boundary](#the-three-forms-at-a-glance) above. The manifest contract and query semantics are in [dataset-guide.md](dataset-guide.md).
 
-## 类型映射与展示语义
+## Chart types and display semantics
 
-- `combo`：单一刻度语义——左右轴钉同 `min:0/max`；图例顺序跟随标签书写顺序（`lines` 写在 `bars` 前则线系列在前）。
-- `combo-dual-axis`：左右轴独立，bars 固定挂左轴。
-- 所有图 Y 轴上限自动加 8% 头部空间（stacked-bar 按每期堆叠和计）。
-- 折线节点为实心圆点；数值标签统一千分位 + 最多 2 位小数；标签防碰撞——放得下就显示，放不下就隐藏。
-- 方块图例；图表跟随 Obsidian 明暗主题，切换主题即时就地换肤；figure 带主题色淡边框。
+- `combo`: one scale for both — the left and right axes are pinned to the same `min: 0` and the same max. Legend order follows the order the attributes are written in (write `lines` before `bars` and the line series come first).
+- `combo-dual-axis`: independent left and right axes, with bars always on the left.
+- Every chart adds 8% of headroom above its y-axis maximum (for stacked bars, computed on each period's total).
+- Line nodes are solid dots. Value labels are thousands-grouped with at most two decimals, and collide gracefully — shown when they fit, hidden when they do not.
+- Square legend markers. Charts follow Obsidian's light and dark themes and reskin in place the moment the theme changes; the figure carries a faint themed border.
 
-**溯源脚注**（仅外部数据集模式）：每张图底部自动生成 `数据集标题 · from → to · 粒度 · N/M source rows · data through 日期`；区间内有不完整/缺失周期时追加警告行。
+**Provenance footnote** (external-dataset mode only). Generated under every chart: `dataset title · from → to · granularity · N/M source rows · data through <date>`. A warning line is appended when the range contains incomplete or missing periods.
 
 ---
 
-## 自闭合标签
+## Self-closing tag
 
-面向长期维护的报告场景：数据留在外部文件，正文只声明「看哪一段、按什么粒度看」；源文件零改动即可渲染。
+For long-lived reports: the data stays in an external file and the note only declares which slice to look at and at what granularity. The source file needs no edits to render.
 
-**写法**：自闭合、一行一个属性、属性值双引号：
+**How to write it.** Self-closing, one attribute per line, double-quoted values:
 
 ```text
 <Chart
-  title="示例趋势"
+  title="Revenue trend"
   dataset="data/schema/example.dataset.json"
   type="combo"
   x="period"
-  lines="总量"
-  bars="分项A,分项B"
-  unit="件"
+  lines="Total"
+  bars="Segment A,Segment B"
+  unit="items"
   labels="all"
   from="2025-01-01"
   to="2025-12-01"
   granularity="month"
   granularityOptions="month,quarter"
-  note="口径说明写这里。"
+  note="Definition notes go here."
 />
 ```
 
-- `dataset` 路径相对当前笔记所在目录解析，须以 `.dataset.json` 结尾。
-- 展示细节：title / 粒度按钮组 / note / 溯源脚注与不完整周期警告（见上文[类型映射与展示语义](#类型映射与展示语义)）。
+- The `dataset` path resolves relative to the note's own directory and must end in `.dataset.json`.
+- Display details — title, granularity switcher, note, provenance footnote and incomplete-period warning — are covered in [Chart types and display semantics](#chart-types-and-display-semantics) above.
 
-### 报错示例（自闭合标签）
+### Error examples (self-closing tag)
 
-红色错误框（就地透出根因）：
+Red error box, root cause surfaced in place:
 
 ```text
-<Chart dataset="不存在的路径.dataset.json" type="line" x="period" />
+<Chart dataset="no-such-path.dataset.json" type="line" x="period" />
 → Mosaic: Dataset manifest not found in vault: ...
 
-<Chart title="缺数据来源" type="line" x="period" />
+<Chart title="No data source" type="line" x="period" />
 → Mosaic: Chart needs dataset= or an inline CSV body.
 
-<Chart dataset="..." from="2025-01-15" ... />（月度源，from 未对齐月初）
+<Chart dataset="..." from="2025-01-15" ... />   (monthly source, from not on a month start)
 → Mosaic: Dataset query from must identify a month source period start.
 
 <Chart dataset="..." granularity="week" granularityOptions="month,quarter" ... />
 → Mosaic: Granularity "week" is not in granularityOptions (month,quarter).
 ```
 
-按原文渲染（不接管、不是错误框）：
+Renders as source (not taken over, not an error box):
 
-- 属性值内出现字面 `/>`（提前截断，安全拒绝）。
-- 属性值内含 `>` 时须用双引号包裹；单引号内的 `>` 不被识别（标签在 `>` 处提前结束），整个标签回退为原文。
-- 段落里混有标签以外的内容（通用情形，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)）。
+- A literal `/>` inside an attribute value truncates the tag early — a safe refusal.
+- An attribute value containing `>` must be double-quoted; a `>` inside single quotes is not recognised (the tag ends early at the `>`) and the whole tag falls back to source.
+- The paragraph contains something besides the tag (the general case — see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is)).
 
-### 照常出图，底部提示
+### It still renders, with a notice
 
-认不出的字段**不会**让整个标签作废。图按认出的部分画出来，认不出的部分原样列在图下方的提示条里：
+An unrecognized field does **not** void the whole tag. The chart is drawn from what was recognized, and everything that was not is listed verbatim in a notice bar underneath:
 
-- **插件不认识的属性名**（拼错的、或本插件未实现的）——列进提示。
-- **`=` 两侧有空格**：`title = "示例"` 被拆成 `title`、`=`、`"示例"` 三段认不出的文本，图照常画，三段列进提示。
-- 属性之间**必须有空白**：`a="1"b="2"` 这种紧挨写法认不出后一个，会进提示。
+- **Attribute names the plugin does not know** — typos, or things Mosaic has not implemented — are listed in the notice.
+- **Spaces around `=`.** `title = "Example"` is split into three unrecognized fragments (`title`, `=`, `"Example"`); the chart draws as usual and all three land in the notice.
+- **Attributes must be separated by whitespace.** Written flush like `a="1"b="2"`, the second is not recognized and goes to the notice.
 
-> **属性名含非 ASCII 字符不在此列**——写 `零售业务Label="零售业务"` 会让**整个标签不被接管**（段落按原文渲染，既不出图也不出错误框），而不是「出图 + 提示」。拦截发生在宿主：HTML 属性名不允许非 ASCII，开标签在 CommonMark 那一关就不成立。需要非 ASCII 属性名请改用代码块写法，frontmatter 不受这条限制。详见 [tag-syntax.md](tag-syntax.md)。
+> **Non-ASCII attribute names are not in this category.** Writing `营收Label="Revenue"` makes **the entire tag not be taken over** — the paragraph renders as source, with neither a chart nor an error box, rather than "chart plus notice". The interception happens in the host: HTML attribute names may not contain non-ASCII characters, so the opening tag never qualifies at the CommonMark stage. If you need non-ASCII attribute names, use the code-block form; its frontmatter has no such restriction. See [tag-syntax.md](tag-syntax.md).
 
-只有当认不出的部分**多到判定为误判**时（未归属文本超过已解析属性文本的两倍，或自闭合标签的剩余文本里含 `>`），才整块退回原文——宁可不认，也不画出一个面目全非的东西。
+Only when the unrecognized part is **large enough to look like a misfire** — the unattributed text runs to more than twice the parsed attribute text, or a self-closing tag's leftover text contains `>` — does the whole block fall back to source. Better to decline than to draw something unrecognizable.
 
 ---
 
-## 成对标签
+## Paired tag
 
-面向小数据量、一次性的内容：数据直接内联在正文里，不依赖外部文件。
+For small, one-off content: the data is inline in the note and depends on no external file.
 
-**写法**：属性写在开标签且**开标签必须写在同一行**，CSV 用围栏块内嵌于标签体，语言标注 `csv` 可省略：
+**How to write it.** Attributes on the opening tag, which **must fit on one line**; the CSV goes in a fenced block inside the tag body, and the `csv` language tag may be omitted:
 
 ````text
-<Chart title="示例" type="combo" x="month" bars="指标A" lines="指标B" labels="all">
+<Chart title="Example" type="combo" x="month" bars="Metric A" lines="Metric B" labels="all">
 ```csv
-month,指标A,指标B
+month,Metric A,Metric B
 2025-01,120,140
 2025-02,140,150
 2025-03,160,155
@@ -143,127 +145,127 @@ month,指标A,指标B
 </Chart>
 ````
 
-- 开标签必须单行、标签体内不能有空行等写法边界见 [tag-syntax.md](tag-syntax.md)（自闭合标签不受标签体规则限制，因为标签体内没有围栏）。属性多到想换行时，改用代码块写法——frontmatter 天然一行一个属性。
-- 开标签到闭标签之间必须是「可选空白 + CSV 围栏 + 可选空白」——Chart 标签体只接受 CSV 围栏，不走五类标签组件的通用行提取路径。
-- 内联模式的通用边界见[本文开头](#三种写法一览)。
+- Writing boundaries — single-line opening tag, no blank lines in the body, and so on — are in [tag-syntax.md](tag-syntax.md). (Self-closing tags are exempt from the body rules, having no fence in the body.) When there are too many attributes to fit on one line, switch to the code-block form, whose frontmatter is one attribute per line by nature.
+- Between the opening and closing tag there must be nothing but optional whitespace, a CSV fence and optional whitespace. Chart's tag body accepts a CSV fence only and does not use the common row-extraction paths of the other five tag blocks.
+- The general inline-mode boundary is at the [top of this page](#the-three-forms-at-a-glance).
 
-### 报错示例（成对标签）
+### Error examples (paired tag)
 
-红色错误框：
+Red error box:
 
 ````text
-granularity="month" 等外部数据集属性用于内联数据
+An external-dataset attribute such as granularity="month" used with inline data
 → Mosaic: Inline data does not support the "granularity" attribute (dataset charts only).
 
-series="不存在的列"
-→ Mosaic: Inline CSV has no "不存在的列" column.
+series="NoSuchColumn"
+→ Mosaic: Inline CSV has no "NoSuchColumn" column.
 
-数值列写了非数字（如 2025-01,abc）
-→ Mosaic: Inline CSV row 2: "指标A" value "abc" is not a number.
+A non-number in a numeric column (for example 2025-01,abc)
+→ Mosaic: Inline CSV row 2: "Metric A" value "abc" is not a number.
 
-开标签写了 dataset="..." 同时标签体又带 CSV
+dataset="..." on the opening tag while the body also carries CSV
 → Mosaic: Provide either dataset= or an inline CSV body, not both.
 ````
 
-按原文渲染（不接管、不是错误框）：
+Renders as source (not taken over, not an error box):
 
-- 标签体没有 CSV 围栏（裸文本 CSV 不识别，Chart 特有）。
-- 标签体内出现空行、缺少 `</Chart>` 闭标签、段落混排等通用情形，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
+- The body has no CSV fence. Bare-text CSV is not recognised — this is specific to Chart.
+- A blank line inside the body, a missing `</Chart>`, a mixed paragraph and the other general cases: see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
 
 ---
 
-## 代码块
+## Code block
 
-`chart` 代码块：`---` frontmatter 属性区 + 可选内联 CSV 数据区，两种模式通吃。frontmatter 为扁平 `key: value`，一行一个；值可用引号包裹；`#` 开头的行是注释；不支持嵌套结构——这是声明式契约，不是图表库配置透传。
+A `chart` code block: a `---` frontmatter attribute section plus an optional inline CSV data section, covering both modes. The frontmatter is flat `key: value`, one per line; values may be quoted; lines starting with `#` are comments; nested structures are not supported — this is a declarative contract, not a pass-through to the charting library's config.
 
-> **`chartview` 是 `chart` 的别名**，行为完全一致、不会失效，现有文档不必改写。六类内容块的语言名一律是组件名的小写形式（`chart` / `datatable` / `timeline` / `metricgrid` / `decisionbox` / `flowdiagram`），`chartview` 是唯一的历史例外。
+> **`chartview` is an alias of `chart`.** It behaves identically and will not be retired, so existing notes need no rewriting. The language name of every block is the lowercase component name (`chart` / `datatable` / `timeline` / `metricgrid` / `decisionbox` / `flowdiagram`); `chartview` is the one historical exception.
 
-**写法一：引用外部数据集（只写 frontmatter）**，语义与自闭合标签的 `dataset` 模式完全一致：
+**Form one: reference an external dataset (frontmatter only)** — semantically identical to the self-closing tag's `dataset` mode:
 
 ````text
 ```chart
 ---
-title: "示例趋势"
+title: "Revenue trend"
 dataset: "data/schema/example.dataset.json"
 type: combo
 x: period
-lines: 总量
-bars: "指标A,指标B"
-unit: 件
+lines: Total
+bars: "Metric A,Metric B"
+unit: items
 granularityOptions: "month,quarter"
 ---
 ```
 ````
 
-**写法二：内联 CSV（frontmatter + 数据区）**，去掉 `dataset`，`---` 之后紧跟 CSV：
+**Form two: inline CSV (frontmatter plus a data section)** — drop `dataset` and let the CSV follow the closing `---`:
 
 ````text
 ```chart
 ---
-title: "示例趋势"
+title: "Revenue trend"
 type: line
-series: "指标A,指标B"
-unit: 件
+series: "Metric A,Metric B"
+unit: items
 ---
-month,指标A,指标B
+month,Metric A,Metric B
 2025-01,120,140
 2025-02,140,150
 2025-03,160,155
 ```
 ````
 
-**数据区裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```csv ` 围栏里，代码块的不用——数据区已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
+**Write the data section bare — do not wrap it in another fence.** A paired tag needs its payload inside a ` ```csv ` fence; a code block does not, because the data section is already inside one. Write an inner fence of the same length and the host reads it as the closing fence of the outer block, truncating everything from that line on.
 
-### 报错示例（代码块）
+### Error examples (code block)
 
-代码块一旦声明为 `chart` 就必定被接管，所有错误都以红色错误框呈现（没有原文回落）：
+Once a code block declares itself `chart` it is always taken over, so every failure shows as a red error box — there is no falling back to source:
 
 ````text
-缺少 "---" 开头的属性区
+No leading "---" attribute section
 → Mosaic: Block must start with a "---" attribute section.
 
-属性区没有闭合的 "---"
+The attribute section has no closing "---"
 → Mosaic: The "---" attribute section is missing its closing "---".
 
-属性区里一条都读不出来（整段压根不是属性区）
+Not a single attribute could be read (the section is not an attribute section at all)
 → Mosaic: No attribute could be read from the "---" section (expected flat key: value lines): ...
 
-frontmatter 有 dataset 同时又带 CSV 数据区
+Frontmatter has dataset and the block also carries a CSV data section
 → Mosaic: Provide either dataset= or an inline CSV body, not both.
 
-既没有 dataset 也没有 CSV 数据区
+Neither dataset nor a CSV data section
 → Mosaic: Chart needs dataset= or an inline CSV body.
 ````
 
-**`---` 的两条边界是硬的，属性行本身不是。** 缺开头、缺闭合会整块报错——那是代码块的结构边界，没有它就分不清哪里是属性、哪里是数据。写歪的属性行则不会让整块作废：缩进行、不是 `key: value` 的行、`key:` 后面没有值的行，都被跳过，图照常出，底部提示条点名跳过了哪几条（与成对标签的口径一字不差，见[上一节](#照常出图底部提示)）。只有当**一条属性都读不出来**时才整块退回。
+**The two `---` boundaries are hard; the attribute lines are not.** A missing opening or closing `---` errors the whole block — that is the code block's structural boundary, and without it there is no telling where attributes end and data begins. Malformed attribute lines do not void the block: indented lines, lines that are not `key: value`, and lines with a `key:` but no value are all skipped, the chart draws as usual, and the notice bar names which lines were skipped (word for word the same as the paired tag — see [the previous section](#it-still-renders-with-a-notice)). Only when **not a single attribute can be read** does the whole block fall back.
 
-内联数据区的报错（禁用属性、非法数值、列不存在）与成对标签完全一致，见[上一节](#报错示例成对标签)。
+Errors in the inline data section — forbidden attributes, invalid numbers, missing columns — are identical to the paired tag; see [above](#error-examples-paired-tag).
 
 ---
 
-## 渲染效果
+## What it looks like
 
-> 示例截图一律使用模拟假数据（dark 主题实拍）。三种写法效果一致，不分开截图。
+> Screenshots always use simulated data, captured live in the dark theme. All three forms look the same and are not screenshotted separately.
 >
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
 
-**内联 CSV · combo 图**（成对标签写法，数值标签含首尾）：
+**Inline CSV, combo chart** (paired-tag form, value labels including the first and last point):
 
 ![Inline combo chart](../_assets/readme-chart.png)
 
-**外部数据集 · combo-dual-axis**（粒度切换按钮组、`$`/`%` 单位格式化、千分位、note 与溯源脚注）：
+**External dataset, combo-dual-axis** (granularity switcher, `$` and `%` unit formatting, thousands grouping, note and provenance footnote):
 
 ![Dataset dual-axis chart](../_assets/chart-dataset.png)
 
-**错误框呈现**（manifest 路径不存在时就地报错，不影响同页其他内容）：
+**An error box** (a missing manifest path errors in place without affecting the rest of the page):
 
 ![Chart error box](../_assets/chart-error.png)
 
 ---
 
-## 相关文档
+## Related
 
-- [tag-syntax.md](tag-syntax.md)——标签写法通则（宿主段落规则、属性语法、按原文渲染情形）
-- [dataset-guide.md](dataset-guide.md)——manifest 契约、查询语义、排错清单
-- [design/chart.md](../design/chart.md)——写法分裂、类型体系与格式化体系的设计动机
-- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap（DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram 及更多内容块类型规划）
+- [tag-syntax.md](tag-syntax.md) — shared tag rules (host paragraph rules, attribute syntax, renders-as-source cases)
+- [dataset-guide.md](dataset-guide.md) — manifest contract, query semantics, troubleshooting
+- [design/chart.md](../design/chart.md) — why three forms, why this type system, why this formatting system
+- [mosaic-intro.md](../mosaic-intro.md) — overall positioning and roadmap (DataTable / MetricGrid / Timeline / DecisionBox / FlowDiagram and further block types)

@@ -1,100 +1,102 @@
 # FlowDiagram
 
-> FlowDiagram 内容块的使用指导（how）：分层自动布局的流程图（SVG），两种互斥的 payload 形态——显式 graph JSON，或表格式行数据（`next` 列隐式生成边）。
-> 两种物理写法：成对标签与 ```` ```flowdiagram ```` 代码块，同一套属性契约，渲染结果完全一致。
-> 只支持内联 payload——不支持 `dataset` 属性，也不支持自闭合标签（body 为空时直接报错）。
-> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；分层布局与环退化的设计动机见 [design/flow-diagram.md](../design/flow-diagram.md)。
+*[中文版](flow-diagram-zh.md)*
 
-## 写法
+> How to use the FlowDiagram block: an automatically layered flow diagram (SVG), with two mutually exclusive payload shapes — an explicit graph JSON, or tabular rows where a `next` column generates the edges.
+> Two physical forms: a paired tag and a ```` ```flowdiagram ```` code block. Same attribute contract, identical rendering.
+> Inline payload only: no `dataset` attribute, and no self-closing form (an empty body is an error).
+> Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the layered layout and the cycle degradation is in [design/flow-diagram.md](../design/flow-diagram.md).
 
-**形态 A（graph JSON）**：属性写在开标签上，payload 是唯一的 ` ```json ` 围栏，顶层是 `{nodes, edges}` 对象：
+## Writing it
+
+**Shape A (graph JSON).** Attributes go on the opening tag; the payload is a single ` ```json ` fence whose top level is a `{nodes, edges}` object:
 
 ````text
-<FlowDiagram title="示例流程">
+<FlowDiagram title="Incident response">
 ```json
 {
   "nodes": [
-    {"id": "a", "label": "开始", "type": "start"},
-    {"id": "b", "label": "判断条件", "type": "decision"},
-    {"id": "c", "label": "结束", "type": "end"}
+    {"id": "a", "label": "Alert fires", "type": "start"},
+    {"id": "b", "label": "Page on-call?", "type": "decision"},
+    {"id": "c", "label": "Resolve", "type": "end"}
   ],
   "edges": [
     {"from": "a", "to": "b"},
-    {"from": "b", "to": "c", "label": "满足"}
+    {"from": "b", "to": "c", "label": "yes"}
   ]
 }
 ```
 </FlowDiagram>
 ````
 
-**形态 B（表格式行，回退）**：payload 走通用的行提取规则（CSV/TSV/JSON 数组/裸 Markdown 表都可），每行是一个节点，`next` 列（逗号分隔，可写多个目标 id）隐式生成边——不需要单独写 edges 表：
+**Shape B (tabular rows, the fallback).** The payload goes through the common row-extraction rules (CSV / TSV / a JSON array / a bare Markdown table all work). Each row is a node, and the `next` column — comma-separated, so several target ids are fine — generates the edges implicitly, with no separate edge table:
 
 ````text
-<FlowDiagram title="示例流程">
+<FlowDiagram title="Incident response">
 ```csv
 id,label,type,next
-a,开始,start,b
-b,判断条件,decision,c
-c,结束,end,
+a,Alert fires,start,b
+b,Page on-call?,decision,c
+c,Resolve,end,
 ```
 </FlowDiagram>
 ````
 
-- **两种形态的判定**：标签体是唯一一个语言标签恰为 `json` 的围栏（或裸文本以 `{`/`[` 开头），且解析出的顶层值是非数组对象、`nodes` 字段是数组 → 形态 A；否则一律回退形态 B（走通用行提取）。写 ` ```csv ` 但内容恰好是合法 JSON **不会**被当成图解析，仍按 CSV 处理。
-- **两种形态最终汇入同一套归一化**：即使走了形态 A（显式 JSON graph），节点上的 `next`/`to` 字段依然会**再次**被拿去生成隐式边并追加到显式 `edges` 数组后面，两者合并、不去重。所有引用不存在节点 id 的边（无论显式给的还是 `next` 派生的）都被静默过滤掉，不报错。
-- 写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
+- **How the shape is decided.** If the body is a single fence whose language tag is exactly `json` (or bare text starting with `{` / `[`), and the parsed top-level value is a non-array object whose `nodes` field is an array → shape A. Everything else falls back to shape B and goes through common row extraction. Writing ` ```csv ` around content that happens to be valid JSON does **not** get it parsed as a graph; it is still treated as CSV.
+- **Both shapes converge on the same normalisation.** Even on shape A, a node's `next` / `to` field is *still* used to generate implicit edges, which are appended after the explicit `edges` array. The two are merged, not deduplicated. Any edge referencing a node id that does not exist — explicit or `next`-derived — is silently dropped without an error.
+- Writing boundaries — single-line opening tag, no blank lines in the body, quoting forms and the `=` rule, a closing tag alone on its line and case-sensitive — are in [tag-syntax.md](tag-syntax.md).
 
-**代码块写法**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。两种形态都写得了——**裸写的 JSON 以 `{` 开头，正好命中形态 A 的判据**：
+**Code-block form.** Attributes go in a `---` block (flat `key: value`, one per line, values may be quoted, `#` starts a comment) and the payload follows the closing `---`. Both shapes work here — **bare JSON starts with `{`, which is exactly what shape A tests for**:
 
 ````text
 ```flowdiagram
 ---
-title: "示例流程"
+title: "Incident response"
 ---
 {
   "nodes": [
-    {"id": "a", "label": "开始", "type": "start"},
-    {"id": "b", "label": "判断条件", "type": "decision"},
-    {"id": "c", "label": "结束", "type": "end"}
+    {"id": "a", "label": "Alert fires", "type": "start"},
+    {"id": "b", "label": "Page on-call?", "type": "decision"},
+    {"id": "c", "label": "Resolve", "type": "end"}
   ],
   "edges": [
     {"from": "a", "to": "b"},
-    {"from": "b", "to": "c", "label": "满足"}
+    {"from": "b", "to": "c", "label": "yes"}
   ]
 }
 ```
 ````
 
-形态 B 同样裸写：
+Shape B, written just as bare:
 
 ````text
 ```flowdiagram
 ---
-title: "示例流程"
+title: "Incident response"
 ---
 id,label,type,next
-a,开始,start,b
-b,判断条件,decision,c
-c,结束,end,
+a,Alert fires,start,b
+b,Page on-call?,decision,c
+c,Resolve,end,
 ```
 ````
 
-- **payload 裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```json ` / ` ```csv ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
-- 少了围栏的语言标签，形态判定改由内容自己说话：以 `{` 开头且顶层 `nodes` 是数组 → 形态 A，否则形态 B。上面两个示例分别命中这两条。
-- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，流程图照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
+- **Write the payload bare — do not wrap it in another fence.** A paired tag needs its payload inside a ` ```json ` or ` ```csv ` fence; a code block does not, because the payload is already inside one. Write an inner fence of the same length and the host reads it as the closing fence of the outer block, truncating everything from that line on.
+- With no fence language tag to go by, the content decides the shape: starts with `{` and has an array at top-level `nodes` → shape A, otherwise shape B. The two examples above hit one rule each.
+- The opening and closing `---` are hard boundaries — miss one and the whole block errors. The attribute lines themselves are forgiving: malformed lines are skipped, the diagram renders anyway, and the notice bar names which lines were skipped. Only when not a single attribute can be read does the whole block fall back.
 
-## 属性表
+## Attributes
 
-| 属性 | 说明 |
+| Attribute | What it does |
 | --- | --- |
-| `title` | 渲染在区块头部（与另外四类同一个位置），同时作为 SVG 的 `aria-label`；未设置时 `aria-label` 缺省为英文 `Flow diagram` |
-| `note` | 图下方附注文字 |
+| `title` | Rendered in the block header (same position as the other four blocks) and used as the SVG's `aria-label`; unset, the `aria-label` defaults to `Flow diagram` |
+| `note` | Caption text under the diagram |
 
-FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。
+FlowDiagram has **no other attributes** — no `dataset`. Writing `dataset="..."` on the tag routes the block down the external-dataset path, where it errors because FlowDiagram is not on the supported list (see below).
 
-## Payload 契约
+## Payload contract
 
-**形态 A 顶层结构**：
+**Shape A, top-level structure:**
 
 ```json
 {
@@ -103,79 +105,79 @@ FlowDiagram **没有其他属性**——不支持 `dataset`。若在标签上写
 }
 ```
 
-`edges` 字段名可以是 `edges` 或 `links`（`edges` 优先）。
+The edge array may be named `edges` or `links` (`edges` wins).
 
-**形态 B**：走[通用行提取四路径](tag-syntax.md#通用行提取四路径)。
+**Shape B** goes through the [four row-extraction paths](tag-syntax.md#the-four-row-extraction-paths).
 
-**节点归一化**（两种形态最终都走这一步）：
+**Node normalisation** (both shapes end up here):
 
-| 输出字段 | 别名优先级 |
+| Output field | Alias priority |
 | --- | --- |
-| `id` | `id` ?? `key` ?? 序号（1-based）；trim 后为空的节点被丢弃 |
+| `id` | `id` ?? `key` ?? its 1-based index; nodes whose id is empty after trimming are dropped |
 | `label` | `label` ?? `title` ?? `name` ?? `id` |
-| `type` | 见下表 |
-| `note` | `note` ?? `description`，渲染为 SVG 原生 hover tooltip |
-| `next`（仅用于隐式生成边） | `next` ?? `to`，逗号分隔多个目标 id |
+| `type` | see the table below |
+| `note` | `note` ?? `description`, rendered as the SVG's native hover tooltip |
+| `next` (only used to generate implicit edges) | `next` ?? `to`, comma-separated for several target ids |
 
-**边归一化**：`from`/`to` 支持别名 `source`/`target`；`label` 支持别名 `title`；引用不存在节点 id 的边被静默过滤。
+**Edge normalisation.** `from` / `to` accept the aliases `source` / `target`; `label` accepts the alias `title`. Edges referencing a node id that does not exist are silently filtered out.
 
-**type 状态词表**（类型词自动归一化，默认 `action`，支持的词表见下）：
+**Type vocabulary.** Type words are normalised automatically, defaulting to `action`:
 
-| 归一化结果 | 命中输入 |
+| Normalised | Matching input |
 | --- | --- |
-| `start` | 显式 `start` |
-| `end` | 显式 `end` |
-| `decision` | 显式 `decision`，或 `question` / `branch` / `condition` |
-| `gate` | 显式 `gate` |
-| `risk` | 显式 `risk`，或 `warning` / `blocked` / `error` |
-| `action`（默认） | 其他任意值或未指定 |
+| `start` | explicit `start` |
+| `end` | explicit `end` |
+| `decision` | explicit `decision`, or `question` / `branch` / `condition` |
+| `gate` | explicit `gate` |
+| `risk` | explicit `risk`, or `warning` / `blocked` / `error` |
+| `action` (default) | anything else, or nothing at all |
 
-**自动分层布局**：节点按边的 `from→to` 方向做最长路径拓扑分层（同层横向等距排布，层间纵向递增），边用三次贝塞尔曲线连接。**环退化规则**：若图中存在环，环内节点在拓扑遍历中永远不会被访问到；遍历结束后，这些未访问节点按输入顺序依次追加到「当前最深层 +1、+2、+3…」，每个孤立/环内节点单独占一层——即环会被拉直成一条纵向链，不做真正的环形布局。
+**Automatic layering.** Nodes are assigned to layers by longest-path topological sort following each edge's `from → to` direction (evenly spaced horizontally within a layer, layers stacked downward), and edges are drawn as cubic Bézier curves. **Cycle degradation:** if the graph contains a cycle, the nodes inside it are never reached by the topological walk. Once the walk finishes, those unvisited nodes are appended in input order to "deepest layer +1, +2, +3…", each isolated or in-cycle node getting a layer of its own. In other words a cycle is straightened into a vertical chain rather than laid out as an actual loop.
 
-**环退化最小示例**（伪造数据，`a → b → c → a` 三节点环）：
+**Minimal cycle example** (made-up data, an `a → b → c → a` three-node cycle):
 
 ````text
-<FlowDiagram title="示例环（退化布局）">
+<FlowDiagram title="A cycle, degraded">
 ```csv
 id,label,type,next
-a,节点A,action,b
-b,节点B,action,c
-c,节点C,action,a
+a,Node A,action,b
+b,Node B,action,c
+c,Node C,action,a
 ```
 </FlowDiagram>
 ````
 
-三个节点会被逐一拉开成三层纵向排布，而不是折叠成一个视觉闭环。
+The three nodes are pulled apart into three stacked layers rather than folded into a visual loop.
 
-**空数据报错**：解析不出任何有效节点时触发（即使 `edges` 有内容，没有一个 id 非空的节点也不够）。
+**Empty-data error.** Raised when no valid node can be parsed — a populated `edges` array is not enough if not a single node has a non-empty id.
 
-### 报错示例
+### Error examples
 
-红色错误框（就地透出根因，前缀均为 `Mosaic: `）：
+Red error box, root cause surfaced in place, always prefixed with `Mosaic: `:
 
 ```text
-标签体为空、或形态 A/B 都没有解析出任何有效节点
+Empty body, or neither shape yields a valid node
 → Mosaic: FlowDiagram requires nodes.
 
-标签上出现 dataset 属性（FlowDiagram 不支持外部数据集）
+A dataset attribute on the tag (FlowDiagram has no external-dataset support)
 → Mosaic: External datasets support Chart and DataTable.
 ```
 
-按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
+The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
 
-## 渲染效果
+## What it looks like
 
-> 示例截图一律使用模拟假数据（dark 主题实拍）。形态 A（graph JSON）与形态 B（表格式行）布局效果一致，不分开截图。
+> Screenshots always use simulated data, captured live in the dark theme. Shape A (graph JSON) and shape B (tabular rows) lay out identically and are not screenshotted separately.
 >
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
 
-分层 DAG 布局、六类节点配色、边标签与箭头：
+Layered DAG layout, six node colors, edge labels and arrowheads:
 
 ![FlowDiagram layout](../_assets/flow-diagram.png)
 
-## 相关文档
+## Related
 
-- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
-- [data-table.md](data-table.md)——同样支持多种内联 payload 形态的姊妹组件
-- [design/flow-diagram.md](../design/flow-diagram.md)——双形态判定、分层布局与环退化的设计动机
-- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap
+- [tag-syntax.md](tag-syntax.md) — shared tag rules and the common row-extraction rules
+- [data-table.md](data-table.md) — sibling block that also accepts several inline payload forms
+- [design/flow-diagram.md](../design/flow-diagram.md) — why two shapes, why this layering, why cycles degrade
+- [mosaic-intro.md](../mosaic-intro.md) — overall positioning and roadmap

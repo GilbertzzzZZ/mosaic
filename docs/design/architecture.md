@@ -67,4 +67,4 @@ Chart 与 DataTable 支持从库内外部文件取数。设计目标是：正文
 ## 相关文档
 
 - [chart.md](chart.md) · [data-table.md](data-table.md) · [metric-grid.md](metric-grid.md) · [timeline.md](timeline.md) · [decision-box.md](decision-box.md) · [flow-diagram.md](flow-diagram.md)——各区块的设计细节
-- [../guides/dataset-guide.md](../guides/dataset-guide.md)——外部数据集的用户视角契约与排错清单
+- [../guides/dataset-guide.md](../guides/dataset-guide-zh.md)——外部数据集的用户视角契约与排错清单

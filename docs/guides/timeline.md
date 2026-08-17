@@ -1,111 +1,113 @@
 # Timeline
 
-> Timeline 内容块的使用指导（how）：纵向时间线列表，每个节点按状态着色圆点。
-> 两种物理写法：成对标签与 ```` ```timeline ```` 代码块，同一套属性契约，渲染结果完全一致。
-> 只支持内联 payload——不支持 `dataset` 属性，也不支持自闭合标签（body 为空时直接报错）。
-> 标签写法通则见 [tag-syntax.md](tag-syntax.md)；纵向结构与宽容渲染的设计动机见 [design/timeline.md](../design/timeline.md)。
+*[中文版](timeline-zh.md)*
 
-## 写法
+> How to use the Timeline block: a vertical list of milestones, each with a status-colored dot.
+> Two physical forms — a paired tag and a ```` ```timeline ```` code block. Same attribute contract, identical rendering.
+> Inline payload only: no `dataset` attribute, and no self-closing form (an empty body is an error).
+> Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the vertical structure and the forgiving rendering is in [design/timeline.md](../design/timeline.md).
 
-属性写在开标签上，payload 写在标签体内：
+## Writing it
+
+Attributes go on the opening tag, the payload goes in the body:
 
 ````text
-<Timeline title="示例进展">
+<Timeline title="Release plan">
 ```json
 [
-  {"date":"2026-01-01","title":"启动","body":"完成立项","status":"done"},
-  {"date":"2026-01-08","title":"评审","body":"存在风险点","status":"blocked"},
-  {"date":"2026-01-15","title":"开发中","body":"接口联调","status":"active"},
-  {"date":"2026-01-22","title":"待排期","body":"下一步计划","status":"other"}
+  {"date":"2026-01-01","title":"Kickoff","body":"Scope approved","status":"done"},
+  {"date":"2026-01-08","title":"Design review","body":"Two open risks","status":"blocked"},
+  {"date":"2026-01-15","title":"Build","body":"API integration","status":"active"},
+  {"date":"2026-01-22","title":"Launch","body":"Not scheduled yet","status":"other"}
 ]
 ```
 </Timeline>
 ````
 
-写法边界（开标签必须单行、标签体内不能有空行、属性引号形态与 `=` 规则、闭合标签独占一行且大小写敏感）见 [tag-syntax.md](tag-syntax.md)。
+Writing boundaries — single-line opening tag, no blank lines in the body, quoting forms and the `=` rule, a closing tag alone on its line and case-sensitive — are in [tag-syntax.md](tag-syntax.md).
 
-**代码块写法**：属性写进 `---` 属性区（扁平 `key: value`，一行一个，值可用引号包裹，`#` 开头是注释），payload 紧跟在闭合的 `---` 之后。
+**Code-block form.** Attributes go in a `---` block (flat `key: value`, one per line, values may be quoted, `#` starts a comment) and the payload follows the closing `---`.
 
 ````text
 ```timeline
 ---
-title: "示例进展"
+title: "Release plan"
 ---
 [
-  {"date":"2026-01-01","title":"启动","body":"完成立项","status":"done"},
-  {"date":"2026-01-08","title":"评审","body":"存在风险点","status":"blocked"},
-  {"date":"2026-01-15","title":"开发中","body":"接口联调","status":"active"},
-  {"date":"2026-01-22","title":"待排期","body":"下一步计划","status":"other"}
+  {"date":"2026-01-01","title":"Kickoff","body":"Scope approved","status":"done"},
+  {"date":"2026-01-08","title":"Design review","body":"Two open risks","status":"blocked"},
+  {"date":"2026-01-15","title":"Build","body":"API integration","status":"active"},
+  {"date":"2026-01-22","title":"Launch","body":"Not scheduled yet","status":"other"}
 ]
 ```
 ````
 
-- **payload 裸写，不要再套一层围栏。** 成对标签的 payload 要写在 ` ```json ` 围栏里，代码块的不用——payload 已经在代码块里了。真写了同长度的内层围栏，宿主会把它当成外层围栏的闭合，代码块在那一行就被截断。
-- `---` 的开头与闭合是硬边界，缺一个整块报错；属性行本身则宽容——写歪的行被跳过，时间线照常渲染，底部提示条点名跳过了哪几条。只有一条属性都读不出来时才整块退回。
-- payload 契约（[下文](#payload-契约)）对两种写法同时成立：CSV、JSON、Markdown 表都走同一套通用行提取。
+- **Write the payload bare — do not wrap it in another fence.** A paired tag needs its payload inside a ` ```json ` fence; a code block does not, because the payload is already inside one. Write an inner fence of the same length and the host reads it as the closing fence of the outer block, truncating everything from that line on.
+- The opening and closing `---` are hard boundaries — miss one and the whole block errors. The attribute lines themselves are forgiving: malformed lines are skipped, the timeline renders anyway, and the notice bar names which lines were skipped. Only when not a single attribute can be read does the whole block fall back.
+- The payload contract ([below](#payload-contract)) holds for both forms: CSV, JSON and Markdown tables all go through the same row extraction.
 
-## 属性表
+## Attributes
 
-| 属性 | 说明 |
+| Attribute | What it does |
 | --- | --- |
-| `title` | 渲染为组件标题，无则不渲染 |
+| `title` | Rendered as the block title; omit it and no title is rendered |
 
-Timeline **没有其他属性**——不支持 `dataset`。若在标签上写 `dataset="..."`，会被当作外部数据集组件处理但因不在支持名单内而报错（见下）。
+Timeline has **no other attributes** — no `dataset`. Writing `dataset="..."` on the tag routes the block down the external-dataset path, where it errors because Timeline is not on the supported list (see below).
 
-## Payload 契约
+## Payload contract
 
-标签体走[通用行提取四路径](tag-syntax.md#通用行提取四路径)，提取出的每行经过字段别名归一化（取第一个非空值）：
+The body goes through the [four row-extraction paths](tag-syntax.md#the-four-row-extraction-paths), and each extracted row is normalised through a field-alias chain (first non-empty value wins):
 
-| 输出字段 | 别名优先级 |
+| Output field | Alias priority |
 | --- | --- |
 | `date` | `date` ?? `time` ?? `month` |
 | `title` | `title` ?? `name` ?? `event` |
 | `body` | `body` ?? `description` ?? `summary` ?? `note` |
 | `owner` | `owner` ?? `assignee` |
-| `status` | 见下表 |
+| `status` | see the table below |
 
-**没有必填字段校验**——即使一行的 `date`/`title`/`body`/`owner` 全为空，也只是渲染出一个空壳节点（各字段只在非空时才渲染对应子元素）。
+**No field is required.** Even a row where `date`, `title`, `body` and `owner` are all empty renders — as an empty shell node, since each field only renders its child element when non-empty.
 
-**status 状态词表**（状态词自动归一化为四个桶，默认 `default`，支持的词表见下）：
+**Status vocabulary.** Status words are normalised into four buckets, defaulting to `default`:
 
-| 归一化结果 | 命中输入 |
+| Normalised | Matching input |
 | --- | --- |
 | `done` | `done` / `complete` / `completed` / `success` |
 | `blocked` | `blocked` / `risk` / `warning` |
 | `active` | `active` / `doing` / `progress` / `in-progress` |
-| `default`（默认） | 其他任意值或未指定 |
+| `default` (default) | anything else, or nothing at all |
 
-注意：`risk`/`warning` 归入 `blocked` 桶，不是单独的状态——这与 MetricGrid 的 `risk` 桶命名相似但语义不同，容易混淆。
+Note that `risk` and `warning` fall into the `blocked` bucket rather than a bucket of their own — similar in name to MetricGrid's `risk` bucket but different in meaning, which is easy to confuse.
 
-**空数据报错**：解析不出任何数据行时触发。
+**Empty-data error.** Raised when no data row can be parsed at all.
 
-### 报错示例
+### Error examples
 
-红色错误框（就地透出根因，前缀均为 `Mosaic: `）：
+Red error box, root cause surfaced in place, always prefixed with `Mosaic: `:
 
 ```text
-标签体为空或没有可解析的行
+Empty body, or no parsable rows
 → Mosaic: Timeline requires CSV, JSON, or a Markdown table.
 
-标签上出现 dataset 属性（Timeline 不支持外部数据集）
+A dataset attribute on the tag (Timeline has no external-dataset support)
 → Mosaic: External datasets support Chart and DataTable.
 ```
 
-按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax.md#按原文渲染的通用情形)。
+The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
 
-## 渲染效果
+## What it looks like
 
-> 示例截图一律使用模拟假数据（dark 主题实拍）。
+> Screenshots always use simulated data, captured live in the dark theme.
 >
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
 
-纵向时间线，竖线连接、末项截断；done / active / default 状态圆点（`active` 跟随 Obsidian 主题强调色）：
+A vertical timeline joined by a rule and truncated after the last item, with done / active / default status dots (`active` follows Obsidian's accent color):
 
 ![Timeline milestones](../_assets/timeline.png)
 
-## 相关文档
+## Related
 
-- [tag-syntax.md](tag-syntax.md)——标签写法通则与通用行提取规则
-- [metric-grid.md](metric-grid.md)——字段别名归一化思路一致的姊妹组件
-- [design/timeline.md](../design/timeline.md)——纵向结构、状态圆点与宽容渲染的设计动机
-- [mosaic-intro.md](../mosaic-intro.md)——整体定位与 Roadmap
+- [tag-syntax.md](tag-syntax.md) — shared tag rules and the common row-extraction rules
+- [metric-grid.md](metric-grid.md) — sibling block with the same field-alias approach
+- [design/timeline.md](../design/timeline.md) — why the vertical structure, the status dots and the forgiving rendering
+- [mosaic-intro.md](../mosaic-intro.md) — overall positioning and roadmap

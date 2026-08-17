@@ -45,7 +45,7 @@
 
 六类内容块都接受这两种物理形式。入口层只识别形式、不识别别的：两种形式交给解析层的结构完全相同，因此属性契约与写在哪里无关。
 
-标签写法通则（宿主段落规则、属性语法、按原文渲染情形）见 [tag-syntax.md](guides/tag-syntax.md)；三种写法的完整示例见 [chart.md](guides/chart.md)。
+标签写法通则（宿主段落规则、属性语法、按原文渲染情形）见 [tag-syntax.md](guides/tag-syntax-zh.md)；三种写法的完整示例见 [chart.md](guides/chart-zh.md)。
 
 ---
 
@@ -57,7 +57,7 @@
 
 - 折线（line）、柱状（bar）、分组柱状（grouped-bar）、堆叠柱状（stacked-bar）、组合图（combo）与双轴组合图（combo-dual-axis），三个入口共用同一份声明式属性契约驱动出图。
 - 数据来自外部数据集 manifest，或直接写在声明体内的内联 CSV。
-- 完整属性契约见 [chart.md](guides/chart.md)；数据集 manifest 契约见 [dataset-guide.md](guides/dataset-guide.md)。
+- 完整属性契约见 [chart.md](guides/chart-zh.md)；数据集 manifest 契约见 [dataset-guide.md](guides/dataset-guide-zh.md)。
 
 **DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram**
 
@@ -65,7 +65,7 @@
 - `DataTable` 支持内联表格（CSV/JSON/Markdown）与外部数据集 manifest 两种数据来源，与 Chart 共用同一套查询层。外部数据只有 Chart 与 DataTable 支持。
 - `MetricGrid`、`Timeline`、`DecisionBox`、`FlowDiagram` 只支持内联 payload，各自有独立的字段别名与状态词表契约。
 - `DecisionBox` 是唯一在空/非结构化 payload 时不报错的类型：会回退为一段极简富文本（误用 `dataset` 或畸形 JSON 仍会报错）。
-- 完整契约见 [data-table.md](guides/data-table.md)、[metric-grid.md](guides/metric-grid.md)、[timeline.md](guides/timeline.md)、[decision-box.md](guides/decision-box.md)、[flow-diagram.md](guides/flow-diagram.md)。
+- 完整契约见 [data-table.md](guides/data-table-zh.md)、[metric-grid.md](guides/metric-grid-zh.md)、[timeline.md](guides/timeline-zh.md)、[decision-box.md](guides/decision-box-zh.md)、[flow-diagram.md](guides/flow-diagram-zh.md)。
 
 **更多类型**（规划中）
 
@@ -87,7 +87,7 @@
 - 数据文件旁放置 `.dataset.json` sidecar manifest，声明指标口径与上卷规则。
 - 标签声明时间区间与展示粒度，插件按 manifest 完成区间过滤与粒度上卷。
 - 口径信息（label、note、溯源脚注）随图可见。
-- 设计细节见 [dataset-guide.md](guides/dataset-guide.md)。
+- 设计细节见 [dataset-guide.md](guides/dataset-guide-zh.md)。
 
 ---
 

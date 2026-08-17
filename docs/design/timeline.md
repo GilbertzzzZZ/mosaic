@@ -1,6 +1,6 @@
 # Timeline 区块设计
 
-> Timeline 把行数据渲染成纵向时间线：左侧状态圆点与贯穿竖线，右侧日期、标题、正文与负责人。它是六类区块中形态最简单的一个，设计重点在结构的自洽与渲染的宽容。用法见 [../guides/timeline.md](../guides/timeline.md)。
+> Timeline 把行数据渲染成纵向时间线：左侧状态圆点与贯穿竖线，右侧日期、标题、正文与负责人。它是六类区块中形态最简单的一个，设计重点在结构的自洽与渲染的宽容。用法见 [../guides/timeline.md](../guides/timeline-zh.md)。
 
 ## 纵向时间线的结构设计
 
@@ -57,4 +57,4 @@ Timeline 没有任何必填字段。一行数据哪怕日期、标题、正文�
 - [architecture.md](architecture.md)——入口识别、错误哲学等跨区块设计
 - [metric-grid.md](metric-grid.md)——词表状态归一与别名链的姊妹设计
 - [flow-diagram.md](flow-diagram.md)——节点类型词表与主题强调色的另一处实践
-- [../guides/timeline.md](../guides/timeline.md)——用法与字段表
+- [../guides/timeline.md](../guides/timeline-zh.md)——用法与字段表

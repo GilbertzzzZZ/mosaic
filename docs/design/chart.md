@@ -1,6 +1,6 @@
 # Chart 区块设计
 
-> Chart 是 Mosaic 唯一走图表库出图的区块，也是唯一有三种写法的区块。本文解释写法分裂、模式边界、类型体系、标签可读性与格式化体系背后的设计理由。用法与属性表见 [../guides/chart.md](../guides/chart.md)。
+> Chart 是 Mosaic 唯一走图表库出图的区块，也是唯一有三种写法的区块。本文解释写法分裂、模式边界、类型体系、标签可读性与格式化体系背后的设计理由。用法与属性表见 [../guides/chart.md](../guides/chart-zh.md)。
 
 ## 为什么一种图表三种写法
 
@@ -65,4 +65,4 @@ stacked-bar 的 Y 轴上限按每期堆叠总和计，其余类型按单值最�
 
 - [architecture.md](architecture.md)——宿主时机、主题换肤、错误哲学等跨区块设计
 - [data-table.md](data-table.md)——共用外部数据集查询语义的姊妹区块
-- [../guides/chart.md](../guides/chart.md) / [../guides/dataset-guide.md](../guides/dataset-guide.md)——用法、属性表与排错清单
+- [../guides/chart.md](../guides/chart-zh.md) / [../guides/dataset-guide.md](../guides/dataset-guide-zh.md)——用法、属性表与排错清单
