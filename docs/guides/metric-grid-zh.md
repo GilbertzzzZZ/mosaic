@@ -7,6 +7,16 @@
 > 只支持内联 payload——不支持 `dataset` 属性，也不支持自闭合标签（body 为空时直接报错）。
 > 标签写法通则见 [tag-syntax.md](tag-syntax-zh.md)；网格自适应与状态色的设计动机见 [design/metric-grid.md](../design/metric-grid.md)。
 
+## 渲染效果
+
+> 示例截图一律使用模拟假数据（dark 主题实拍）。
+>
+> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+
+自适应网格 + good / risk / watch / neutral 四色状态顶边：
+
+![MetricGrid status cards](../_assets/metric-grid.png)
+
 ## 写法
 
 属性写在开标签上，payload 写在标签体内：
@@ -90,16 +100,6 @@ MetricGrid **没有其他属性**——不支持 `dataset`、不支持粒度/时
 ```
 
 按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax-zh.md#按原文渲染的通用情形)。
-
-## 渲染效果
-
-> 示例截图一律使用模拟假数据（dark 主题实拍）。
->
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
-
-自适应网格 + good / risk / watch / neutral 四色状态顶边：
-
-![MetricGrid status cards](../_assets/metric-grid.png)
 
 ## 相关文档
 

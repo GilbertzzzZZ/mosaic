@@ -8,6 +8,18 @@
 > **Multi-paragraph rich text only works in the code-block form** — the reason is below.
 > Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the two paths and the never-error stance is in [design/decision-box.md](../design/decision-box.md).
 
+## What it looks like
+
+> Screenshots always use simulated data, captured live in the dark theme.
+>
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
+
+Structured label/value in two columns, with status / owner / source badges (an accepted and a proposed record).
+
+> **\<pending\>**: this image predates the status colors — neither box has a colored left border. Today `accepted` is green and `proposed` is the theme accent.
+
+![DecisionBox records](../_assets/decision-box.png)
+
 ## Writing it
 
 **Structured label/value data.** Attributes go on the opening tag, the payload is label/value rows:
@@ -142,18 +154,6 @@ Invalid JSON inside a fenced json block
 The second is not specific to DecisionBox — it is how [common row extraction](tag-syntax.md#the-four-row-extraction-paths) handles malformed JSON everywhere.
 
 The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is). Note that "a blank line inside the tag body" is what makes multi-paragraph rich text unusable in the tag form, as explained above.
-
-## What it looks like
-
-> Screenshots always use simulated data, captured live in the dark theme.
->
-> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
-
-Structured label/value in two columns, with status / owner / source badges (an accepted and a proposed record).
-
-> **\<pending\>**: this image predates the status colors — neither box has a colored left border. Today `accepted` is green and `proposed` is the theme accent.
-
-![DecisionBox records](../_assets/decision-box.png)
 
 ## Related
 

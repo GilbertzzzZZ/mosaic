@@ -7,6 +7,16 @@
 > Inline payload only: no `dataset` attribute, and no self-closing form (an empty body is an error).
 > Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the vertical structure and the forgiving rendering is in [design/timeline.md](../design/timeline.md).
 
+## What it looks like
+
+> Screenshots always use simulated data, captured live in the dark theme.
+>
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
+
+A vertical timeline joined by a rule and truncated after the last item, with done / active / default status dots (`active` follows Obsidian's accent color):
+
+![Timeline milestones](../_assets/timeline.png)
+
 ## Writing it
 
 Attributes go on the opening tag, the payload goes in the body:
@@ -94,16 +104,6 @@ A dataset attribute on the tag (Timeline has no external-dataset support)
 ```
 
 The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
-
-## What it looks like
-
-> Screenshots always use simulated data, captured live in the dark theme.
->
-> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
-
-A vertical timeline joined by a rule and truncated after the last item, with done / active / default status dots (`active` follows Obsidian's accent color):
-
-![Timeline milestones](../_assets/timeline.png)
 
 ## Related
 

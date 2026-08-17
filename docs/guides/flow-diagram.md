@@ -7,6 +7,16 @@
 > Inline payload only: no `dataset` attribute, and no self-closing form (an empty body is an error).
 > Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the layered layout and the cycle degradation is in [design/flow-diagram.md](../design/flow-diagram.md).
 
+## What it looks like
+
+> Screenshots always use simulated data, captured live in the dark theme. Shape A (graph JSON) and shape B (tabular rows) lay out identically and are not screenshotted separately.
+>
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
+
+Layered DAG layout, six node colors, edge labels and arrowheads:
+
+![FlowDiagram layout](../_assets/flow-diagram.png)
+
 ## Writing it
 
 **Shape A (graph JSON).** Attributes go on the opening tag; the payload is a single ` ```json ` fence whose top level is a `{nodes, edges}` object:
@@ -164,16 +174,6 @@ A dataset attribute on the tag (FlowDiagram has no external-dataset support)
 ```
 
 The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
-
-## What it looks like
-
-> Screenshots always use simulated data, captured live in the dark theme. Shape A (graph JSON) and shape B (tabular rows) lay out identically and are not screenshotted separately.
->
-> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
-
-Layered DAG layout, six node colors, edge labels and arrowheads:
-
-![FlowDiagram layout](../_assets/flow-diagram.png)
 
 ## Related
 

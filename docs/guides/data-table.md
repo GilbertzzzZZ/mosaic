@@ -6,6 +6,18 @@
 > Two physical forms: a tag (usually paired; the self-closing form only makes sense in `dataset` mode) and a ```` ```datatable ```` code block. Same attribute contract, identical rendering.
 > Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind the layout algorithm and the two data sources is in [design/data-table.md](../design/data-table.md).
 
+## What it looks like
+
+> Screenshots always use simulated data, captured live in the dark theme. The three inline payload forms (CSV / JSON / Markdown table) render identically and are not screenshotted separately.
+>
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
+
+Top: inline CSV. Bottom: dataset mode, with a month/quarter granularity switcher and header text from the manifest labels.
+
+> **\<pending\>**: this image predates the toolbar removal — the search box, freeze-first-column checkbox and Copy CSV button in the top half no longer exist. Today the table itself is identical in both modes; dataset mode simply adds a granularity switcher and a footnote.
+
+![DataTable inline and dataset modes](../_assets/data-table.png)
+
 ## Writing it
 
 **Paired tag, inline data** (the main form). Attributes go on the opening tag, the payload goes in the body.
@@ -137,18 +149,6 @@ granularityOptions containing anything but day/week/month/quarter
 Deeper query errors in dataset mode — time alignment, granularity coarsening, `rollup` gaps — share their query semantics with Chart; the full list is in the troubleshooting section of [dataset-guide.md](dataset-guide.md).
 
 The cases where the source renders as-is — not taken over, not an error box — are identical for every tag block; see [tag-syntax.md](tag-syntax.md#when-the-source-renders-as-is).
-
-## What it looks like
-
-> Screenshots always use simulated data, captured live in the dark theme. The three inline payload forms (CSV / JSON / Markdown table) render identically and are not screenshotted separately.
->
-> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
-
-Top: inline CSV. Bottom: dataset mode, with a month/quarter granularity switcher and header text from the manifest labels.
-
-> **\<pending\>**: this image predates the toolbar removal — the search box, freeze-first-column checkbox and Copy CSV button in the top half no longer exist. Today the table itself is identical in both modes; dataset mode simply adds a granularity switcher and a footnote.
-
-![DataTable inline and dataset modes](../_assets/data-table.png)
 
 ## Related
 

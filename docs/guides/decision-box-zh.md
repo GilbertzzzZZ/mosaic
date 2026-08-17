@@ -8,6 +8,18 @@
 > **富文本回退要写多段，只能用代码块写法**——理由见下文。
 > 标签写法通则见 [tag-syntax.md](tag-syntax-zh.md)；双路径与永不报错立场的设计动机见 [design/decision-box.md](../design/decision-box.md)。
 
+## 渲染效果
+
+> 示例截图一律使用模拟假数据（dark 主题实拍）。
+>
+> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
+
+结构化 label/value 两列布局 + status / owner / source 徽标（accepted 与 proposed 两种状态）。
+
+> **<待补全>**：这张图拍摄于状态色加入之前，图中两个框都没有左边框颜色。现在 accepted 是绿、proposed 是主题强调色。
+
+![DecisionBox records](../_assets/decision-box.png)
+
 ## 写法
 
 **结构化 label/value 数据**：属性写在开标签上，payload 是 label/value 行：
@@ -141,18 +153,6 @@ fenced json 围栏内是不合法 JSON
 后者不是 DecisionBox 专属，是[通用行提取](tag-syntax-zh.md#通用行提取四路径)对畸形 JSON 的统一行为。
 
 按原文渲染（不接管、不是错误框）的情形对全部标签组件一致，见 [tag-syntax.md](tag-syntax-zh.md#按原文渲染的通用情形)；其中「标签体内出现空行」连带导致「多段落富文本回退」实际不可用，见上文写法说明。
-
-## 渲染效果
-
-> 示例截图一律使用模拟假数据（dark 主题实拍）。
->
-> **<待补全>**：全部截图拍摄于 2026-08-15，早于本轮的框体统一改动（六类内容块的边框、圆角、背景合并成一条规则，DataTable 的框从内层上提到外层）。图中的框体样式与当前渲染有出入，待统一重拍。
-
-结构化 label/value 两列布局 + status / owner / source 徽标（accepted 与 proposed 两种状态）。
-
-> **<待补全>**：这张图拍摄于状态色加入之前，图中两个框都没有左边框颜色。现在 accepted 是绿、proposed 是主题强调色。
-
-![DecisionBox records](../_assets/decision-box.png)
 
 ## 相关文档
 

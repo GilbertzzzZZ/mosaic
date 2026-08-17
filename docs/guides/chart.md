@@ -6,6 +6,24 @@
 > All three share the same attribute contract (see [Attributes](#attributes) below); a given attribute renders identically no matter which form it is written in.
 > Shared tag rules are in [tag-syntax.md](tag-syntax.md); the rationale behind three forms and the type system is in [design/chart.md](../design/chart.md); the external-dataset contract is in [dataset-guide.md](dataset-guide.md).
 
+## What it looks like
+
+> Screenshots always use simulated data, captured live in the dark theme. All three forms look the same and are not screenshotted separately.
+>
+> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
+
+**Inline CSV, combo chart** (paired-tag form, value labels including the first and last point):
+
+![Inline combo chart](../_assets/readme-chart.png)
+
+**External dataset, combo-dual-axis** (granularity switcher, `$` and `%` unit formatting, thousands grouping, note and provenance footnote):
+
+![Dataset dual-axis chart](../_assets/chart-dataset.png)
+
+**An error box** (a missing manifest path errors in place without affecting the rest of the page):
+
+![Chart error box](../_assets/chart-error.png)
+
 ## The three forms at a glance
 
 | Form | Shape | Data source | Best for |
@@ -57,9 +75,10 @@ One contract shared by all three entries. In the tag forms, one attribute per li
 - `stacked-bar`: the same n series stacked into one column per period instead of placed side by side.
 - `combo`: one scale for both — the left and right axes are pinned to the same `min: 0` and the same max. Legend order follows the order the attributes are written in (write `lines` before `bars` and the line series come first).
 - `combo-dual-axis`: independent left and right axes, with bars always on the left.
+- The granularity switcher appears whenever at least one candidate survives the intersection with what the data supports. A lone button says this data has exactly one view; hiding the control would read as the chart having no granularity at all.
 - Every chart adds 8% of headroom above its y-axis maximum (for stacked bars, computed on each period's total).
 - Line nodes are solid dots. Value labels are thousands-grouped with at most two decimals, and collide gracefully — shown when they fit, hidden when they do not.
-- Legend markers are rounded squares for column series and a short bar for line series. Charts follow Obsidian's light and dark themes and reskin in place the moment the theme changes; the figure carries a faint themed border.
+- Legend markers are rounded squares for column series and a rounded bar for line series. Charts follow Obsidian's light and dark themes and reskin in place the moment the theme changes; the figure carries a faint themed border.
 
 **Provenance footnote** (external-dataset mode only). Generated under every chart: `dataset title · from → to · granularity · N/M source rows · data through <date>`. A warning line is appended when the range contains incomplete or missing periods.
 
@@ -242,26 +261,6 @@ Neither dataset nor a CSV data section
 **The two `---` boundaries are hard; the attribute lines are not.** A missing opening or closing `---` errors the whole block — that is the code block's structural boundary, and without it there is no telling where attributes end and data begins. Malformed attribute lines do not void the block: indented lines, lines that are not `key: value`, and lines with a `key:` but no value are all skipped, the chart draws as usual, and the notice bar names which lines were skipped (word for word the same as the paired tag — see [the previous section](#it-still-renders-with-a-notice)). Only when **not a single attribute can be read** does the whole block fall back.
 
 Errors in the inline data section — forbidden attributes, invalid numbers, missing columns — are identical to the paired tag; see [above](#error-examples-paired-tag).
-
----
-
-## What it looks like
-
-> Screenshots always use simulated data, captured live in the dark theme. All three forms look the same and are not screenshotted separately.
->
-> **\<pending\>**: every screenshot was taken on 2026-08-15, before this round's frame unification (border, corner radius and background merged into one rule across all six blocks; DataTable's frame lifted from the inner element to the outer one). The frame styling in these images differs from what renders today; they will be retaken together.
-
-**Inline CSV, combo chart** (paired-tag form, value labels including the first and last point):
-
-![Inline combo chart](../_assets/readme-chart.png)
-
-**External dataset, combo-dual-axis** (granularity switcher, `$` and `%` unit formatting, thousands grouping, note and provenance footnote):
-
-![Dataset dual-axis chart](../_assets/chart-dataset.png)
-
-**An error box** (a missing manifest path errors in place without affecting the rest of the page):
-
-![Chart error box](../_assets/chart-error.png)
 
 ---
 
