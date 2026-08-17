@@ -18,9 +18,17 @@ main.js
 # obsidian
 data.json
 
+# Host state written when this repo is opened as a vault to read the docs:
+# workspace layout, hotkeys, installed plugins and themes, and obsidian-git's
+# askpass script. Machine-specific, changes constantly, never ours to ship.
+.obsidian/
+
 # superpowers scratch workspaces (any level)
 .superpowers/
 
 # gstack session state — holds a local auth token and browse logs,
 # so this one has to stay ignored in every fresh clone, not just locally.
 .gstack/
+
+# claudian settings and conversation metadata
+.claudian/
