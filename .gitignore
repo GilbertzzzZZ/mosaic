@@ -20,3 +20,7 @@ data.json
 
 # superpowers scratch workspaces (any level)
 .superpowers/
+
+# gstack session state — holds a local auth token and browse logs,
+# so this one has to stay ignored in every fresh clone, not just locally.
+.gstack/
