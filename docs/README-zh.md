@@ -1,8 +1,7 @@
 # Mosaic
 
-[![Release](https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=flat)](https://github.com/GilbertzzzZZ/mosaic/releases)
-[![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md)
-[![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](../LICENSE)
+[![Release](https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=flat)](https://github.com/GilbertzzzZZ/mosaic/releases) [![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md) [![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](../LICENSE)
+
 [![English](https://img.shields.io/badge/lang-English-informational?style=flat)](../README.md)
 
 > 英文版为准，本文是镜像翻译。

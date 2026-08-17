@@ -1,8 +1,7 @@
 # Mosaic
 
-[![Release](https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=flat)](https://github.com/GilbertzzzZZ/mosaic/releases)
-[![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md)
-[![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=flat)](https://github.com/GilbertzzzZZ/mosaic/releases) [![Obsidian](https://img.shields.io/badge/Obsidian-1.13.0%2B-7c3aed?style=flat)](https://obsidian.md) [![License](https://img.shields.io/github/license/GilbertzzzZZ/mosaic?style=flat)](LICENSE)
+
 [![简体中文](https://img.shields.io/badge/lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-informational?style=flat)](docs/README-zh.md)
 
 **Turn a plain-text declaration in your note into a chart, table, timeline or diagram — rendered in place, with no external service and no change to your source file.**
