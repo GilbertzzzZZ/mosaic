@@ -6,7 +6,6 @@
 
 <p align="center">
   <a href="https://github.com/GilbertzzzZZ/mosaic/releases"><img src="https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=for-the-badge&colorA=263238&colorB=4CAF50&label=VERSION" alt="Release"></a>
-  <a href="#六类内容块"><img src="https://img.shields.io/badge/Blocks-6-43A047?style=for-the-badge&colorA=263238&colorB=43A047" alt="Block types"></a>
   <a href="https://obsidian.md"><img src="https://img.shields.io/badge/Obsidian-1.13.0%2B-7C3AED?style=for-the-badge&colorA=263238&colorB=7C3AED" alt="Obsidian"></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-1976D2?style=for-the-badge&colorA=263238&colorB=1976D2" alt="License"></a>
 </p>
