@@ -11,10 +11,28 @@ import {
 	parseGranularityOptions,
 } from "./chart-tag-config.mjs";
 import { BlockContext } from "./components/blocks/BlockShell";
-import { ChartFigure } from "./components/ChartFigure";
+import { BuiltChart, ChartFigure } from "./components/ChartFigure";
 import { whenHostReady } from "./host-ready";
 import { renderInto } from "./react-root";
 import { withTheme } from "./chart-theme";
+
+// chart-tag-config 是无类型 .mjs，它的返回值不断言就以 any 的身份流过整条渲染链路。
+// 在这一个边界断言一次，之后 built 全程是 BuiltChart——与 render-component 对
+// queryDataset 的处理同一口径。BuiltChart 的字段写成 required，.mjs 侧改字段名时
+// 消费处会编译期报错。
+const buildFromInline = buildChartFromInline as unknown as (source: {
+	attributes: Record<string, string>;
+	csv: string;
+}) => BuiltChart;
+const buildFromTag = buildChartFromTag as unknown as (source: {
+	manifest: unknown;
+	rows: Record<string, string | number>[];
+	attributes: Record<string, string>;
+	granularity?: string;
+}) => BuiltChart;
+const granularityOptionsOf = parseGranularityOptions as unknown as (
+	attributes: Record<string, string>,
+) => string[];
 
 export interface ChartSource {
 	attributes: Record<string, string>;
@@ -43,7 +61,7 @@ export async function renderChartInto(
 		const build = () => {
 			// chart-tag-config 的入参仍叫 csv：Chart 的内联 body 本来就是 CSV，那一层
 			// 只服务 Chart，不共用给另外五类。
-			const built = withTheme(buildChartFromInline({ attributes, csv: body }));
+			const built = withTheme(buildFromInline({ attributes, csv: body }));
 			applyFieldNotice(built, attributes, unrecognized);
 			return built;
 		};
@@ -83,13 +101,13 @@ export async function renderChartInto(
 	// 换主题、宽度安定）都要重挂一次——build 是纯计算，每次返回一个新的 built。
 	const build = (granularity?: string) => {
 		const built = withTheme(
-			buildChartFromTag({ manifest, rows, attributes, granularity }),
+			buildFromTag({ manifest, rows, attributes, granularity }),
 		);
 		applyFieldNotice(built, attributes, unrecognized);
 		return built;
 	};
 	const initial = build(undefined);
-	const options = parseGranularityOptions(attributes).filter((g) =>
+	const options = granularityOptionsOf(attributes).filter((g) =>
 		initial.availableGranularities.includes(g),
 	);
 	renderInto(

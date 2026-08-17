@@ -4,10 +4,26 @@ import { BlockContext, BlockErrorBox, BlockFrame } from "./blocks/BlockShell";
 import { GranularityButtons } from "./GranularityButtons";
 import { buildFootnote } from "../chart-tag-config.mjs";
 
+// queryDataset 交回来的三段。字段按消费方（本组件、render-component、buildFootnote）
+// 实际读到的那些声明，与 DataTableView 的 TableLayout 同一套路：写成 required，
+// .mjs 侧改字段名时 tsc 才会在这里报 TS2322，而不是静默滑过去。
+export interface DataTableQueryMeta {
+	granularity: string;
+	availableGranularities: string[];
+	datasetTitle: string;
+	from: string;
+	to: string;
+	dataThrough: string;
+	sourceRows: number;
+	totalRows: number;
+}
+
 export interface DataTableQueryResult {
 	rows: Record<string, string | number>[];
-	attributes: Record<string, any>;
-	meta: Record<string, any>;
+	// 只声明消费方真正读的两个：columns 是逗号拼接的字段名（dataset-query 那侧
+	// outputFields.join(",")），与手写的 columns= 属性同形，所以能直接并进属性表。
+	attributes: { columns: string; columnLabels: Record<string, string> };
+	meta: DataTableQueryMeta;
 }
 
 interface DataTableFigureProps {

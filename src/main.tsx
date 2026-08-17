@@ -106,7 +106,11 @@ export default class MosaicPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		// loadData() 交回来的是 any（磁盘上的 data.json 可以是任何东西，也可能不存在）。
+		// 在这里收窄成「设置项的一个子集」：缺的字段由 DEFAULT_SETTINGS 补齐，
+		// 多出来的字段照旧带着走，与 Object.assign 原本的行为一致。
+		const saved = (await this.loadData()) as Partial<MosaicPluginSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
 	}
 
 	async saveSettings() {

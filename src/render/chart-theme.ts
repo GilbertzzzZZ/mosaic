@@ -27,11 +27,19 @@ function gridStroke(dark: boolean): string {
 	return dark ? "#262626" : "#D9D9D9";
 }
 
+// 整棵 G2 配置树里本模块只碰两处：节点自己的 y 轴，以及 DualAxes 的子视图。
+// 声明成这两处的局部形状，而不是把整个 config 摊成 any——其余字段本模块一概不读，
+// 用 any 描述它们只会让 any 从这里漏进调用方。
+interface AxisNode {
+	axis?: Record<string, unknown> & { y?: Record<string, unknown> };
+	children?: AxisNode[];
+}
+
 // y 轴挂在单视图的 config.axis 上，DualAxes 则逐 child 各带一份；折线和它的
 // 数据点共用一段 y scale，两份 axis 内容必须保持一致。
-function withGridStroke(config: Record<string, any>, dark: boolean): void {
+function withGridStroke(config: AxisNode, dark: boolean): void {
 	const stroke = gridStroke(dark);
-	const paint = (node: Record<string, any> | undefined) => {
+	const paint = (node: AxisNode | undefined) => {
 		if (!node?.axis?.y) return;
 		node.axis = { ...node.axis, y: { ...node.axis.y, gridStroke: stroke } };
 	};
@@ -49,6 +57,6 @@ export function withTheme<T extends { config: Record<string, unknown> }>(built: 
 	applyHighlightMarkStyle(built.config, highlightMarkStyle(dark));
 	applyCrosshairStyle(built.config, crosshairStyle(dark));
 	applyTooltipStyle(built.config, tooltipStyle(dark));
-	withGridStroke(built.config as Record<string, any>, dark);
+	withGridStroke(built.config, dark);
 	return built;
 }

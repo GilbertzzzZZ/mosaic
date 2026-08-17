@@ -99,13 +99,21 @@ export function parseCell(value) {
 	return Number.isFinite(number) && /^-?\d+(?:\.\d+)?$/.test(text) ? number : text;
 }
 
-/** Comma-separated attribute value → trimmed, non-empty string list. */
+/**
+ * Comma-separated attribute value → trimmed, non-empty string list.
+ * @param {string | undefined} value
+ * @returns {string[]}
+ */
 export function listAttribute(value) {
 	if (!value) return [];
 	return String(value).split(",").map((item) => item.trim()).filter(Boolean);
 }
 
-/** Dedupe a list of values as trimmed, non-empty strings (order preserved). */
+/**
+ * Dedupe a list of values as trimmed, non-empty strings (order preserved).
+ * @param {unknown[]} values
+ * @returns {string[]}
+ */
 export function uniqueStrings(values) {
 	return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
 }

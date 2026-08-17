@@ -31,6 +31,17 @@ type RenderableTag = {
 	body: string | null;
 };
 
+// findChartTags 只多一个 csv（fence 已剥出的内联数据），少一个 name（恒为 Chart）。
+type ChartTag = Omit<RenderableTag, "name" | "body"> & { csv: string | null };
+
+// 两个 finder 在 .mjs 里用「空数组 + push」累积结果，而 checkJs 关着时 TS 把空数组
+// 字面量推断成 any[]——标签对象的每个字段因此一路 any 到这里。在这一个边界断言一次，
+// 与 render-chart / render-component 对各自 .mjs 的处理同一口径：上面的 RenderableTag
+// 就是这两个 finder 的契约，写在一处，两个入口共用。
+// 标注类型而不是断言：finder 的返回值是 any[]，赋值本身就完成收窄，不必写 as。
+const chartTagsOf: (text: string) => ChartTag[] = findChartTags;
+const componentTagsOf: (text: string) => RenderableTag[] = findComponentTags;
+
 // 廉价预筛：section 里连候选开标签都没有就直接返回，避免逐段跑完整解析。
 const FAST_PATH = new RegExp(`<(${COMPONENT_NAMES.join("|")})`);
 
@@ -52,7 +63,7 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 		// Chart 候选沿用 findChartTags 的既有 csv-fence 校验语义（不匹配的候选被弃，
 		// 现状不变：既有 Chart 渲染行为零改变）；其余五类的 body 原文校验交给各自视图。
 		// 两组标签按 start 合并排序，isOnlyComponentTags 才能正确判定"整段仅由已识别标签构成"。
-		const chartTags: RenderableTag[] = findChartTags(section).map((t) => ({
+		const chartTags: RenderableTag[] = chartTagsOf(section).map((t) => ({
 			name: "Chart",
 			start: t.start,
 			end: t.end,
@@ -60,7 +71,7 @@ export function createChartTagProcessor(plugin: MosaicPlugin) {
 			unrecognized: t.unrecognized,
 			body: t.csv,
 		}));
-		const otherTags: RenderableTag[] = findComponentTags(section).filter(
+		const otherTags: RenderableTag[] = componentTagsOf(section).filter(
 			(t) => t.name !== "Chart",
 		);
 		const tags = [...chartTags, ...otherTags].sort((a, b) => a.start - b.start);
