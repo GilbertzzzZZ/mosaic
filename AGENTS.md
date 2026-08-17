@@ -91,7 +91,8 @@ obsidian-mosaic/
 │   └── *.md              # README-zh（根 README 的中文版，en 为准）、
 │                         # mosaic-intro（en 为准）与 zh 镜像
 ├── .github/workflows/    # ci.yml（PR 跑测试）+ release.yml（tag 触发出草稿 release）
-├── scripts/              # verify-release-tag.mjs：校验 tag 与三处版本号一致
+├── scripts/              # verify-release-tag.mjs（校验 tag 与三处版本号一致）+
+│                         # stub-d3-dsv.mjs（构建期替身，见 esbuild.config.mjs 的 alias）
 ├── styles.css            # 插件样式（发布三件套之一）
 ├── manifest.json         # 插件清单（发布三件套之一）
 └── esbuild.config.mjs    # 构建：tsc typecheck + esbuild bundle → main.js
@@ -149,7 +150,8 @@ npm run install:vault  # build + 按 MOSAIC_PLUGIN_DIR 拷三件套到测试 vau
 
 - 官方规范原文归档在 [docs/policies/](docs/policies/)，四篇均带 `obsidian-` 前缀：developer-policies、submission-requirements、plugin-guidelines、plugin-self-critique-checklist。改 UI/设置页/manifest 前先对照。
 - 发版操作步骤在 [docs/guides/publishing-to-obsidian.md](docs/guides/publishing-to-obsidian.md)。注意官方流程已改版：提交社区目录走 community.obsidian.md，**不再向 obsidian-releases 提 PR**。
-- 已达成并必须保持：无 console 噪音、无 innerHTML、无网络请求、无遥测、UI 文案英文 sentence case、设置页无标题、build 必过 typecheck、`main.js` 不进 git。
+- 已达成并必须保持：无 console 噪音、无 innerHTML、无网络请求、无遥测、bundle 里无 `eval` / `new Function`、UI 文案英文 sentence case、设置页无标题且走声明式 API（`getSettingDefinitions`，不留 `display()`）、build 必过 typecheck、`main.js` 不进 git。
+- 审核结果里的 **Source code** 一节，是目录方用它自己那套 typescript-eslint 跑出来的，不是本仓库的 lint。**不要为了复现它把 lint 工具链装进本仓库**：`typescript-eslint` 的 peer 是 `typescript >=4.8.4 <6.1.0`，而本仓库用 TS 7——装它就得降 TypeScript 主版本；`eslint-plugin-obsidianmd` 的 peer 还锁死 `obsidian: 1.8.7`。更不要把 lint 挂进 `build`：目录审核靠 `npm run build` 做 byte-for-byte 复现，lint 一红，整次扫描就没有结果。要核对就在仓库外建一次性环境，跑完即弃。
 
 ## Git 规则
 
