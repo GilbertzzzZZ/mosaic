@@ -12,7 +12,7 @@ AI agent（Claude Code / Codex / Gemini CLI 等）**必读**，并遵守其中�
 
 ## Repo purpose
 
-Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/mosaic`）：声明式内容块渲染引擎——在 Markdown（`.md`/`.mdx`）正文里写一段声明，阅读视图就地渲染为富交互内容。当前支持六类内容块：Chart（AntV 图表，三种写法）、DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram。
+Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/obsidian-mosaic`）：声明式内容块渲染引擎——在 Markdown（`.md`/`.mdx`）正文里写一段声明，阅读视图就地渲染为富交互内容。当前支持六类内容块：Chart（AntV 图表，三种写法）、DataTable、MetricGrid、Timeline、DecisionBox、FlowDiagram。
 
 产品定位与 Roadmap 见 [docs/mosaic-intro.md](docs/mosaic-intro.md)（en 为准，zh 为镜像翻译）。
 
@@ -75,7 +75,7 @@ Mosaic 是 Obsidian 社区插件（plugin id `mosaic`，GitHub `GilbertzzzZZ/mos
 ## File structure
 
 ```
-mosaic/
+obsidian-mosaic/
 ├── src/                  # 三层源码（见上）
 ├── tests/                # node --test，只测 parse/render 的纯函数 .mjs
 ├── docs/

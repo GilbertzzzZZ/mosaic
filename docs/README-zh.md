@@ -5,7 +5,7 @@
 <p align="center"><em>Obsidian 的声明式内容块</em></p>
 
 <p align="center">
-  <a href="https://github.com/GilbertzzzZZ/mosaic/releases"><img src="https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=for-the-badge&colorA=263238&colorB=4CAF50&label=VERSION" alt="Release"></a>
+  <a href="https://github.com/GilbertzzzZZ/obsidian-mosaic/releases"><img src="https://img.shields.io/github/v/release/GilbertzzzZZ/obsidian-mosaic?style=for-the-badge&colorA=263238&colorB=4CAF50&label=VERSION" alt="Release"></a>
   <a href="https://obsidian.md"><img src="https://img.shields.io/badge/Obsidian-1.13.0%2B-7C3AED?style=for-the-badge&colorA=263238&colorB=7C3AED" alt="Obsidian"></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-1976D2?style=for-the-badge&colorA=263238&colorB=1976D2" alt="License"></a>
 </p>
@@ -61,7 +61,7 @@
 
 **从社区插件安装**（等待目录审核）：上架后在 设置 → 第三方插件 中搜索 "Mosaic"。
 
-**手动安装**：从 [最新 release](https://github.com/GilbertzzzZZ/mosaic/releases/latest) 下载 `main.js`、`manifest.json` 与 `styles.css`，拷进 `<vault>/.obsidian/plugins/mosaic/`，然后在 设置 → 第三方插件 中启用 **Mosaic**。
+**手动安装**：从 [最新 release](https://github.com/GilbertzzzZZ/obsidian-mosaic/releases/latest) 下载 `main.js`、`manifest.json` 与 `styles.css`，拷进 `<vault>/.obsidian/plugins/mosaic/`，然后在 设置 → 第三方插件 中启用 **Mosaic**。
 
 ## 快速上手
 
@@ -330,7 +330,7 @@ npm run build   # tsc typecheck + esbuild 打包 -> main.js
 
 ## 参与贡献
 
-Bug 报告与需求请提到 [Issues](https://github.com/GilbertzzzZZ/mosaic/issues)。渲染类 bug 请附上：
+Bug 报告与需求请提到 [Issues](https://github.com/GilbertzzzZZ/obsidian-mosaic/issues)。渲染类 bug 请附上：
 
 - 块声明本身（每个块的错误框上都有复制按钮，产出的报告可直接粘贴）。
 - 你的 Obsidian 版本与 Mosaic 版本。

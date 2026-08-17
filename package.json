@@ -40,5 +40,5 @@
     "react": "npm:@preact/compat@^17.0.2",
     "react-dom": "npm:@preact/compat@^17.0.2"
   },
-  "repository": "git@github.com:GilbertzzzZZ/mosaic.git"
+  "repository": "git@github.com:GilbertzzzZZ/obsidian-mosaic.git"
 }

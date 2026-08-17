@@ -5,7 +5,7 @@ import { builtinModules } from 'node:module';
 // Bundles src/main.tsx into main.js; Obsidian API and Node builtins stay external.
 const banner = `/*
 Mosaic bundle — built by esbuild, not meant for direct editing.
-Source: https://github.com/GilbertzzzZZ/mosaic
+Source: https://github.com/GilbertzzzZZ/obsidian-mosaic
 */
 `;
 

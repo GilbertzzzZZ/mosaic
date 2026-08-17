@@ -5,7 +5,7 @@
 <p align="center"><em>Declarative content blocks for Obsidian</em></p>
 
 <p align="center">
-  <a href="https://github.com/GilbertzzzZZ/mosaic/releases"><img src="https://img.shields.io/github/v/release/GilbertzzzZZ/mosaic?style=for-the-badge&colorA=263238&colorB=4CAF50&label=VERSION" alt="Release"></a>
+  <a href="https://github.com/GilbertzzzZZ/obsidian-mosaic/releases"><img src="https://img.shields.io/github/v/release/GilbertzzzZZ/obsidian-mosaic?style=for-the-badge&colorA=263238&colorB=4CAF50&label=VERSION" alt="Release"></a>
   <a href="https://obsidian.md"><img src="https://img.shields.io/badge/Obsidian-1.13.0%2B-7C3AED?style=for-the-badge&colorA=263238&colorB=7C3AED" alt="Obsidian"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-1976D2?style=for-the-badge&colorA=263238&colorB=1976D2" alt="License"></a>
 </p>
@@ -59,7 +59,7 @@
 
 **From Community plugins** (pending directory review): search for "Mosaic" in Settings → Community plugins once listed.
 
-**Manual**: download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/GilbertzzzZZ/mosaic/releases/latest), copy them into `<vault>/.obsidian/plugins/mosaic/`, then enable **Mosaic** in Settings → Community plugins.
+**Manual**: download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/GilbertzzzZZ/obsidian-mosaic/releases/latest), copy them into `<vault>/.obsidian/plugins/mosaic/`, then enable **Mosaic** in Settings → Community plugins.
 
 ## Quick start
 
@@ -328,7 +328,7 @@ Release procedure: [docs/guides/publishing-to-obsidian.md](docs/guides/publishin
 
 ## Contributing
 
-Bug reports and feature requests go to [Issues](https://github.com/GilbertzzzZZ/mosaic/issues). For a rendering bug, please include:
+Bug reports and feature requests go to [Issues](https://github.com/GilbertzzzZZ/obsidian-mosaic/issues). For a rendering bug, please include:
 
 - The block declaration itself (the copy button on each block's error box produces a ready-to-paste report).
 - Your Obsidian version and Mosaic version.
